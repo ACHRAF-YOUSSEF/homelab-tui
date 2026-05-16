@@ -142,14 +142,16 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
     } else if (input === "t") {
       runAction("start", () => startDockerService(getRunner(), selectedService));
     } else if (input === "l") {
-      getDockerLogs(getRunner(), selectedService)
-        .then((out) => setLogs(out))
-        .catch((err: unknown) => {
-          const msg = err instanceof Error ? err.message : String(err);
-          flash(`logs failed: ${msg}`, true);
-        });
-    } else if (input === "L") {
-      setLogs(null);
+      if (logs === null) {
+        getDockerLogs(getRunner(), selectedService)
+          .then((out) => setLogs(out))
+          .catch((err: unknown) => {
+            const msg = err instanceof Error ? err.message : String(err);
+            flash(`logs failed: ${msg}`, true);
+          });
+      } else {
+        setLogs(null);
+      }
     }
   });
 

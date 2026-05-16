@@ -28,10 +28,7 @@ export function Footer({ actionMessage, error }: Props) {
         <Text dimColor> start</Text>
         {SEP}
         {KEY("l")}
-        <Text dimColor> logs</Text>
-        {SEP}
-        {KEY("L")}
-        <Text dimColor> close logs</Text>
+        <Text dimColor> toggle logs</Text>
         {SEP}
         {KEY("h")}
         <Text dimColor> hosts</Text>
