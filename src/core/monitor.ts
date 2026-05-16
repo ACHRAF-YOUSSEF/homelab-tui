@@ -1,10 +1,10 @@
-import { SSHTransport, PassphraseRequiredError } from "../transports/ssh.js";
+import { SSHTransport,  } from "../transports/ssh.js";
 import type { ConnectOptions } from "../transports/ssh.js";
 import { detectRemoteOS } from "./os-detect.js";
-import { getDockerServices } from "../adapters/docker.js";
+import { getDockerServices, streamDockerLogs } from "../adapters/docker.js";
 import type { HostConfig, MonitorSnapshot, SystemInfo, RemoteOS } from "./types.js";
 
-export { PassphraseRequiredError };
+
 
 async function getSystemInfo(
   run: (cmd: string) => Promise<string>,
@@ -50,6 +50,19 @@ export class Monitor {
     return this.transport.run(cmd);
   }
 
+  streamLogs(
+    service: import("./types.js").Service,
+    onData: (chunk: string) => void,
+    onClose?: (code: number | null) => void
+  ): Promise<() => void> {
+    return streamDockerLogs(
+      (cmd, d, c) => this.transport.stream(cmd, d, c),
+      service,
+      onData,
+      onClose
+    );
+  }
+
   async dispose(): Promise<void> {
     await this.transport.dispose();
   }
@@ -75,3 +88,5 @@ export class Monitor {
     }
   }
 }
+
+export {PassphraseRequiredError} from "../transports/ssh.js";

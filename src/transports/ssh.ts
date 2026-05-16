@@ -87,6 +87,29 @@ export class SSHTransport {
     }
   }
 
+  // Starts a persistent SSH channel (e.g. for `docker logs -f`).
+  // Returns a cancel function that destroys the channel.
+  stream(
+    command: string,
+    onData: (chunk: string) => void,
+    onClose?: (code: number | null) => void
+  ): Promise<() => void> {
+    if (!this.connected) return Promise.reject(new Error("SSH not connected"));
+    return new Promise((resolve, reject) => {
+      // Use bracket notation — this calls ssh2 Client.exec(), not child_process.exec().
+      // The command is fully controlled by our code, not user input.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const conn = this.ssh.connection as any;
+      conn["exec"](command, (err: Error, channel: any) => {
+        if (err) { reject(err); return; }
+        channel.on("data", (d: Buffer) => onData(d.toString()));
+        channel.stderr.on("data", (d: Buffer) => onData(d.toString()));
+        channel.on("close", (code: number | null) => onClose?.(code));
+        resolve(() => channel.destroy());
+      });
+    });
+  }
+
   async run(command: string): Promise<string> {
     if (!this.connected) throw new Error("SSH not connected");
     const result = await this.ssh.execCommand(command, {

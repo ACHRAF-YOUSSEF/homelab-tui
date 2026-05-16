@@ -134,3 +134,12 @@ export async function getDockerLogs(
 ): Promise<string> {
   return run(`docker logs --tail ${lines} ${service.name}`);
 }
+
+export function streamDockerLogs(
+  stream: (cmd: string, onData: (chunk: string) => void, onClose?: (code: number | null) => void) => Promise<() => void>,
+  service: Service,
+  onData: (chunk: string) => void,
+  onClose?: (code: number | null) => void
+): Promise<() => void> {
+  return stream(`docker logs -f --tail 200 ${service.name}`, onData, onClose);
+}

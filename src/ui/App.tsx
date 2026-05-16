@@ -6,7 +6,6 @@ import {
   restartDockerService,
   startDockerService,
   stopDockerService,
-  getDockerLogs,
 } from "../adapters/docker.js";
 import type { HostConfig, MonitorSnapshot, Service } from "../core/types.js";
 import { Header } from "./Header.js";
@@ -34,29 +33,58 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [logsOpen, setLogsOpen] = useState(false);
-  const [logs, setLogs] = useState<string | null>(null);
+  const [logLines, setLogLines] = useState<string[]>([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const logCancelRef = useRef<(() => void) | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const MAX_LOG_LINES = 2000;
+
   const services: Service[] = snapshot?.services ?? [];
   const selectedService: Service | null = services[selectedIndex] ?? null;
 
-  // Re-fetch logs when selection changes while the panel is open
+  // Start/restart live log stream when panel is open or selection changes
   useEffect(() => {
-    if (!logsOpen || !selectedService) return;
-    let cancelled = false;
-    setLogs(null);
-    getDockerLogs((cmd) => monitorRef.current!.run(cmd), selectedService)
-      .then((out) => { if (!cancelled) setLogs(out); })
+    // Cancel any running stream first
+    logCancelRef.current?.();
+    logCancelRef.current = null;
+
+    if (!logsOpen || !selectedService) {
+      setLogLines([]);
+      return;
+    }
+
+    setLogLines([]);
+    setLogsLoading(true);
+    let buf: string[] = [];
+
+    const mon = monitorRef.current;
+    if (!mon) return;
+
+    mon.streamLogs(
+      selectedService,
+      (chunk) => {
+        const incoming = chunk.split("\n").filter((l) => l.length > 0);
+        buf = [...buf, ...incoming].slice(-MAX_LOG_LINES);
+        setLogLines([...buf]);
+        setLogsLoading(false);
+      },
+      () => setLogsLoading(false)
+    )
+      .then((cancel) => { logCancelRef.current = cancel; })
       .catch((err: unknown) => {
-        if (!cancelled) {
-          const msg = err instanceof Error ? err.message : String(err);
-          setLogs(`Error: ${msg}`);
-        }
+        const msg = err instanceof Error ? err.message : String(err);
+        setLogLines([`Error: ${msg}`]);
+        setLogsLoading(false);
       });
-    return () => { cancelled = true; };
-  // selectedIndex is the stable dep — selectedService changes ref on every snapshot refresh
+
+    return () => {
+      logCancelRef.current?.();
+      logCancelRef.current = null;
+    };
+  // selectedIndex is intentionally stable dep — selectedService ref changes every refresh
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIndex, logsOpen]);
 
@@ -169,7 +197,13 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
       {snapshot?.system && <SystemPanel system={snapshot.system} />}
       <ServiceList services={services} selectedIndex={selectedIndex} />
       <ServiceDetails service={selectedService} />
-      {logsOpen && <LogPanel logs={logs} serviceName={selectedService?.name ?? null} />}
+      {logsOpen && (
+        <LogPanel
+          lines={logLines}
+          loading={logsLoading}
+          serviceName={selectedService?.name ?? null}
+        />
+      )}
       <Footer actionMessage={actionMessage} error={error} />
     </Box>
   );
