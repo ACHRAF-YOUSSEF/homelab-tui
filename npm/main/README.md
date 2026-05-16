@@ -1,6 +1,6 @@
 # homelab-tui
 
-Terminal UI for monitoring a remote homelab server over SSH. Discovers Docker containers, streams live logs, and shows system metrics. Supports Linux, macOS, and Windows remote hosts.
+Terminal UI for monitoring a remote homelab server over SSH. Discovers Docker containers and native system services, streams live logs, and shows system metrics. Supports Linux, macOS, and Windows remote hosts.
 
 ## Install
 
@@ -8,17 +8,18 @@ Terminal UI for monitoring a remote homelab server over SSH. Discovers Docker co
 npm install -g homelab-tui
 ```
 
-The correct binary for your platform is downloaded automatically on install.
+The correct binary for your platform is downloaded automatically on install. No Bun runtime needed.
 
 ## Usage
 
 ```sh
-homelab-tui                            # launch TUI
-homelab-tui --config /path/to/config  # use a specific config file (session only)
-homelab-tui --set-config /path/to/config  # persist config path as default
-homelab-tui --update                   # self-update to latest release
-homelab-tui --version                  # print version
-homelab-tui --help                     # print help
+homelab-tui                                        # launch TUI
+homelab-tui --config /path/to/homelab.config.json  # use a specific config (session only)
+homelab-tui --set-config /path/to/homelab.config.json  # persist config path as default
+homelab-tui --update                               # self-update to latest release
+homelab-tui --check-update                         # check latest version without installing
+homelab-tui --version                              # print version
+homelab-tui --help                                 # print help
 ```
 
 On first launch, a setup wizard lets you create or locate your `homelab.config.json`.
@@ -44,22 +45,49 @@ On first launch, a setup wizard lets you create or locate your `homelab.config.j
 }
 ```
 
-`authMethod` can be `"password"` (prompted at launch) or `"key"` (SSH private key, supports agent).
+| Field | Description |
+|---|---|
+| `authMethod` | `"password"` (prompted at launch) or `"key"` (SSH private key, supports agent) |
+| `nativeServices` | Also discover systemd / launchd / Windows Services |
+| `includeStoppedContainers` | Show stopped Docker containers |
 
 ## Keyboard shortcuts
 
+### Host selector
+
 | Key | Action |
 |-----|--------|
-| `↑` / `↓` | Select service |
-| `r` | Restart container |
-| `s` | Stop container |
-| `t` | Start container |
-| `l` | Toggle live logs |
+| `↑` / `↓` | Select host |
+| `Enter` | Connect |
+| `a` | Add new host |
+| `e` | Edit selected host |
+| `d` | Delete selected host |
+
+### Monitor
+
+| Key | Action |
+|-----|--------|
+| `↑` / `↓` | Select service (scroll logs when panel is open) |
+| `r` | Restart selected service |
+| `s` | Stop selected service |
+| `t` | Start selected service |
+| `l` | Toggle live log panel |
+| `PgUp` / `PgDn` | Scroll log panel |
 | `/` | Search by name or image |
-| `f` | Cycle status filter |
-| `o` | Cycle sort order |
+| `f` | Cycle filter: all → docker → native → running → stopped → failed → restarting |
+| `o` | Cycle sort: name → status → image |
 | `h` | Switch host |
 | `q` | Quit |
+
+## Features
+
+- **Multi-host** — add, edit, delete hosts at runtime
+- **Docker discovery** — containers with status, image, ports, health, Compose project
+- **Native services** — systemd (Linux), launchd (macOS), Windows Services
+- **Live logs** — streamed over SSH, scrollable, auto-follows new output
+- **System metrics** — CPU %, RAM, disk usage
+- **Auto-reconnect** — automatically reconnects when SSH drops
+- **Self-update** — `homelab-tui --update` replaces the binary in place
 
 ## Supported platforms
 

@@ -1,6 +1,6 @@
 # homelab-tui
 
-Terminal UI for monitoring a remote homelab server over SSH. Discovers Docker containers, streams live logs, and shows system metrics. Supports Linux, macOS, and Windows remote hosts.
+Terminal UI for monitoring a remote homelab server over SSH. Discovers Docker containers and native system services, streams live logs, and shows system metrics. Supports Linux, macOS, and Windows remote hosts.
 
 ## Screenshots
 
@@ -23,12 +23,6 @@ Terminal UI for monitoring a remote homelab server over SSH. Discovers Docker co
   </tr>
 </table>
 
-## Requirements
-
-- [Bun](https://bun.sh) ≥ 1.0
-- SSH access to remote host (password or private key)
-- Docker installed on remote host (for container discovery)
-
 ## Installation
 
 ### npm / bun (recommended)
@@ -39,7 +33,7 @@ npm install -g homelab-tui
 bun add -g homelab-tui
 ```
 
-This automatically downloads the pre-built binary for your platform (Linux x64/arm64, macOS x64/arm64, Windows x64). No Bun runtime needed after install.
+The correct binary for your platform is downloaded automatically. No Bun runtime needed after install.
 
 ### Download a binary manually
 
@@ -54,11 +48,8 @@ Download the latest binary for your platform from [Releases](https://github.com/
 | Windows x64 | `homelab-tui-windows-x64.exe` |
 
 ```sh
-# Linux / macOS
 chmod +x homelab-tui-linux-x64
 mv homelab-tui-linux-x64 /usr/local/bin/homelab-tui
-
-# Windows — add to a folder in your PATH
 ```
 
 ### From source (requires Bun)
@@ -67,11 +58,29 @@ mv homelab-tui-linux-x64 /usr/local/bin/homelab-tui
 git clone https://github.com/ACHRAF-YOUSSEF/homelab-tui
 cd homelab-tui
 bun install
+bun dev
 ```
 
-## Config
+## Requirements
 
-Create `homelab.config.json` in the project root:
+- SSH access to remote host (password or private key)
+- Docker installed on remote host (for container discovery)
+
+## CLI
+
+```sh
+homelab-tui                                    # launch TUI
+homelab-tui --config /path/to/homelab.config.json  # use a specific config (session only)
+homelab-tui --set-config /path/to/homelab.config.json  # persist config path as default
+homelab-tui --update                           # self-update to latest GitHub release
+homelab-tui --check-update                     # check latest version without installing
+homelab-tui --version                          # print version
+homelab-tui --help                             # print help
+```
+
+On first launch with no config file, a setup screen lets you create one or point to an existing path.
+
+## Config
 
 ```json
 {
@@ -92,44 +101,27 @@ Create `homelab.config.json` in the project root:
 }
 ```
 
-### Auth methods
-
-| `authMethod` | Required fields | Notes |
-|---|---|---|
-| `"password"` | — | Prompted at launch, never stored |
-| `"key"` | `privateKeyPath` | Supports SSH agent (`SSH_AUTH_SOCK`), passphrase prompted if key is encrypted |
-
-## CLI
-
-```sh
-homelab-tui                        # launch TUI
-homelab-tui --config /path/to/homelab.config.json  # use a specific config (session only)
-homelab-tui --set-config /path/to/homelab.config.json  # persist config path as default
-homelab-tui --update               # self-update to latest GitHub release
-homelab-tui --check-update         # check latest version without installing
-homelab-tui --version              # print version
-homelab-tui --help                 # print help
-
-# From source
-bun dev
-```
-
-On first launch with no config file, a setup screen lets you create one or point to an existing path. The chosen path is saved to `~/.config/homelab-tui/settings.json` (Windows: `%APPDATA%\homelab-tui\settings.json`) so future launches find it automatically.
+| Field | Description |
+|---|---|
+| `authMethod` | `"password"` (prompted at launch) or `"key"` (SSH private key, supports agent) |
+| `privateKeyPath` | Required when `authMethod` is `"key"` |
+| `nativeServices` | Discover systemd / launchd / Windows Services in addition to Docker |
+| `includeStoppedContainers` | Show stopped Docker containers |
 
 ## Screens
 
 ### Host selector
-Shown on startup when hosts exist. Lists all configured hosts.
+Shown on startup. Lists all configured hosts.
 
 | Key | Action |
 |-----|--------|
 | `↑` / `↓` | Select host |
 | `Enter` | Connect |
 | `a` | Add new host |
+| `e` | Edit selected host |
 | `d` | Delete selected host |
 
-### Add host form
-Shown on first launch or when pressing `a` in the selector.
+### Add / Edit host form
 
 | Key | Action |
 |-----|--------|
@@ -137,34 +129,35 @@ Shown on first launch or when pressing `a` in the selector.
 | `Space` | Toggle boolean / auth method |
 | `Enter` | Confirm field / save |
 | `Esc` | Cancel (or quit on first run) |
-| `q` | Quit |
 
 ### Monitor
-Main view showing system info, services, and optional log panel.
 
 | Key | Action |
 |-----|--------|
-| `↑` / `↓` | Select service (or scroll logs when log panel is open) |
-| `r` | Restart selected container |
-| `s` | Stop selected container |
-| `t` | Start selected container |
+| `↑` / `↓` | Select service (scroll logs when log panel is open) |
+| `r` | Restart selected service |
+| `s` | Stop selected service |
+| `t` | Start selected service |
 | `l` | Toggle live log panel |
-| `PgUp` / `PgDn` | Scroll log panel |
-| `/` | Enter search mode (filter by name or image) |
-| `f` | Cycle status filter: all → running → stopped → failed → restarting |
+| `↑` / `↓` / `PgUp` / `PgDn` | Scroll log panel (when open) |
+| `/` | Search by name or image |
+| `f` | Cycle filter: all → docker → native → running → stopped → failed → restarting |
 | `o` | Cycle sort: name → status → image |
 | `h` | Back to host selector |
 | `q` | Quit |
 
 ## Features
 
-- **Multi-host** — add/remove hosts at runtime, config auto-saved to `homelab.config.json`
+- **Multi-host** — add, edit, delete hosts at runtime; config auto-saved
 - **OS detection** — auto-detects Linux, macOS, Windows over SSH
-- **Docker discovery** — lists all containers (running and stopped) with status, image, ports
-- **Live logs** — `docker logs -f` streamed over SSH, scrollable, auto-follows new lines
+- **Docker discovery** — containers with status, image, ports, health, Compose project
+- **Native services** — systemd (Linux), launchd (macOS), Windows Services
+- **Live logs** — `docker logs -f` / `journalctl -f` streamed over SSH, scrollable with auto-follow
 - **System metrics** — CPU %, RAM, disk usage with progress bars
-- **Search / filter / sort** — filter by status, sort by name/status/image, search by name or image
-- **Password & key auth** — password prompted securely at runtime; SSH agent supported for keys
+- **Search / filter / sort** — filter by type (docker/native) or status, sort by name/status/image
+- **Auto-reconnect** — exponential backoff (3 → 5 → 10 → 20 → 30 s) when SSH drops
+- **Password & key auth** — password prompted securely; SSH agent supported for encrypted keys
+- **Self-update** — `homelab-tui --update` downloads and replaces the binary in place
 
 ## Enabling OpenSSH on Windows (remote host)
 
@@ -175,17 +168,26 @@ Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
 Start-Service sshd
 Set-Service -Name sshd -StartupType Automatic
 
-# Add your public key
 $authorizedKeysPath = "$env:USERPROFILE\.ssh\authorized_keys"
 New-Item -Force -ItemType Directory (Split-Path $authorizedKeysPath)
 Add-Content $authorizedKeysPath "ssh-ed25519 AAAA... your-public-key"
 ```
 
+## Releasing a new version
+
+```sh
+bun run release:patch   # 1.0.0 → 1.0.1
+bun run release:minor   # 1.0.0 → 1.1.0
+bun run release:major   # 1.0.0 → 2.0.0
+```
+
+Pushes a git tag → GitHub Actions builds all 5 platform binaries → creates GitHub release → publishes to npm.
+
 ## Known Limitations
 
 - Only one host monitored at a time (no split-pane multi-host view)
-- `nativeServices` (systemd / Windows Services) not yet implemented
-- CPU usage on Linux requires two `/proc/stat` reads 200 ms apart — runs in parallel with Docker discovery so rarely adds latency
+- macOS and Windows native service log streaming not supported (snapshot only)
+- CPU usage on Linux requires two `/proc/stat` reads 200 ms apart
 
 ## Star History
 
