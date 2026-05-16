@@ -5,7 +5,7 @@ import { loadSettings, saveSettings } from "./config/settings.js";
 import { selfUpdate, getLatestRelease } from "./updater.js";
 import { Root } from "./ui/Root.js";
 
-const VERSION = "0.1.0";
+const VERSION = "1.0.0";
 const HELP = `
 homelab-tui v${VERSION} — Terminal UI for homelab monitoring
 
