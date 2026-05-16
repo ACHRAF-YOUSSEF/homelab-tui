@@ -19,14 +19,22 @@ function clr(pct: number) {
 
 type DiskEntry = { name: string; totalBytes: number; freeBytes: number };
 
+function Metric({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <Box gap={1} marginRight={4}>
+      <Text dimColor>{label}</Text>
+      {children}
+    </Box>
+  );
+}
+
 function DiskBar({ d }: { d: DiskEntry }) {
   const used = d.totalBytes - d.freeBytes;
   const pct = Math.round((used / d.totalBytes) * 100);
   return (
-    <Box gap={1}>
-      <Text dimColor>{d.name}</Text>
+    <Metric label={d.name}>
       <Text color={clr(pct)}>{bar(pct)} {fmtBytes(used)}/{fmtBytes(d.totalBytes)}</Text>
-    </Box>
+    </Metric>
   );
 }
 
@@ -41,34 +49,28 @@ export function SystemPanel({ system }: Readonly<Props>) {
 
   return (
     <Box borderStyle="single" borderColor="blue" paddingX={1} width="100%" flexDirection="column">
-      <Text bold color="blue">System</Text>
-
-      {/* Row 1: CPU + RAM */}
-      <Box justifyContent="space-between">
+      <Box gap={0}>
+        {/* CPU */}
         {system.cpuUsagePercent !== undefined && (
-          <Box gap={1}>
-            <Text dimColor>CPU</Text>
+          <Metric label="CPU">
             <Text color={clr(system.cpuUsagePercent)}>
               {bar(system.cpuUsagePercent)} {system.cpuUsagePercent}%
             </Text>
-          </Box>
+          </Metric>
         )}
+
+        {/* RAM */}
         {ramPct !== null && system.ram && (
-          <Box gap={1}>
-            <Text dimColor>RAM</Text>
+          <Metric label="RAM">
             <Text color={clr(ramPct)}>
               {bar(ramPct)} {fmtBytes(system.ram.usedBytes)}/{fmtBytes(system.ram.totalBytes)}
             </Text>
-          </Box>
+          </Metric>
         )}
-      </Box>
 
-      {/* Row 2: Disks — wrap into multiple rows if many */}
-      {disks.length > 0 && (
-        <Box justifyContent="space-between" flexWrap="wrap">
-          {disks.map((d) => <DiskBar key={d.name} d={d} />)}
-        </Box>
-      )}
+        {/* Disks inline — wrap if too many */}
+        {disks.map((d) => <DiskBar key={d.name} d={d} />)}
+      </Box>
     </Box>
   );
 }
