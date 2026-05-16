@@ -61,30 +61,10 @@ jobs:
             dist/homelab-tui-darwin-arm64
             dist/homelab-tui-windows-x64.exe
 
-      - name: Publish platform packages to npm
+      - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          for PLATFORM in linux-x64 linux-arm64 darwin-x64 darwin-arm64 windows-x64; do
-            EXT=""
-            [ "$PLATFORM" = "windows-x64" ] && EXT=".exe"
-
-            mkdir -p npm/platforms/$PLATFORM/bin
-            cp dist/homelab-tui-$PLATFORM$EXT npm/platforms/$PLATFORM/bin/homelab-tui$EXT
-            chmod +x npm/platforms/$PLATFORM/bin/homelab-tui$EXT 2>/dev/null || true
-
-            jq ".version = \"$VERSION\"" npm/platforms/$PLATFORM/package.json > tmp.json
-            mv tmp.json npm/platforms/$PLATFORM/package.json
-
-            npm publish ./npm/platforms/$PLATFORM --access public || true
-          done
-
-      - name: Publish main package to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          # Sync all optionalDependency versions to match the release
-          jq ".version = \"$VERSION\" | .optionalDependencies = (.optionalDependencies | map_values(\"$VERSION\"))" \
-            npm/main/package.json > tmp.json && mv tmp.json npm/main/package.json
-
+          jq ".version = \"$VERSION\"" npm/main/package.json > tmp.json
+          mv tmp.json npm/main/package.json
           npm publish ./npm/main --access public

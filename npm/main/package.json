@@ -12,14 +12,10 @@
   "bin": {
     "homelab-tui": "./bin.js"
   },
-  "files": ["bin.js"],
-  "optionalDependencies": {
-    "homelab-tui-linux-x64": "1.0.0",
-    "homelab-tui-linux-arm64": "1.0.0",
-    "homelab-tui-darwin-x64": "1.0.0",
-    "homelab-tui-darwin-arm64": "1.0.0",
-    "homelab-tui-windows-x64": "1.0.0"
+  "scripts": {
+    "postinstall": "node postinstall.js"
   },
+  "files": ["bin.js", "postinstall.js"],
   "engines": {
     "node": ">=18"
   }
