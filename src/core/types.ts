@@ -44,7 +44,8 @@ export type HostConfig = {
   host: string;
   port: number;
   username: string;
-  privateKeyPath: string;
+  authMethod: "key" | "password";
+  privateKeyPath?: string;
   discovery: {
     docker: boolean;
     nativeServices: boolean;

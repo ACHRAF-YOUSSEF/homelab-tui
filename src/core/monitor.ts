@@ -1,4 +1,5 @@
 import { SSHTransport, PassphraseRequiredError } from "../transports/ssh.js";
+import type { ConnectOptions } from "../transports/ssh.js";
 import { detectRemoteOS } from "./os-detect.js";
 import { getDockerServices } from "../adapters/docker.js";
 import type { HostConfig, MonitorSnapshot, SystemInfo, RemoteOS } from "./types.js";
@@ -36,12 +37,13 @@ export class Monitor {
       host: cfg.host,
       port: cfg.port,
       username: cfg.username,
+      authMethod: cfg.authMethod,
       privateKeyPath: cfg.privateKeyPath,
     });
   }
 
-  async connect(passphrase?: string): Promise<void> {
-    await this.transport.connect(passphrase);
+  async connect(opts: ConnectOptions = {}): Promise<void> {
+    await this.transport.connect(opts);
   }
 
   run(cmd: string): Promise<string> {

@@ -1,16 +1,17 @@
 import React, { useState, useCallback } from "react";
 import { HostSelector } from "./HostSelector.js";
 import { HostForm } from "./HostForm.js";
-import { PassphrasePrompt } from "./PassphrasePrompt.js";
+import { CredentialPrompt } from "./CredentialPrompt.js";
 import { App } from "./App.js";
-import { loadConfig, saveConfig } from "../config/loader.js";
+import { saveConfig } from "../config/loader.js";
+import type { ConnectOptions } from "../transports/ssh.js";
 import type { AppConfig, HostConfig } from "../core/types.js";
 
 type Screen =
   | { kind: "selector" }
   | { kind: "form" }
-  | { kind: "passphrase"; host: HostConfig }
-  | { kind: "monitor"; host: HostConfig; passphrase?: string };
+  | { kind: "credential"; host: HostConfig; mode: "password" | "passphrase" }
+  | { kind: "monitor"; host: HostConfig; connectOptions?: ConnectOptions };
 
 function getInitialScreen(config: AppConfig): Screen {
   if (config.hosts.length === 0) return { kind: "form" };
@@ -29,12 +30,14 @@ export function Root({ initialConfig }: Readonly<Props>) {
   }, []);
 
   const handleSelectHost = useCallback((host: HostConfig) => {
-    setScreen({ kind: "monitor", host });
+    if (host.authMethod === "password") {
+      setScreen({ kind: "credential", host, mode: "password" });
+    } else {
+      setScreen({ kind: "monitor", host });
+    }
   }, []);
 
-  const handleAddHost = useCallback(() => {
-    setScreen({ kind: "form" });
-  }, []);
+  const handleAddHost = useCallback(() => setScreen({ kind: "form" }), []);
 
   const handleDeleteHost = useCallback((index: number) => {
     const next = { hosts: config.hosts.filter((_, i) => i !== index) };
@@ -45,32 +48,27 @@ export function Root({ initialConfig }: Readonly<Props>) {
   const handleFormSubmit = useCallback((host: HostConfig) => {
     const next = { hosts: [...config.hosts, host] };
     persistConfig(next);
-    setScreen({ kind: "monitor", host });
-  }, [config, persistConfig]);
+    handleSelectHost(host);
+  }, [config, persistConfig, handleSelectHost]);
 
-  const handleFormCancel = useCallback(() => {
-    setScreen({ kind: "selector" });
-  }, []);
+  const handleFormCancel = useCallback(() => setScreen({ kind: "selector" }), []);
 
-  const handleSwitchHost = useCallback(() => {
-    setScreen({ kind: "selector" });
-  }, []);
+  const handleSwitchHost = useCallback(() => setScreen({ kind: "selector" }), []);
 
   const handleNeedPassphrase = useCallback(() => {
     if (screen.kind === "monitor") {
-      setScreen({ kind: "passphrase", host: screen.host });
+      setScreen({ kind: "credential", host: screen.host, mode: "passphrase" });
     }
   }, [screen]);
 
-  const handlePassphraseSubmit = useCallback((passphrase: string) => {
-    if (screen.kind === "passphrase") {
-      setScreen({ kind: "monitor", host: screen.host, passphrase });
-    }
+  const handleCredentialSubmit = useCallback((value: string) => {
+    if (screen.kind !== "credential") return;
+    const opts: ConnectOptions =
+      screen.mode === "password" ? { password: value } : { passphrase: value };
+    setScreen({ kind: "monitor", host: screen.host, connectOptions: opts });
   }, [screen]);
 
-  const handlePassphraseCancel = useCallback(() => {
-    setScreen({ kind: "selector" });
-  }, []);
+  const handleCredentialCancel = useCallback(() => setScreen({ kind: "selector" }), []);
 
   if (screen.kind === "selector") {
     return (
@@ -92,12 +90,13 @@ export function Root({ initialConfig }: Readonly<Props>) {
     );
   }
 
-  if (screen.kind === "passphrase") {
+  if (screen.kind === "credential") {
     return (
-      <PassphrasePrompt
+      <CredentialPrompt
         host={screen.host}
-        onSubmit={handlePassphraseSubmit}
-        onCancel={handlePassphraseCancel}
+        mode={screen.mode}
+        onSubmit={handleCredentialSubmit}
+        onCancel={handleCredentialCancel}
       />
     );
   }
@@ -106,7 +105,7 @@ export function Root({ initialConfig }: Readonly<Props>) {
   return (
     <App
       hostConfig={screen.host}
-      passphrase={screen.passphrase}
+      connectOptions={screen.connectOptions}
       onSwitchHost={handleSwitchHost}
       onNeedPassphrase={handleNeedPassphrase}
     />

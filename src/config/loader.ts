@@ -9,14 +9,20 @@ const DiscoverySchema = z.object({
   includeStoppedContainers: z.boolean().default(true),
 });
 
-const HostSchema = z.object({
-  name: z.string().min(1),
-  host: z.string().min(1),
-  port: z.number().int().min(1).max(65535).default(22),
-  username: z.string().min(1),
-  privateKeyPath: z.string().min(1),
-  discovery: DiscoverySchema.default({}),
-});
+const HostSchema = z
+  .object({
+    name: z.string().min(1),
+    host: z.string().min(1),
+    port: z.number().int().min(1).max(65535).default(22),
+    username: z.string().min(1),
+    authMethod: z.enum(["key", "password"]).default("key"),
+    privateKeyPath: z.string().optional(),
+    discovery: DiscoverySchema.default({}),
+  })
+  .refine(
+    (h) => h.authMethod === "password" || !!h.privateKeyPath,
+    { message: "privateKeyPath required when authMethod is 'key'", path: ["privateKeyPath"] }
+  );
 
 const AppConfigSchema = z.object({
   hosts: z.array(HostSchema).default([]),
@@ -42,7 +48,7 @@ export function loadConfig(configPath = CONFIG_PATH): AppConfig | null {
       .join("\n");
     throw new Error(`Invalid config:\n${issues}`);
   }
-  return result.data;
+  return result.data as AppConfig;
 }
 
 export function saveConfig(config: AppConfig, configPath = CONFIG_PATH): void {

@@ -8,53 +8,64 @@ type Props = {
   onCancel?: () => void;
 };
 
-type Field = "name" | "host" | "port" | "username" | "privateKeyPath" | "docker" | "stopped";
+type AuthMethod = "key" | "password";
 
-const FIELDS: Field[] = ["name", "host", "port", "username", "privateKeyPath", "docker", "stopped"];
+type TextField = "name" | "host" | "port" | "username" | "privateKeyPath";
+type BoolField = "docker" | "stopped";
+type AuthField = "authMethod";
+type Field = TextField | AuthField | BoolField;
 
-const LABELS: Record<Field, string> = {
+const TEXT_LABELS: Record<TextField, string> = {
   name: "Display name",
   host: "Host / IP address",
   port: "SSH port",
   username: "Username",
   privateKeyPath: "Private key path",
-  docker: "Docker discovery",
-  stopped: "Include stopped containers",
 };
 
 export function HostForm({ onSubmit, onCancel = () => {} }: Readonly<Props>) {
-  const [focusIndex, setFocusIndex] = useState(0);
   const [name, setName] = useState("");
   const [host, setHost] = useState("");
   const [port, setPort] = useState("22");
   const [username, setUsername] = useState("");
+  const [authMethod, setAuthMethod] = useState<AuthMethod>("key");
   const [privateKeyPath, setPrivateKeyPath] = useState("~/.ssh/id_ed25519");
   const [docker, setDocker] = useState(true);
   const [stopped, setStopped] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [focusIndex, setFocusIndex] = useState(0);
 
-  const currentField = FIELDS[focusIndex];
-  const isBoolean = currentField === "docker" || currentField === "stopped";
+  // Build the active field list dynamically based on authMethod
+  const fields: Field[] = [
+    "name", "host", "port", "username",
+    "authMethod",
+    ...(authMethod === "key" ? ["privateKeyPath" as Field] : []),
+    "docker", "stopped",
+  ];
+
+  const currentField = fields[focusIndex];
+  const isBool = currentField === "docker" || currentField === "stopped";
+  const isAuth = currentField === "authMethod";
+
+  const advance = (delta = 1) =>
+    setFocusIndex((i) => Math.max(0, Math.min(fields.length - 1, i + delta)));
 
   useInput((_input, key) => {
     if (key.escape) { onCancel(); return; }
 
-    if (key.tab || (key.downArrow && isBoolean)) {
-      setFocusIndex((i) => Math.min(FIELDS.length - 1, i + 1));
-      return;
-    }
-    if (key.shift && key.tab || key.upArrow && isBoolean) {
-      setFocusIndex((i) => Math.max(0, i - 1));
-      return;
-    }
+    if (key.tab || (key.downArrow && (isBool || isAuth))) { advance(1); return; }
+    if ((key.shift && key.tab) || (key.upArrow && (isBool || isAuth))) { advance(-1); return; }
 
-    if (isBoolean) {
-      if (_input === " ") {
-        if (currentField === "docker") setDocker((v) => !v);
-        if (currentField === "stopped") setStopped((v) => !v);
-      }
-      if (key.return) trySubmit();
+    if (isBool && _input === " ") {
+      if (currentField === "docker") setDocker((v) => !v);
+      if (currentField === "stopped") setStopped((v) => !v);
     }
+    if (isAuth && _input === " ") {
+      setAuthMethod((m) => (m === "key" ? "password" : "key"));
+      // If switching to password, clamp focus so we don't land on the now-hidden key field
+      setFocusIndex((i) => i);
+    }
+    if ((isBool || isAuth) && key.return) trySubmit();
   });
 
   function trySubmit() {
@@ -63,38 +74,32 @@ export function HostForm({ onSubmit, onCancel = () => {} }: Readonly<Props>) {
     if (!host.trim()) { setError("Host required"); return; }
     if (Number.isNaN(portNum) || portNum < 1 || portNum > 65535) { setError("Invalid port"); return; }
     if (!username.trim()) { setError("Username required"); return; }
-    if (!privateKeyPath.trim()) { setError("Key path required"); return; }
+    if (authMethod === "key" && !privateKeyPath.trim()) { setError("Key path required"); return; }
     setError(null);
     onSubmit({
       name: name.trim(),
       host: host.trim(),
       port: portNum,
       username: username.trim(),
-      privateKeyPath: privateKeyPath.trim(),
+      authMethod,
+      privateKeyPath: authMethod === "key" ? privateKeyPath.trim() : undefined,
       discovery: { docker, nativeServices: false, includeStoppedContainers: stopped },
     });
   }
 
-  function handleSubmit(field: Field) {
-    if (field !== "privateKeyPath") {
-      setFocusIndex((i) => Math.min(FIELDS.length - 1, i + 1));
-      return;
-    }
-    trySubmit();
+  function handleTextSubmit(field: TextField) {
+    const isLast =
+      (authMethod === "key" && field === "privateKeyPath") ||
+      (authMethod === "password" && field === "username");
+    if (isLast) { trySubmit(); return; }
+    advance(1);
   }
 
-  const values: Record<Field, string> = {
-    name, host, port, username, privateKeyPath,
-    docker: docker ? "yes" : "no",
-    stopped: stopped ? "yes" : "no",
+  const textSetters: Record<TextField, (v: string) => void> = {
+    name: setName, host: setHost, port: setPort, username: setUsername, privateKeyPath: setPrivateKeyPath,
   };
-
-  const setters: Partial<Record<Field, (v: string) => void>> = {
-    name: setName,
-    host: setHost,
-    port: setPort,
-    username: setUsername,
-    privateKeyPath: setPrivateKeyPath,
+  const textValues: Record<TextField, string> = {
+    name, host, port, username, privateKeyPath,
   };
 
   return (
@@ -103,28 +108,43 @@ export function HostForm({ onSubmit, onCancel = () => {} }: Readonly<Props>) {
         <Text bold color="cyan">Add host</Text>
         <Text> </Text>
 
-        {FIELDS.map((field, i) => {
+        {fields.map((field, i) => {
           const focused = i === focusIndex;
-          const isBool = field === "docker" || field === "stopped";
 
-          return (
-            <Box key={field} marginBottom={0}>
-              <Text color={focused ? "white" : "gray"}>
-                {LABELS[field].padEnd(28)}
-              </Text>
-              {isBool ? (
+          if (field === "authMethod") {
+            return (
+              <Box key="authMethod">
+                <Text color={focused ? "white" : "gray"}>{"Auth method".padEnd(28)}</Text>
                 <Text color={focused ? "cyan" : "gray"}>
-                  [{values[field]}]{focused ? "  (space to toggle)" : ""}
+                  [{authMethod}]{focused ? "  (space to toggle)" : ""}
                 </Text>
-              ) : (
-                <TextInput
-                  value={values[field]}
-                  onChange={setters[field]!}
-                  onSubmit={() => handleSubmit(field)}
-                  focus={focused}
-                  mask={field === "privateKeyPath" ? undefined : undefined}
-                />
-              )}
+              </Box>
+            );
+          }
+
+          if (field === "docker" || field === "stopped") {
+            const val = field === "docker" ? docker : stopped;
+            const label = field === "docker" ? "Docker discovery" : "Include stopped containers";
+            return (
+              <Box key={field}>
+                <Text color={focused ? "white" : "gray"}>{label.padEnd(28)}</Text>
+                <Text color={focused ? "cyan" : "gray"}>
+                  [{val ? "yes" : "no"}]{focused ? "  (space to toggle)" : ""}
+                </Text>
+              </Box>
+            );
+          }
+
+          const tf = field as TextField;
+          return (
+            <Box key={tf}>
+              <Text color={focused ? "white" : "gray"}>{TEXT_LABELS[tf].padEnd(28)}</Text>
+              <TextInput
+                value={textValues[tf]}
+                onChange={textSetters[tf]}
+                onSubmit={() => handleTextSubmit(tf)}
+                focus={focused}
+              />
             </Box>
           );
         })}
@@ -132,10 +152,10 @@ export function HostForm({ onSubmit, onCancel = () => {} }: Readonly<Props>) {
         {error && <Text color="red">{error}</Text>}
         <Text> </Text>
         <Box gap={2}>
-          <Text dimColor><Text color="cyan">Tab</Text> next field</Text>
-          <Text dimColor><Text color="cyan">Enter</Text> confirm / save</Text>
+          <Text dimColor><Text color="cyan">Tab</Text> next</Text>
+          <Text dimColor><Text color="cyan">Enter</Text> save</Text>
           <Text dimColor><Text color="cyan">Space</Text> toggle</Text>
-          <Text dimColor><Text color="cyan">Esc</Text> cancel</Text>
+          {onCancel !== (() => {}) && <Text dimColor><Text color="cyan">Esc</Text> cancel</Text>}
         </Box>
       </Box>
     </Box>

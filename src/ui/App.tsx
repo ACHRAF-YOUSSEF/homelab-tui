@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Box, useApp, useInput } from "ink";
 import { Monitor, PassphraseRequiredError } from "../core/monitor.js";
+import type { ConnectOptions } from "../transports/ssh.js";
 import {
   restartDockerService,
   startDockerService,
@@ -19,12 +20,12 @@ const REFRESH_MS = 3_000;
 
 type Props = {
   hostConfig: HostConfig;
-  passphrase?: string;
+  connectOptions?: ConnectOptions;
   onSwitchHost: () => void;
   onNeedPassphrase: () => void;
 };
 
-export function App({ hostConfig, passphrase, onSwitchHost, onNeedPassphrase }: Readonly<Props>) {
+export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase }: Readonly<Props>) {
   const { exit } = useApp();
   const monitorRef = useRef<Monitor | null>(null);
 
@@ -69,7 +70,7 @@ export function App({ hostConfig, passphrase, onSwitchHost, onNeedPassphrase }: 
     setSnapshot(null);
 
     mon
-      .connect(passphrase)
+      .connect(connectOptions)
       .then(() => doRefresh())
       .catch((err: unknown) => {
         if (err instanceof PassphraseRequiredError) {
@@ -93,7 +94,7 @@ export function App({ hostConfig, passphrase, onSwitchHost, onNeedPassphrase }: 
       clearInterval(interval);
       mon.dispose();
     };
-  }, [hostConfig, passphrase, doRefresh, onNeedPassphrase]);
+  }, [hostConfig, connectOptions, doRefresh, onNeedPassphrase]);
 
   const runAction = useCallback(
     async (action: string, fn: () => Promise<void>) => {

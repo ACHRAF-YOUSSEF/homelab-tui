@@ -6,7 +6,13 @@ export type SSHConfig = {
   host: string;
   port: number;
   username: string;
-  privateKeyPath: string;
+  authMethod: "key" | "password";
+  privateKeyPath?: string;
+};
+
+export type ConnectOptions = {
+  passphrase?: string;
+  password?: string;
 };
 
 export class PassphraseRequiredError extends Error {
@@ -18,11 +24,12 @@ export class PassphraseRequiredError extends Error {
 
 function isPassphraseError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
+  const lower = msg.toLowerCase();
   return (
-    msg.toLowerCase().includes("passphrase") ||
-    msg.toLowerCase().includes("encrypted key") ||
-    msg.toLowerCase().includes("bad passphrase") ||
-    msg.toLowerCase().includes("cannot parse privatekey")
+    lower.includes("passphrase") ||
+    lower.includes("encrypted key") ||
+    lower.includes("bad passphrase") ||
+    lower.includes("cannot parse privatekey")
   );
 }
 
@@ -35,20 +42,26 @@ export class SSHTransport {
     this.cfg = cfg;
   }
 
-  async connect(passphrase?: string): Promise<void> {
-    const agentSocket = process.env.SSH_AUTH_SOCK;
-    const keyPath = this.cfg.privateKeyPath.replace(/^~/, homedir());
+  async connect(opts: ConnectOptions = {}): Promise<void> {
+    const base = {
+      host: this.cfg.host,
+      port: this.cfg.port,
+      username: this.cfg.username,
+      readyTimeout: 10_000,
+    };
 
-    // Try SSH agent first — avoids needing to decrypt the key ourselves
-    if (agentSocket && !passphrase) {
+    if (this.cfg.authMethod === "password") {
+      if (!opts.password) throw new Error("Password required but not provided");
+      await this.ssh.connect({ ...base, password: opts.password });
+      this.connected = true;
+      return;
+    }
+
+    // Key-based auth
+    const agentSocket = process.env.SSH_AUTH_SOCK;
+    if (agentSocket && !opts.passphrase) {
       try {
-        await this.ssh.connect({
-          host: this.cfg.host,
-          port: this.cfg.port,
-          username: this.cfg.username,
-          agent: agentSocket,
-          readyTimeout: 10_000,
-        });
+        await this.ssh.connect({ ...base, agent: agentSocket });
         this.connected = true;
         return;
       } catch {
@@ -56,6 +69,7 @@ export class SSHTransport {
       }
     }
 
+    const keyPath = (this.cfg.privateKeyPath ?? "~/.ssh/id_ed25519").replace(/^~/, homedir());
     let privateKey: string;
     try {
       privateKey = readFileSync(keyPath, "utf-8");
@@ -65,14 +79,7 @@ export class SSHTransport {
     }
 
     try {
-      await this.ssh.connect({
-        host: this.cfg.host,
-        port: this.cfg.port,
-        username: this.cfg.username,
-        privateKey,
-        passphrase,
-        readyTimeout: 10_000,
-      });
+      await this.ssh.connect({ ...base, privateKey, passphrase: opts.passphrase });
       this.connected = true;
     } catch (err: unknown) {
       if (isPassphraseError(err)) throw new PassphraseRequiredError();
