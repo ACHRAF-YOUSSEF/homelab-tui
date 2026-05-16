@@ -2,6 +2,27 @@
 
 Terminal UI for monitoring a remote homelab server over SSH. Discovers Docker containers, streams live logs, and shows system metrics. Supports Linux, macOS, and Windows remote hosts.
 
+## Screenshots
+
+<table>
+  <tr>
+    <td><img src="assets/monitor.png" alt="Monitor view" /></td>
+    <td><img src="assets/logs.png" alt="Live logs panel" /></td>
+  </tr>
+  <tr>
+    <td><em>Service list with filter, sort and search</em></td>
+    <td><em>Live log streaming</em></td>
+  </tr>
+  <tr>
+    <td><img src="assets/host-selector.png" alt="Host selector" /></td>
+    <td><img src="assets/add-host.png" alt="Add host form" /></td>
+  </tr>
+  <tr>
+    <td><em>Host selector</em></td>
+    <td><em>Add host form</em></td>
+  </tr>
+</table>
+
 ## Requirements
 
 - [Bun](https://bun.sh) ≥ 1.0
