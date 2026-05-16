@@ -11,7 +11,7 @@ const SEP = <Text dimColor> · </Text>;
 
 export function Footer({ actionMessage, error }: Readonly<Props>) {
   return (
-    <Box borderStyle="single" borderColor="gray" paddingX={1} flexDirection="column">
+    <Box borderStyle="single" borderColor="gray" paddingX={1} width="100%" flexDirection="column">
       {error && <Text color="red">Error: {error}</Text>}
       {actionMessage && <Text color="green">{actionMessage}</Text>}
       <Box flexWrap="wrap">

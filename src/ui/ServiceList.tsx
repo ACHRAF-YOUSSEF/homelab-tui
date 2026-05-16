@@ -79,7 +79,7 @@ export function ServiceList({
   const sortLabel = sortBy === "name" ? "" : ` [↕${sortBy}]`;
 
   return (
-    <Box borderStyle="single" borderColor="magenta" paddingX={1} flexDirection="column">
+    <Box borderStyle="single" borderColor="magenta" paddingX={1} width="100%" flexDirection="column">
 
       {/* Title row */}
       <Box>

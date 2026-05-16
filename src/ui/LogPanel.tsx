@@ -51,7 +51,7 @@ export function LogPanel({ lines, loading, serviceName, visible }: Readonly<Prop
   const position = totalLines === 0 ? "empty" : `${start + 1}–${end} of ${totalLines}`;
 
   return (
-    <Box borderStyle="single" borderColor="yellow" paddingX={1} flexDirection="column">
+    <Box borderStyle="single" borderColor="yellow" paddingX={1} width="100%" flexDirection="column">
       <Box>
         <Text bold color="yellow">Logs: {serviceName ?? "—"}</Text>
         <Text>{"  "}</Text>

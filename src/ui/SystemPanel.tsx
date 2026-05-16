@@ -13,48 +13,51 @@ function bar(pct: number, width = 10): string {
   return "[" + "█".repeat(filled) + "░".repeat(width - filled) + "]";
 }
 
+function color(pct: number) {
+  return pct > 80 ? "red" : pct > 50 ? "yellow" : "green";
+}
+
 type Props = { system: SystemInfo };
 
 export function SystemPanel({ system }: Readonly<Props>) {
-  const ramPct =
-    system.ram
-      ? Math.round((system.ram.usedBytes / system.ram.totalBytes) * 100)
-      : null;
+  const ramPct = system.ram
+    ? Math.round((system.ram.usedBytes / system.ram.totalBytes) * 100)
+    : null;
 
   return (
-    <Box borderStyle="single" borderColor="blue" paddingX={1} marginBottom={0}>
-      <Box flexDirection="column">
-        <Text bold color="blue">System</Text>
-        <Box gap={3}>
-          {system.cpuUsagePercent !== undefined && (
-            <Text>
-              <Text dimColor>CPU </Text>
-              <Text color={system.cpuUsagePercent > 80 ? "red" : system.cpuUsagePercent > 50 ? "yellow" : "green"}>
-                {bar(system.cpuUsagePercent)} {system.cpuUsagePercent}%
-              </Text>
+    <Box borderStyle="single" borderColor="blue" paddingX={1} width="100%" flexDirection="column">
+      <Text bold color="blue">System</Text>
+      <Box justifyContent="space-between">
+        {system.cpuUsagePercent !== undefined && (
+          <Box gap={1}>
+            <Text dimColor>CPU</Text>
+            <Text color={color(system.cpuUsagePercent)}>
+              {bar(system.cpuUsagePercent)} {system.cpuUsagePercent}%
             </Text>
-          )}
-          {ramPct !== null && system.ram && (
-            <Text>
-              <Text dimColor>RAM </Text>
-              <Text color={ramPct > 80 ? "red" : ramPct > 50 ? "yellow" : "green"}>
-                {bar(ramPct)} {fmtBytes(system.ram.usedBytes)}/{fmtBytes(system.ram.totalBytes)}
-              </Text>
+          </Box>
+        )}
+
+        {ramPct !== null && system.ram && (
+          <Box gap={1}>
+            <Text dimColor>RAM</Text>
+            <Text color={color(ramPct)}>
+              {bar(ramPct)} {fmtBytes(system.ram.usedBytes)}/{fmtBytes(system.ram.totalBytes)}
             </Text>
-          )}
-          {system.disks?.slice(0, 2).map((d) => {
-            const used = d.totalBytes - d.freeBytes;
-            const pct = Math.round((used / d.totalBytes) * 100);
-            return (
-              <Text key={d.name}>
-                <Text dimColor>{d.name} </Text>
-                <Text color={pct > 80 ? "red" : pct > 50 ? "yellow" : "green"}>
-                  {bar(pct)} {fmtBytes(used)}/{fmtBytes(d.totalBytes)}
-                </Text>
+          </Box>
+        )}
+
+        {system.disks?.map((d) => {
+          const used = d.totalBytes - d.freeBytes;
+          const pct = Math.round((used / d.totalBytes) * 100);
+          return (
+            <Box key={d.name} gap={1}>
+              <Text dimColor>{d.name}</Text>
+              <Text color={color(pct)}>
+                {bar(pct)} {fmtBytes(used)}/{fmtBytes(d.totalBytes)}
               </Text>
-            );
-          })}
-        </Box>
+            </Box>
+          );
+        })}
       </Box>
     </Box>
   );
