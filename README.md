@@ -121,13 +121,11 @@ New-Item -Force -ItemType Directory (Split-Path $authorizedKeysPath)
 Add-Content $authorizedKeysPath "ssh-ed25519 AAAA... your-public-key"
 ```
 
-## MVP Limitations
+## Known Limitations
 
-- Only the first selected host is monitored at a time (no multi-pane)
-- `nativeServices` (systemd / Windows services) not yet implemented
-- Docker actions use container-level commands (`docker restart/stop/start`), not `docker compose`
-- No reconnect on SSH drop — press `h` to go back to selector and reconnect
-- CPU usage on Linux requires two `/proc/stat` reads 500 ms apart
+- Only one host monitored at a time (no split-pane multi-host view)
+- `nativeServices` (systemd / Windows Services) not yet implemented
+- CPU usage on Linux requires two `/proc/stat` reads 200 ms apart — runs in parallel with Docker discovery so rarely adds latency
 
 ## Star History
 

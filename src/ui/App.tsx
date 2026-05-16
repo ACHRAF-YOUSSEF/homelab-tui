@@ -17,12 +17,17 @@ import { Footer } from "./Footer.js";
 
 const REFRESH_MS = 3_000;
 const MAX_LOG_LINES = 2000;
+const RECONNECT_DELAYS = [3, 5, 10, 20, 30]; // seconds
 
 export type SortField = "name" | "status" | "image";
 export type StatusFilter = ServiceStatus | "all";
 
 const STATUS_FILTER_CYCLE: StatusFilter[] = ["all", "running", "stopped", "failed", "restarting"];
 const SORT_CYCLE: SortField[] = ["name", "status", "image"];
+
+function isConnectionError(msg: string): boolean {
+  return /not connected|ssh not|econnreset|socket|connection (lost|closed|refused)|timed?\s?out/i.test(msg);
+}
 
 type Props = {
   hostConfig: HostConfig;
@@ -39,6 +44,12 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
   const [connecting, setConnecting] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
+
+  // Reconnect
+  const [retryKey, setRetryKey] = useState(0);
+  const [reconnectCountdown, setReconnectCountdown] = useState<number | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reconnectAttemptsRef = useRef(0);
 
   // Filter / sort / search
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,15 +72,11 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
 
   const filteredServices = useMemo(() => {
     let result = allServices;
-    if (statusFilter !== "all") {
-      result = result.filter((s) => s.status === statusFilter);
-    }
+    if (statusFilter !== "all") result = result.filter((s) => s.status === statusFilter);
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
-        (s) =>
-          s.name.toLowerCase().includes(q) ||
-          (s.image?.toLowerCase().includes(q) ?? false)
+        (s) => s.name.toLowerCase().includes(q) || (s.image?.toLowerCase().includes(q) ?? false)
       );
     }
     return [...result].sort((a, b) => {
@@ -79,15 +86,51 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
     });
   }, [allServices, statusFilter, searchQuery, sortBy]);
 
-  // Reset selection when filter/sort/search changes
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [statusFilter, searchQuery, sortBy]);
+  useEffect(() => { setSelectedIndex(0); }, [statusFilter, searchQuery, sortBy]);
 
   const clampedIndex = Math.min(selectedIndex, Math.max(0, filteredServices.length - 1));
   const selectedService: Service | null = filteredServices[clampedIndex] ?? null;
 
-  // Live log stream
+  // ── Reconnect logic ──────────────────────────────────────────────────────────
+  const triggerReconnect = useCallback(() => {
+    if (reconnectTimerRef.current) return; // already counting down
+    const delay = RECONNECT_DELAYS[Math.min(reconnectAttemptsRef.current, RECONNECT_DELAYS.length - 1)];
+    reconnectAttemptsRef.current++;
+    let count = delay;
+    setReconnectCountdown(count);
+    reconnectTimerRef.current = setInterval(() => {
+      count--;
+      if (count <= 0) {
+        clearInterval(reconnectTimerRef.current!);
+        reconnectTimerRef.current = null;
+        setReconnectCountdown(null);
+        setRetryKey((k) => k + 1); // re-triggers the main connection useEffect
+      } else {
+        setReconnectCountdown(count);
+      }
+    }, 1000);
+  }, []);
+
+  // Watch for connection errors in snapshot
+  useEffect(() => {
+    if (snapshot?.error && isConnectionError(snapshot.error)) {
+      triggerReconnect();
+    }
+  }, [snapshot?.error, triggerReconnect]);
+
+  // Clear reconnect state on successful snapshot
+  useEffect(() => {
+    if (snapshot && !snapshot.error) {
+      reconnectAttemptsRef.current = 0;
+      if (reconnectTimerRef.current) {
+        clearInterval(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+        setReconnectCountdown(null);
+      }
+    }
+  }, [snapshot]);
+
+  // ── Live log stream ──────────────────────────────────────────────────────────
   useEffect(() => {
     logCancelRef.current?.();
     logCancelRef.current = null;
@@ -137,6 +180,7 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
     } catch { setConnecting(false); }
   }, []);
 
+  // ── Main connection effect — re-runs on host change OR retryKey increment ───
   useEffect(() => {
     const mon = new Monitor(hostConfig);
     monitorRef.current = mon;
@@ -159,8 +203,15 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
       });
 
     const interval = setInterval(doRefresh, REFRESH_MS);
-    return () => { clearInterval(interval); mon.dispose(); };
-  }, [hostConfig, connectOptions, doRefresh, onNeedPassphrase]);
+    return () => {
+      clearInterval(interval);
+      mon.dispose();
+      if (reconnectTimerRef.current) {
+        clearInterval(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+    };
+  }, [hostConfig, connectOptions, doRefresh, onNeedPassphrase, retryKey]);
 
   const runAction = useCallback(
     async (action: string, fn: () => Promise<void>) => {
@@ -181,7 +232,6 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
   const getRunner = () => (cmd: string) => monitorRef.current!.run(cmd);
 
   useInput((input, key) => {
-    // Search mode: only Escape exits; arrows still navigate; everything else → TextInput
     if (searchMode) {
       if (key.escape) { setSearchMode(false); setSearchQuery(""); return; }
       if (!logsOpen) {
@@ -226,7 +276,12 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
 
   return (
     <Box flexDirection="column" width="100%">
-      <Header snapshot={snapshot} connecting={connecting} lastUpdated={lastUpdated} />
+      <Header
+        snapshot={snapshot}
+        connecting={connecting}
+        lastUpdated={lastUpdated}
+        reconnectCountdown={reconnectCountdown}
+      />
       {snapshot?.system && <SystemPanel system={snapshot.system} />}
       <ServiceList
         services={filteredServices}

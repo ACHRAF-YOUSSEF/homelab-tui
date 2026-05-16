@@ -12,7 +12,7 @@ export async function getSystemInfo(
     const read = () => run("cat /proc/stat | head -1");
     const parse = (line: string) => line.split(/\s+/).slice(1).map(Number);
     const before = parse(await read());
-    await new Promise((r) => setTimeout(r, 500));
+    await new Promise((r) => setTimeout(r, 200));
     const after = parse(await read());
     const totalBefore = before.reduce((a, b) => a + b, 0);
     const totalAfter = after.reduce((a, b) => a + b, 0);

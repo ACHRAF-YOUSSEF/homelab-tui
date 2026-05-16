@@ -110,21 +110,33 @@ export async function restartDockerService(
   run: (cmd: string) => Promise<string>,
   service: Service
 ): Promise<void> {
-  await run(`docker restart ${service.name}`);
+  if (service.composeProject && service.composeService) {
+    await run(`docker compose -p ${service.composeProject} restart ${service.composeService}`);
+  } else {
+    await run(`docker restart ${service.name}`);
+  }
 }
 
 export async function stopDockerService(
   run: (cmd: string) => Promise<string>,
   service: Service
 ): Promise<void> {
-  await run(`docker stop ${service.name}`);
+  if (service.composeProject && service.composeService) {
+    await run(`docker compose -p ${service.composeProject} stop ${service.composeService}`);
+  } else {
+    await run(`docker stop ${service.name}`);
+  }
 }
 
 export async function startDockerService(
   run: (cmd: string) => Promise<string>,
   service: Service
 ): Promise<void> {
-  await run(`docker start ${service.name}`);
+  if (service.composeProject && service.composeService) {
+    await run(`docker compose -p ${service.composeProject} start ${service.composeService}`);
+  } else {
+    await run(`docker start ${service.name}`);
+  }
 }
 
 export async function getDockerLogs(

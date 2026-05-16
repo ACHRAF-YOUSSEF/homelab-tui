@@ -6,9 +6,10 @@ type Props = {
   snapshot: MonitorSnapshot | null;
   connecting: boolean;
   lastUpdated: Date | null;
+  reconnectCountdown: number | null;
 };
 
-export function Header({ snapshot, connecting, lastUpdated }: Readonly<Props>) {
+export function Header({ snapshot, connecting, lastUpdated, reconnectCountdown }: Readonly<Props>) {
   const time = lastUpdated ? lastUpdated.toLocaleTimeString() : "—";
 
   return (
@@ -28,7 +29,11 @@ export function Header({ snapshot, connecting, lastUpdated }: Readonly<Props>) {
           </Text>
         )}
 
-        <Text dimColor>updated {time}</Text>
+        {reconnectCountdown !== null ? (
+          <Text color="yellow">reconnecting in {reconnectCountdown}s…</Text>
+        ) : (
+          <Text dimColor>updated {time}</Text>
+        )}
       </Box>
     </Box>
   );
