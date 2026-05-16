@@ -199,13 +199,12 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
       {snapshot?.system && <SystemPanel system={snapshot.system} />}
       <ServiceList services={services} selectedIndex={selectedIndex} />
       <ServiceDetails service={selectedService} />
-      {logsOpen && (
-        <LogPanel
-          lines={logLines}
-          loading={logsLoading}
-          serviceName={selectedService?.name ?? null}
-        />
-      )}
+      <LogPanel
+        lines={logLines}
+        loading={logsLoading}
+        serviceName={selectedService?.name ?? null}
+        visible={logsOpen}
+      />
       <Footer actionMessage={actionMessage} error={error} />
     </Box>
   );
