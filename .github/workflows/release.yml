@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build-and-release:
-    name: Build & Release
+    name: Build, Release & Publish
     runs-on: ubuntu-latest
 
     steps:
@@ -22,16 +22,23 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Setup Node (for npm publish)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Bump version in package.json
+      - name: Set version from tag
         env:
           TAG: ${{ github.ref_name }}
         run: |
           VERSION="${TAG#v}"
-          jq ".version = \"$VERSION\"" package.json > package.json.tmp
-          mv package.json.tmp package.json
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          # Bump root package.json (used by cli.tsx import)
+          jq ".version = \"$VERSION\"" package.json > tmp.json && mv tmp.json package.json
 
       - name: Build all targets
         run: |
@@ -53,3 +60,31 @@ jobs:
             dist/homelab-tui-darwin-x64
             dist/homelab-tui-darwin-arm64
             dist/homelab-tui-windows-x64.exe
+
+      - name: Publish platform packages to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for PLATFORM in linux-x64 linux-arm64 darwin-x64 darwin-arm64 windows-x64; do
+            EXT=""
+            [ "$PLATFORM" = "windows-x64" ] && EXT=".exe"
+
+            mkdir -p npm/platforms/$PLATFORM/bin
+            cp dist/homelab-tui-$PLATFORM$EXT npm/platforms/$PLATFORM/bin/homelab-tui$EXT
+            chmod +x npm/platforms/$PLATFORM/bin/homelab-tui$EXT 2>/dev/null || true
+
+            jq ".version = \"$VERSION\"" npm/platforms/$PLATFORM/package.json > tmp.json
+            mv tmp.json npm/platforms/$PLATFORM/package.json
+
+            npm publish npm/platforms/$PLATFORM --access public
+          done
+
+      - name: Publish main package to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          # Sync all optionalDependency versions to match the release
+          jq ".version = \"$VERSION\" | .optionalDependencies = (.optionalDependencies | map_values(\"$VERSION\"))" \
+            npm/main/package.json > tmp.json && mv tmp.json npm/main/package.json
+
+          npm publish npm/main --access public

@@ -1,0 +1,10 @@
+{
+  "name": "homelab-tui-windows-x64",
+  "version": "1.0.0",
+  "description": "homelab-tui binary for Windows x64",
+  "repository": { "type": "git", "url": "https://github.com/ACHRAF-YOUSSEF/homelab-tui.git" },
+  "license": "MIT",
+  "os": ["win32"],
+  "cpu": ["x64"],
+  "files": ["bin"]
+}

@@ -13,7 +13,10 @@
     "build:darwin-x64": "bun build --compile --target=bun-darwin-x64 src/cli.tsx --outfile dist/homelab-tui-darwin-x64",
     "build:darwin-arm64": "bun build --compile --target=bun-darwin-arm64 src/cli.tsx --outfile dist/homelab-tui-darwin-arm64",
     "build:windows-x64": "bun build --compile --target=bun-windows-x64 src/cli.tsx --outfile dist/homelab-tui-windows-x64.exe",
-    "build": "bun run build:linux-x64 && bun run build:linux-arm64 && bun run build:darwin-x64 && bun run build:darwin-arm64 && bun run build:windows-x64"
+    "build": "bun run build:linux-x64 && bun run build:linux-arm64 && bun run build:darwin-x64 && bun run build:darwin-arm64 && bun run build:windows-x64",
+    "release:patch": "npm version patch && git push && git push --tags",
+    "release:minor": "npm version minor && git push && git push --tags",
+    "release:major": "npm version major && git push && git push --tags"
   },
   "dependencies": {
     "ink": "^5.0.1",

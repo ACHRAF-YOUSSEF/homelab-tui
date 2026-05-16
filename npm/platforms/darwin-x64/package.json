@@ -1,0 +1,10 @@
+{
+  "name": "homelab-tui-darwin-x64",
+  "version": "1.0.0",
+  "description": "homelab-tui binary for macOS x64",
+  "repository": { "type": "git", "url": "https://github.com/ACHRAF-YOUSSEF/homelab-tui.git" },
+  "license": "MIT",
+  "os": ["darwin"],
+  "cpu": ["x64"],
+  "files": ["bin"]
+}

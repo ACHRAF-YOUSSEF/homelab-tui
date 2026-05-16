@@ -1,0 +1,10 @@
+{
+  "name": "homelab-tui-linux-arm64",
+  "version": "1.0.0",
+  "description": "homelab-tui binary for Linux arm64",
+  "repository": { "type": "git", "url": "https://github.com/ACHRAF-YOUSSEF/homelab-tui.git" },
+  "license": "MIT",
+  "os": ["linux"],
+  "cpu": ["arm64"],
+  "files": ["bin"]
+}

@@ -10,7 +10,17 @@ Terminal UI for monitoring a remote homelab server over SSH. Discovers Docker co
 
 ## Installation
 
-### Download a binary (recommended)
+### npm / bun (recommended)
+
+```sh
+npm install -g homelab-tui
+# or
+bun add -g homelab-tui
+```
+
+This automatically downloads the pre-built binary for your platform (Linux x64/arm64, macOS x64/arm64, Windows x64). No Bun runtime needed after install.
+
+### Download a binary manually
 
 Download the latest binary for your platform from [Releases](https://github.com/ACHRAF-YOUSSEF/homelab-tui/releases):
 
