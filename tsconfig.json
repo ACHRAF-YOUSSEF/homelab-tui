@@ -7,7 +7,10 @@
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "outDir": "dist"
+    "outDir": "dist",
+    "paths": {
+      "react-devtools-core": ["./src/stubs/react-devtools-core"]
+    }
   },
   "include": ["src"]
 }

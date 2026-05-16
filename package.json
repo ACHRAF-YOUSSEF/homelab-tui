@@ -8,11 +8,11 @@
   "scripts": {
     "dev": "bun run src/cli.tsx",
     "start": "bun run src/cli.tsx",
-    "build:linux-x64": "bun build --compile --target=bun-linux-x64 --external react-devtools-core src/cli.tsx --outfile dist/homelab-tui-linux-x64",
-    "build:linux-arm64": "bun build --compile --target=bun-linux-arm64 --external react-devtools-core src/cli.tsx --outfile dist/homelab-tui-linux-arm64",
-    "build:darwin-x64": "bun build --compile --target=bun-darwin-x64 --external react-devtools-core src/cli.tsx --outfile dist/homelab-tui-darwin-x64",
-    "build:darwin-arm64": "bun build --compile --target=bun-darwin-arm64 --external react-devtools-core src/cli.tsx --outfile dist/homelab-tui-darwin-arm64",
-    "build:windows-x64": "bun build --compile --target=bun-windows-x64 --external react-devtools-core src/cli.tsx --outfile dist/homelab-tui-windows-x64.exe",
+    "build:linux-x64": "bun build --compile --target=bun-linux-x64 src/cli.tsx --outfile dist/homelab-tui-linux-x64",
+    "build:linux-arm64": "bun build --compile --target=bun-linux-arm64 src/cli.tsx --outfile dist/homelab-tui-linux-arm64",
+    "build:darwin-x64": "bun build --compile --target=bun-darwin-x64 src/cli.tsx --outfile dist/homelab-tui-darwin-x64",
+    "build:darwin-arm64": "bun build --compile --target=bun-darwin-arm64 src/cli.tsx --outfile dist/homelab-tui-darwin-arm64",
+    "build:windows-x64": "bun build --compile --target=bun-windows-x64 src/cli.tsx --outfile dist/homelab-tui-windows-x64.exe",
     "build": "bun run build:linux-x64 && bun run build:linux-arm64 && bun run build:darwin-x64 && bun run build:darwin-arm64 && bun run build:windows-x64"
   },
   "dependencies": {
