@@ -1,11 +1,10 @@
 import React from "react";
 import { render } from "ink";
-import { loadConfig, resolveConfigPath, saveConfig } from "./config/loader.js";
+import { loadConfig, resolveConfigPath } from "./config/loader.js";
 import { loadSettings, saveSettings } from "./config/settings.js";
 import { selfUpdate, getLatestRelease } from "./updater.js";
 import { Root } from "./ui/Root.js";
-
-const VERSION = "1.0.0";
+import { version as VERSION } from "../package.json";
 const HELP = `
 homelab-tui v${VERSION} — Terminal UI for homelab monitoring
 
