@@ -42,17 +42,21 @@ type Props = {
   searchMode: boolean;
   statusFilter: StatusFilter;
   sortBy: SortField;
+  filterKey: string;
   onSearchChange: (q: string) => void;
   onSearchSubmit: () => void;
 };
 
 export function ServiceList({
   services, allCount, selectedIndex,
-  searchQuery, searchMode, statusFilter, sortBy,
+  searchQuery, searchMode, statusFilter, sortBy, filterKey,
   onSearchChange, onSearchSubmit,
 }: Readonly<Props>) {
   const [scrollTop, setScrollTop] = useState(0);
   const [cols, setCols] = useState(getColWidths);
+
+  // Reset scroll instantly when filter/sort/search changes
+  useEffect(() => { setScrollTop(0); }, [filterKey]);
 
   // Recalculate on resize
   useEffect(() => {

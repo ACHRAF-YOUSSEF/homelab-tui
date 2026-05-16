@@ -97,7 +97,6 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
     });
   }, [allServices, statusFilter, searchQuery, sortBy]);
 
-  useEffect(() => { setSelectedIndex(0); }, [statusFilter, searchQuery, sortBy]);
 
   const clampedIndex = Math.min(selectedIndex, Math.max(0, filteredServices.length - 1));
   const selectedService: Service | null = filteredServices[clampedIndex] ?? null;
@@ -244,7 +243,7 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
 
   useInput((input, key) => {
     if (searchMode) {
-      if (key.escape) { setSearchMode(false); setSearchQuery(""); return; }
+      if (key.escape) { setSearchMode(false); setSearchQuery(""); setSelectedIndex(0); return; }
       if (!logsOpen) {
         if (key.upArrow) { setSelectedIndex((i) => Math.max(0, i - 1)); return; }
         if (key.downArrow) { setSelectedIndex((i) => Math.min(filteredServices.length - 1, i + 1)); return; }
@@ -266,6 +265,7 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
         const idx = STATUS_FILTER_CYCLE.indexOf(cur);
         return STATUS_FILTER_CYCLE[(idx + 1) % STATUS_FILTER_CYCLE.length];
       });
+      setSelectedIndex(0);
       return;
     }
     if (input === "o") {
@@ -273,6 +273,7 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
         const idx = SORT_CYCLE.indexOf(cur);
         return SORT_CYCLE[(idx + 1) % SORT_CYCLE.length];
       });
+      setSelectedIndex(0);
       return;
     }
 
@@ -316,8 +317,9 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
         searchMode={searchMode}
         statusFilter={statusFilter}
         sortBy={sortBy}
+        filterKey={`${statusFilter}-${sortBy}-${searchQuery}`}
         onSearchChange={setSearchQuery}
-        onSearchSubmit={() => setSearchMode(false)}
+        onSearchSubmit={() => { setSearchMode(false); setSelectedIndex(0); }}
       />
       <ServiceDetails service={selectedService} />
       <LogPanel
