@@ -41,6 +41,10 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
   const services: Service[] = snapshot?.services ?? [];
   const selectedService: Service | null = services[selectedIndex] ?? null;
 
+  useEffect(() => {
+    setLogs(null);
+  }, [selectedIndex]);
+
   const flash = (msg: string, isError = false) => {
     if (isError) setActionError(msg);
     else setActionMessage(msg);
