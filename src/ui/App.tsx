@@ -77,7 +77,13 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
 
   const filteredServices = useMemo(() => {
     let result = allServices;
-    if (statusFilter !== "all") result = result.filter((s) => s.status === statusFilter);
+    if (statusFilter === "docker") {
+      result = result.filter((s) => s.kind === "docker-container" || s.kind === "docker-compose");
+    } else if (statusFilter === "native") {
+      result = result.filter((s) => s.kind === "system-service");
+    } else if (statusFilter !== "all") {
+      result = result.filter((s) => s.status === statusFilter);
+    }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       result = result.filter(
