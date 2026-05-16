@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useApp, useInput } from "ink";
 import TextInput from "ink-text-input";
 import type { HostConfig } from "../core/types.js";
 
@@ -23,7 +23,8 @@ const TEXT_LABELS: Record<TextField, string> = {
   privateKeyPath: "Private key path",
 };
 
-export function HostForm({ onSubmit, onCancel = () => {} }: Readonly<Props>) {
+export function HostForm({ onSubmit, onCancel }: Readonly<Props>) {
+  const { exit } = useApp();
   const [name, setName] = useState("");
   const [host, setHost] = useState("");
   const [port, setPort] = useState("22");
@@ -51,7 +52,7 @@ export function HostForm({ onSubmit, onCancel = () => {} }: Readonly<Props>) {
     setFocusIndex((i) => (i + delta + fields.length) % fields.length);
 
   useInput((_input, key) => {
-    if (key.escape) { onCancel(); return; }
+    if (key.escape) { onCancel ? onCancel() : exit(); return; }
 
     // ↑/↓ navigate between ALL fields; Tab also moves forward
     if (key.downArrow || key.tab) { advance(1); return; }
@@ -156,7 +157,10 @@ export function HostForm({ onSubmit, onCancel = () => {} }: Readonly<Props>) {
           <Text dimColor><Text color="cyan">↑↓/Tab</Text> navigate</Text>
           <Text dimColor><Text color="cyan">Enter</Text> save</Text>
           <Text dimColor><Text color="cyan">Space</Text> toggle</Text>
-          {onCancel !== (() => {}) && <Text dimColor><Text color="cyan">Esc</Text> cancel</Text>}
+          {onCancel
+            ? <Text dimColor><Text color="cyan">Esc</Text> cancel</Text>
+            : <Text dimColor><Text color="cyan">Esc</Text> quit</Text>
+          }
         </Box>
       </Box>
     </Box>
