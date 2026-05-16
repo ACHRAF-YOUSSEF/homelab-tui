@@ -1,24 +1,24 @@
 # homelab-tui
 
-Terminal UI for monitoring a remote homelab server over SSH. Discovers Docker containers and shows system metrics. Supports Linux, macOS, and Windows remote hosts.
+Terminal UI for monitoring a remote homelab server over SSH. Discovers Docker containers, streams live logs, and shows system metrics. Supports Linux, macOS, and Windows remote hosts.
 
 ## Requirements
 
 - [Bun](https://bun.sh) ≥ 1.0
-- SSH key-based access to remote host (no password auth)
+- SSH access to remote host (password or private key)
 - Docker installed on remote host (for container discovery)
 
 ## Installation
 
 ```sh
-git clone https://github.com/yourname/homelab-tui
+git clone https://github.com/ACHRAF-YOUSSEF/homelab-tui
 cd homelab-tui
 bun install
 ```
 
 ## Config
 
-Create `homelab.config.json` in the project root (already provided as example):
+Create `homelab.config.json` in the project root:
 
 ```json
 {
@@ -28,7 +28,7 @@ Create `homelab.config.json` in the project root (already provided as example):
       "host": "192.168.1.20",
       "port": 22,
       "username": "achraf",
-      "privateKeyPath": "~/.ssh/id_ed25519",
+      "authMethod": "password",
       "discovery": {
         "docker": true,
         "nativeServices": false,
@@ -39,7 +39,12 @@ Create `homelab.config.json` in the project root (already provided as example):
 }
 ```
 
-Only the first host is used in this MVP. `nativeServices` is accepted but not yet implemented.
+### Auth methods
+
+| `authMethod` | Required fields | Notes |
+|---|---|---|
+| `"password"` | — | Prompted at launch, never stored |
+| `"key"` | `privateKeyPath` | Supports SSH agent (`SSH_AUTH_SOCK`), passphrase prompted if key is encrypted |
 
 ## Running
 
@@ -49,27 +54,64 @@ bun dev
 bun start
 ```
 
-## Keyboard shortcuts
+On first launch with no hosts configured, a setup wizard will appear.
+
+## Screens
+
+### Host selector
+Shown on startup when hosts exist. Lists all configured hosts.
 
 | Key | Action |
 |-----|--------|
-| `↑` / `↓` | Select service |
+| `↑` / `↓` | Select host |
+| `Enter` | Connect |
+| `a` | Add new host |
+| `d` | Delete selected host |
+
+### Add host form
+Shown on first launch or when pressing `a` in the selector.
+
+| Key | Action |
+|-----|--------|
+| `↑` / `↓` / `Tab` | Navigate fields (wraps) |
+| `Space` | Toggle boolean / auth method |
+| `Enter` | Confirm field / save |
+| `Esc` | Cancel (or quit on first run) |
+| `q` | Quit |
+
+### Monitor
+Main view showing system info, services, and optional log panel.
+
+| Key | Action |
+|-----|--------|
+| `↑` / `↓` | Select service (or scroll logs when log panel is open) |
 | `r` | Restart selected container |
 | `s` | Stop selected container |
 | `t` | Start selected container |
-| `l` | Load last 100 log lines |
-| `L` | Close log panel |
+| `l` | Toggle live log panel |
+| `PgUp` / `PgDn` | Scroll log panel |
+| `/` | Enter search mode (filter by name or image) |
+| `f` | Cycle status filter: all → running → stopped → failed → restarting |
+| `o` | Cycle sort: name → status → image |
+| `h` | Back to host selector |
 | `q` | Quit |
+
+## Features
+
+- **Multi-host** — add/remove hosts at runtime, config auto-saved to `homelab.config.json`
+- **OS detection** — auto-detects Linux, macOS, Windows over SSH
+- **Docker discovery** — lists all containers (running and stopped) with status, image, ports
+- **Live logs** — `docker logs -f` streamed over SSH, scrollable, auto-follows new lines
+- **System metrics** — CPU %, RAM, disk usage with progress bars
+- **Search / filter / sort** — filter by status, sort by name/status/image, search by name or image
+- **Password & key auth** — password prompted securely at runtime; SSH agent supported for keys
 
 ## Enabling OpenSSH on Windows (remote host)
 
 Open PowerShell as Administrator:
 
 ```powershell
-# Install OpenSSH server
 Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
-
-# Start and auto-start the service
 Start-Service sshd
 Set-Service -Name sshd -StartupType Automatic
 
@@ -79,14 +121,20 @@ New-Item -Force -ItemType Directory (Split-Path $authorizedKeysPath)
 Add-Content $authorizedKeysPath "ssh-ed25519 AAAA... your-public-key"
 ```
 
-Then confirm `sshd` is running and port 22 is open in Windows Firewall.
-
 ## MVP Limitations
 
-- Only the first host in `hosts[]` is monitored
+- Only the first selected host is monitored at a time (no multi-pane)
 - `nativeServices` (systemd / Windows services) not yet implemented
-- No multi-host switching in the UI
-- Docker actions run at the container level (not `docker compose up/down`)
-- Log panel shows stdout only; stderr may be mixed in depending on container
-- CPU usage on Linux requires two `/proc/stat` reads 500 ms apart — adds latency on first load
-- No reconnect logic: if SSH drops, restart the TUI
+- Docker actions use container-level commands (`docker restart/stop/start`), not `docker compose`
+- No reconnect on SSH drop — press `h` to go back to selector and reconnect
+- CPU usage on Linux requires two `/proc/stat` reads 500 ms apart
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=ACHRAF-YOUSSEF%2Fhomelab-tui&type=timeline&legend=top-left">
+    <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=ACHRAF-YOUSSEF/homelab-tui&type=timeline&theme=dark&legend=top-left" />
+        <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=ACHRAF-YOUSSEF/homelab-tui&type=timeline&legend=top-left" />
+        <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=ACHRAF-YOUSSEF/homelab-tui&type=timeline&legend=top-left" />
+    </picture>
+</a>
