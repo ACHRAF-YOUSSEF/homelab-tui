@@ -65,6 +65,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          jq ".version = \"$VERSION\"" npm/main/package.json > tmp.json
+          jq --arg v "$VERSION" '.version = $v' npm/main/package.json > tmp.json
           mv tmp.json npm/main/package.json
+          echo "Publishing homelab-tui@$VERSION"
           npm publish ./npm/main --access public
