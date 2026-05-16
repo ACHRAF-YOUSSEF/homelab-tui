@@ -11,6 +11,18 @@
         "nativeServices": true,
         "includeStoppedContainers": true
       }
+    },
+    {
+      "name": "laptop",
+      "host": "192.168.0.218",
+      "port": 22,
+      "username": "achraf",
+      "authMethod": "password",
+      "discovery": {
+        "docker": true,
+        "nativeServices": true,
+        "includeStoppedContainers": true
+      }
     }
   ]
 }

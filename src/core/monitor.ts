@@ -1,10 +1,11 @@
-import { SSHTransport,  } from "../transports/ssh.js";
+import { SSHTransport } from "../transports/ssh.js";
 import type { ConnectOptions } from "../transports/ssh.js";
 import { detectRemoteOS } from "./os-detect.js";
 import { getDockerServices, streamDockerLogs } from "../adapters/docker.js";
-import type { HostConfig, MonitorSnapshot, SystemInfo, RemoteOS } from "./types.js";
+import { nativeLogCommand, nativeLogSnapshot } from "../adapters/native-actions.js";
+import type { HostConfig, MonitorSnapshot, SystemInfo, RemoteOS, Service } from "./types.js";
 
-
+export { PassphraseRequiredError } from "../transports/ssh.js";
 
 async function getSystemInfo(
   run: (cmd: string) => Promise<string>,
@@ -27,9 +28,29 @@ async function getSystemInfo(
   return { hostname, os };
 }
 
+async function getNativeServices(
+  run: (cmd: string) => Promise<string>,
+  os: RemoteOS
+): Promise<Service[]> {
+  if (os === "linux") {
+    const { getNativeServices } = await import("../adapters/linux-services.js");
+    return getNativeServices(run);
+  }
+  if (os === "macos") {
+    const { getNativeServices } = await import("../adapters/macos-services.js");
+    return getNativeServices(run);
+  }
+  if (os === "windows") {
+    const { getNativeServices } = await import("../adapters/windows-services.js");
+    return getNativeServices(run);
+  }
+  return [];
+}
+
 export class Monitor {
   private readonly transport: SSHTransport;
   private readonly cfg: HostConfig;
+  private lastOS: RemoteOS = "unknown";
 
   constructor(cfg: HostConfig) {
     this.cfg = cfg;
@@ -50,19 +71,6 @@ export class Monitor {
     return this.transport.run(cmd);
   }
 
-  streamLogs(
-    service: import("./types.js").Service,
-    onData: (chunk: string) => void,
-    onClose?: (code: number | null) => void
-  ): Promise<() => void> {
-    return streamDockerLogs(
-      (cmd, d, c) => this.transport.stream(cmd, d, c),
-      service,
-      onData,
-      onClose
-    );
-  }
-
   async dispose(): Promise<void> {
     await this.transport.dispose();
   }
@@ -71,11 +79,20 @@ export class Monitor {
     const run = (cmd: string) => this.transport.run(cmd);
     try {
       const remoteOS = await detectRemoteOS(run);
-      const [system, services] = await Promise.all([
+      this.lastOS = remoteOS;
+
+      const [system, dockerServices, nativeSvcs] = await Promise.all([
         getSystemInfo(run, remoteOS),
         this.cfg.discovery.docker ? getDockerServices(run) : Promise.resolve([]),
+        this.cfg.discovery.nativeServices ? getNativeServices(run, remoteOS) : Promise.resolve([]),
       ]);
-      return { hostName: this.cfg.name, remoteOS, system, services };
+
+      return {
+        hostName: this.cfg.name,
+        remoteOS,
+        system,
+        services: [...dockerServices, ...nativeSvcs],
+      };
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       return {
@@ -87,6 +104,35 @@ export class Monitor {
       };
     }
   }
-}
 
-export {PassphraseRequiredError} from "../transports/ssh.js";
+  streamLogs(
+    service: Service,
+    onData: (chunk: string) => void,
+    onClose?: (code: number | null) => void
+  ): Promise<() => void> {
+    if (service.kind === "system-service") {
+      const cmd = nativeLogCommand(service, this.lastOS);
+      if (cmd) {
+        return this.transport.stream(cmd, onData, onClose);
+      }
+      // Fallback: one-shot snapshot for OSes without streaming log support
+      const snapCmd = nativeLogSnapshot(service, this.lastOS);
+      if (snapCmd) {
+        return this.transport.run(snapCmd).then((out) => {
+          onData(out);
+          onClose?.(0);
+          return () => {};
+        });
+      }
+      onData("Log streaming not supported for this OS.");
+      onClose?.(0);
+      return Promise.resolve(() => {});
+    }
+    return streamDockerLogs(
+      (cmd, d, c) => this.transport.stream(cmd, d, c),
+      service,
+      onData,
+      onClose
+    );
+  }
+}

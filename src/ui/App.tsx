@@ -7,6 +7,11 @@ import {
   startDockerService,
   stopDockerService,
 } from "../adapters/docker.js";
+import {
+  restartNativeService,
+  startNativeService,
+  stopNativeService,
+} from "../adapters/native-actions.js";
 import type { HostConfig, MonitorSnapshot, Service, ServiceStatus } from "../core/types.js";
 import { Header } from "./Header.js";
 import { SystemPanel } from "./SystemPanel.js";
@@ -266,9 +271,23 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
     }
 
     if (!selectedService || busy) return;
-    if (input === "r") runAction("restart", () => restartDockerService(getRunner(), selectedService));
-    else if (input === "s") runAction("stop", () => stopDockerService(getRunner(), selectedService));
-    else if (input === "t") runAction("start", () => startDockerService(getRunner(), selectedService));
+
+    const run = getRunner();
+    const os = snapshot?.remoteOS ?? "unknown";
+    const isNative = selectedService.kind === "system-service";
+
+    if (input === "r") runAction("restart", () =>
+      isNative ? restartNativeService(run, selectedService, os)
+               : restartDockerService(run, selectedService)
+    );
+    else if (input === "s") runAction("stop", () =>
+      isNative ? stopNativeService(run, selectedService, os)
+               : stopDockerService(run, selectedService)
+    );
+    else if (input === "t") runAction("start", () =>
+      isNative ? startNativeService(run, selectedService, os)
+               : startDockerService(run, selectedService)
+    );
     else if (input === "l") setLogsOpen((open) => !open);
   });
 
