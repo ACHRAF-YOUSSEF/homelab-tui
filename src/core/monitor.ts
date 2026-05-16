@@ -1,0 +1,75 @@
+import { SSHTransport, PassphraseRequiredError } from "../transports/ssh.js";
+import { detectRemoteOS } from "./os-detect.js";
+import { getDockerServices } from "../adapters/docker.js";
+import type { HostConfig, MonitorSnapshot, SystemInfo, RemoteOS } from "./types.js";
+
+export { PassphraseRequiredError };
+
+async function getSystemInfo(
+  run: (cmd: string) => Promise<string>,
+  os: RemoteOS
+): Promise<SystemInfo> {
+  if (os === "linux") {
+    const { getSystemInfo } = await import("../adapters/linux-system.js");
+    return getSystemInfo(run);
+  }
+  if (os === "macos") {
+    const { getSystemInfo } = await import("../adapters/macos-system.js");
+    return getSystemInfo(run);
+  }
+  if (os === "windows") {
+    const { getSystemInfo } = await import("../adapters/windows-system.js");
+    return getSystemInfo(run);
+  }
+  let hostname = "unknown";
+  try { hostname = await run("hostname"); } catch {}
+  return { hostname, os };
+}
+
+export class Monitor {
+  private readonly transport: SSHTransport;
+  private readonly cfg: HostConfig;
+
+  constructor(cfg: HostConfig) {
+    this.cfg = cfg;
+    this.transport = new SSHTransport({
+      host: cfg.host,
+      port: cfg.port,
+      username: cfg.username,
+      privateKeyPath: cfg.privateKeyPath,
+    });
+  }
+
+  async connect(passphrase?: string): Promise<void> {
+    await this.transport.connect(passphrase);
+  }
+
+  run(cmd: string): Promise<string> {
+    return this.transport.run(cmd);
+  }
+
+  async dispose(): Promise<void> {
+    await this.transport.dispose();
+  }
+
+  async refresh(): Promise<MonitorSnapshot> {
+    const run = (cmd: string) => this.transport.run(cmd);
+    try {
+      const remoteOS = await detectRemoteOS(run);
+      const [system, services] = await Promise.all([
+        getSystemInfo(run, remoteOS),
+        this.cfg.discovery.docker ? getDockerServices(run) : Promise.resolve([]),
+      ]);
+      return { hostName: this.cfg.name, remoteOS, system, services };
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return {
+        hostName: this.cfg.name,
+        remoteOS: "unknown",
+        system: { hostname: this.cfg.host, os: "unknown" },
+        services: [],
+        error: msg,
+      };
+    }
+  }
+}

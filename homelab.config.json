@@ -1,0 +1,16 @@
+{
+  "hosts": [
+    {
+      "name": "desktop",
+      "host": "192.168.0.163",
+      "port": 22,
+      "username": "achraf youssef",
+      "privateKeyPath": "~/.ssh/id_ed25519",
+      "discovery": {
+        "docker": true,
+        "nativeServices": false,
+        "includeStoppedContainers": true
+      }
+    }
+  ]
+}
