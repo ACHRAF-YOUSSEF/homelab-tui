@@ -167,13 +167,15 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
     if (input === "q") { exit(); return; }
     if (input === "h") { onSwitchHost(); return; }
 
-    if (key.upArrow) {
-      setSelectedIndex((i) => Math.max(0, i - 1));
-      return;
-    }
-    if (key.downArrow) {
-      setSelectedIndex((i) => Math.min(services.length - 1, i + 1));
-      return;
+    if (!logsOpen) {
+      if (key.upArrow) {
+        setSelectedIndex((i) => Math.max(0, i - 1));
+        return;
+      }
+      if (key.downArrow) {
+        setSelectedIndex((i) => Math.min(services.length - 1, i + 1));
+        return;
+      }
     }
 
     if (!selectedService || busy) return;
