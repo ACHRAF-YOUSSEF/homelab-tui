@@ -12,7 +12,7 @@ type Props = {
 type AuthMethod = "key" | "password";
 
 type TextField = "name" | "host" | "port" | "username" | "privateKeyPath";
-type BoolField = "docker" | "stopped";
+type BoolField = "docker" | "native" | "stopped";
 type AuthField = "authMethod";
 type Field = TextField | AuthField | BoolField;
 
@@ -34,6 +34,7 @@ export function HostForm({ onSubmit, onCancel, initialHost }: Readonly<Props>) {
   const [authMethod, setAuthMethod] = useState<AuthMethod>(initialHost?.authMethod ?? "key");
   const [privateKeyPath, setPrivateKeyPath] = useState(initialHost?.privateKeyPath ?? "~/.ssh/id_ed25519");
   const [docker, setDocker] = useState(initialHost?.discovery.docker ?? true);
+  const [native, setNative] = useState(initialHost?.discovery.nativeServices ?? false);
   const [stopped, setStopped] = useState(initialHost?.discovery.includeStoppedContainers ?? true);
   const [error, setError] = useState<string | null>(null);
   const [focusIndex, setFocusIndex] = useState(0);
@@ -43,11 +44,11 @@ export function HostForm({ onSubmit, onCancel, initialHost }: Readonly<Props>) {
     "name", "host", "port", "username",
     "authMethod",
     ...(authMethod === "key" ? ["privateKeyPath" as Field] : []),
-    "docker", "stopped",
+    "docker", "native", "stopped",
   ];
 
   const currentField = fields[focusIndex];
-  const isBool = currentField === "docker" || currentField === "stopped";
+  const isBool = currentField === "docker" || currentField === "native" || currentField === "stopped";
   const isAuth = currentField === "authMethod";
 
   const advance = (delta = 1) =>
@@ -62,6 +63,7 @@ export function HostForm({ onSubmit, onCancel, initialHost }: Readonly<Props>) {
 
     if (isBool && _input === " ") {
       if (currentField === "docker") setDocker((v) => !v);
+      if (currentField === "native") setNative((v) => !v);
       if (currentField === "stopped") setStopped((v) => !v);
     }
     if (isAuth && _input === " ") {
@@ -87,7 +89,7 @@ export function HostForm({ onSubmit, onCancel, initialHost }: Readonly<Props>) {
       username: username.trim(),
       authMethod,
       privateKeyPath: authMethod === "key" ? privateKeyPath.trim() : undefined,
-      discovery: { docker, nativeServices: false, includeStoppedContainers: stopped },
+      discovery: { docker, nativeServices: native, includeStoppedContainers: stopped },
     });
   }
 
@@ -126,9 +128,9 @@ export function HostForm({ onSubmit, onCancel, initialHost }: Readonly<Props>) {
             );
           }
 
-          if (field === "docker" || field === "stopped") {
-            const val = field === "docker" ? docker : stopped;
-            const label = field === "docker" ? "Docker discovery" : "Include stopped containers";
+          if (field === "docker" || field === "native" || field === "stopped") {
+            const val = field === "docker" ? docker : field === "native" ? native : stopped;
+            const label = field === "docker" ? "Docker discovery" : field === "native" ? "Native services" : "Include stopped containers";
             return (
               <Box key={field}>
                 <Text color={focused ? "white" : "gray"}>{label.padEnd(28)}</Text>
