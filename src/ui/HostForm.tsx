@@ -6,6 +6,7 @@ import type { HostConfig } from "../core/types.js";
 type Props = {
   onSubmit: (host: HostConfig) => void;
   onCancel?: () => void;
+  initialHost?: HostConfig;
 };
 
 type AuthMethod = "key" | "password";
@@ -23,16 +24,17 @@ const TEXT_LABELS: Record<TextField, string> = {
   privateKeyPath: "Private key path",
 };
 
-export function HostForm({ onSubmit, onCancel }: Readonly<Props>) {
+export function HostForm({ onSubmit, onCancel, initialHost }: Readonly<Props>) {
   const { exit } = useApp();
-  const [name, setName] = useState("");
-  const [host, setHost] = useState("");
-  const [port, setPort] = useState("22");
-  const [username, setUsername] = useState("");
-  const [authMethod, setAuthMethod] = useState<AuthMethod>("key");
-  const [privateKeyPath, setPrivateKeyPath] = useState("~/.ssh/id_ed25519");
-  const [docker, setDocker] = useState(true);
-  const [stopped, setStopped] = useState(true);
+  const editing = !!initialHost;
+  const [name, setName] = useState(initialHost?.name ?? "");
+  const [host, setHost] = useState(initialHost?.host ?? "");
+  const [port, setPort] = useState(String(initialHost?.port ?? 22));
+  const [username, setUsername] = useState(initialHost?.username ?? "");
+  const [authMethod, setAuthMethod] = useState<AuthMethod>(initialHost?.authMethod ?? "key");
+  const [privateKeyPath, setPrivateKeyPath] = useState(initialHost?.privateKeyPath ?? "~/.ssh/id_ed25519");
+  const [docker, setDocker] = useState(initialHost?.discovery.docker ?? true);
+  const [stopped, setStopped] = useState(initialHost?.discovery.includeStoppedContainers ?? true);
   const [error, setError] = useState<string | null>(null);
   const [focusIndex, setFocusIndex] = useState(0);
 
@@ -107,7 +109,7 @@ export function HostForm({ onSubmit, onCancel }: Readonly<Props>) {
   return (
     <Box flexDirection="column" padding={1}>
       <Box borderStyle="double" borderColor="cyan" paddingX={2} paddingY={1} flexDirection="column">
-        <Text bold color="cyan">Add host</Text>
+        <Text bold color="cyan">{editing ? "Edit host" : "Add host"}</Text>
         <Text> </Text>
 
         {fields.map((field, i) => {

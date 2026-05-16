@@ -6,10 +6,11 @@ type Props = {
   hosts: HostConfig[];
   onSelect: (host: HostConfig) => void;
   onAdd: () => void;
+  onEdit: (index: number) => void;
   onDelete: (index: number) => void;
 };
 
-export function HostSelector({ hosts, onSelect, onAdd, onDelete }: Readonly<Props>) {
+export function HostSelector({ hosts, onSelect, onAdd, onEdit, onDelete }: Readonly<Props>) {
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const clamped = Math.min(selectedIndex, Math.max(0, hosts.length - 1));
 
@@ -18,6 +19,7 @@ export function HostSelector({ hosts, onSelect, onAdd, onDelete }: Readonly<Prop
     if (key.downArrow) setSelectedIndex((i) => Math.min(hosts.length - 1, i + 1));
     if (key.return && hosts.length > 0) onSelect(hosts[clamped]);
     if (input === "a") onAdd();
+    if (input === "e" && hosts.length > 0) onEdit(clamped);
     if (input === "d" && hosts.length > 0) onDelete(clamped);
   });
 
@@ -34,11 +36,7 @@ export function HostSelector({ hosts, onSelect, onAdd, onDelete }: Readonly<Prop
             const selected = i === clamped;
             return (
               <Box key={h.name}>
-                <Text
-                  bold={selected}
-                  inverse={selected}
-                  color={selected ? "white" : "gray"}
-                >
+                <Text bold={selected} inverse={selected} color={selected ? "white" : "gray"}>
                   {selected ? "> " : "  "}
                   {h.name.padEnd(20)}
                   {"  "}
@@ -54,6 +52,7 @@ export function HostSelector({ hosts, onSelect, onAdd, onDelete }: Readonly<Prop
           <Text dimColor><Text color="cyan">↑↓</Text> select</Text>
           <Text dimColor><Text color="cyan">Enter</Text> connect</Text>
           <Text dimColor><Text color="cyan">a</Text> add</Text>
+          <Text dimColor><Text color="cyan">e</Text> edit</Text>
           <Text dimColor><Text color="cyan">d</Text> delete</Text>
         </Box>
       </Box>

@@ -13,6 +13,7 @@ type Screen =
   | { kind: "setup" }
   | { kind: "selector" }
   | { kind: "form" }
+  | { kind: "form-edit"; index: number }
   | { kind: "credential"; host: HostConfig; mode: "password" | "passphrase" }
   | { kind: "monitor"; host: HostConfig; connectOptions?: ConnectOptions };
 
@@ -60,6 +61,16 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
 
   const handleAddHost = useCallback(() => setScreen({ kind: "form" }), []);
 
+  const handleEditHost = useCallback((index: number) => {
+    setScreen({ kind: "form-edit", index });
+  }, []);
+
+  const handleFormEditSubmit = useCallback((index: number, host: HostConfig) => {
+    const next = { hosts: config.hosts.map((h, i) => i === index ? host : h) };
+    persistConfig(next);
+    handleSelectHost(host);
+  }, [config, persistConfig, handleSelectHost]);
+
   const handleDeleteHost = useCallback((index: number) => {
     const next = { hosts: config.hosts.filter((_, i) => i !== index) };
     persistConfig(next);
@@ -105,6 +116,7 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
         hosts={config.hosts}
         onSelect={handleSelectHost}
         onAdd={handleAddHost}
+        onEdit={handleEditHost}
         onDelete={handleDeleteHost}
       />
     );
@@ -115,6 +127,17 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
       <HostForm
         onSubmit={handleFormSubmit}
         onCancel={config.hosts.length > 0 ? handleFormCancel : undefined}
+      />
+    );
+  }
+
+  if (screen.kind === "form-edit") {
+    const idx = screen.index;
+    return (
+      <HostForm
+        initialHost={config.hosts[idx]}
+        onSubmit={(host) => handleFormEditSubmit(idx, host)}
+        onCancel={handleFormCancel}
       />
     );
   }
