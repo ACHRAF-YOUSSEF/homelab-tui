@@ -36,7 +36,9 @@ export async function getSystemInfo(
 
   let disks: SystemInfo["disks"];
   try {
-    const out = await run("df -B1 --output=target,size,avail | tail -n +2");
+    const out = await run(
+      "df -B1 -x tmpfs -x devtmpfs -x squashfs -x overlay -x aufs -x efivarfs -x fuse.portal --output=target,size,avail 2>/dev/null | tail -n +2"
+    );
     const parsed = out
       .trim()
       .split("\n")
@@ -44,7 +46,16 @@ export async function getSystemInfo(
         const [name, total, free] = line.trim().split(/\s+/);
         return { name, totalBytes: Number(total), freeBytes: Number(free) };
       })
-      .filter((d) => !Number.isNaN(d.totalBytes) && !Number.isNaN(d.freeBytes));
+      .filter((d) =>
+        !Number.isNaN(d.totalBytes) &&
+        !Number.isNaN(d.freeBytes) &&
+        d.totalBytes > 0 &&
+        !d.name.startsWith("/run/") &&
+        !d.name.startsWith("/sys/") &&
+        !d.name.startsWith("/dev/") &&
+        !d.name.startsWith("/proc/") &&
+        d.name !== "/dev"
+      );
     if (parsed.length > 0) disks = parsed;
   } catch {}
 

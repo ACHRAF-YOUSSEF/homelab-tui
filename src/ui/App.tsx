@@ -25,9 +25,9 @@ const MAX_LOG_LINES = 2000;
 const RECONNECT_DELAYS = [3, 5, 10, 20, 30]; // seconds
 
 export type SortField = "name" | "status" | "image";
-export type StatusFilter = ServiceStatus | "all";
+export type StatusFilter = ServiceStatus | "all" | "docker" | "native";
 
-const STATUS_FILTER_CYCLE: StatusFilter[] = ["all", "running", "stopped", "failed", "restarting"];
+const STATUS_FILTER_CYCLE: StatusFilter[] = ["all", "docker", "native", "running", "stopped", "failed", "restarting"];
 const SORT_CYCLE: SortField[] = ["name", "status", "image"];
 
 function isConnectionError(msg: string): boolean {
