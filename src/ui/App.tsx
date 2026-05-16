@@ -33,6 +33,7 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
   const [connecting, setConnecting] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [logsOpen, setLogsOpen] = useState(false);
   const [logs, setLogs] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -41,9 +42,23 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
   const services: Service[] = snapshot?.services ?? [];
   const selectedService: Service | null = services[selectedIndex] ?? null;
 
+  // Re-fetch logs when selection changes while the panel is open
   useEffect(() => {
+    if (!logsOpen || !selectedService) return;
+    let cancelled = false;
     setLogs(null);
-  }, [selectedIndex]);
+    getDockerLogs((cmd) => monitorRef.current!.run(cmd), selectedService)
+      .then((out) => { if (!cancelled) setLogs(out); })
+      .catch((err: unknown) => {
+        if (!cancelled) {
+          const msg = err instanceof Error ? err.message : String(err);
+          setLogs(`Error: ${msg}`);
+        }
+      });
+    return () => { cancelled = true; };
+  // selectedIndex is the stable dep — selectedService changes ref on every snapshot refresh
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedIndex, logsOpen]);
 
   const flash = (msg: string, isError = false) => {
     if (isError) setActionError(msg);
@@ -142,16 +157,7 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
     } else if (input === "t") {
       runAction("start", () => startDockerService(getRunner(), selectedService));
     } else if (input === "l") {
-      if (logs === null) {
-        getDockerLogs(getRunner(), selectedService)
-          .then((out) => setLogs(out))
-          .catch((err: unknown) => {
-            const msg = err instanceof Error ? err.message : String(err);
-            flash(`logs failed: ${msg}`, true);
-          });
-      } else {
-        setLogs(null);
-      }
+      setLogsOpen((open) => !open);
     }
   });
 
@@ -163,7 +169,7 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
       {snapshot?.system && <SystemPanel system={snapshot.system} />}
       <ServiceList services={services} selectedIndex={selectedIndex} />
       <ServiceDetails service={selectedService} />
-      <LogPanel logs={logs} serviceName={selectedService?.name ?? null} />
+      {logsOpen && <LogPanel logs={logs} serviceName={selectedService?.name ?? null} />}
       <Footer actionMessage={actionMessage} error={error} />
     </Box>
   );

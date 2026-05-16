@@ -7,9 +7,7 @@ type Props = {
 };
 
 export function LogPanel({ logs, serviceName }: Readonly<Props>) {
-  if (!logs) return null;
-
-  const lines = logs.split("\n").slice(-20);
+  const lines = logs?.split("\n").slice(-20) ?? [];
 
   return (
     <Box
@@ -22,11 +20,15 @@ export function LogPanel({ logs, serviceName }: Readonly<Props>) {
       <Text bold color="yellow">
         Logs: {serviceName ?? "—"}
       </Text>
-      {lines.map((line, i) => (
-        <Text key={i} dimColor wrap="truncate">
-          {line}
-        </Text>
-      ))}
+      {logs === null ? (
+        <Text dimColor>loading…</Text>
+      ) : (
+        lines.map((line, i) => (
+          <Text key={i} dimColor wrap="truncate">
+            {line}
+          </Text>
+        ))
+      )}
     </Box>
   );
 }
