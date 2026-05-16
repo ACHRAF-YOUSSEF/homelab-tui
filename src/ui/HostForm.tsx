@@ -48,13 +48,14 @@ export function HostForm({ onSubmit, onCancel = () => {} }: Readonly<Props>) {
   const isAuth = currentField === "authMethod";
 
   const advance = (delta = 1) =>
-    setFocusIndex((i) => Math.max(0, Math.min(fields.length - 1, i + delta)));
+    setFocusIndex((i) => (i + delta + fields.length) % fields.length);
 
   useInput((_input, key) => {
     if (key.escape) { onCancel(); return; }
 
-    if (key.tab || (key.downArrow && (isBool || isAuth))) { advance(1); return; }
-    if ((key.shift && key.tab) || (key.upArrow && (isBool || isAuth))) { advance(-1); return; }
+    // ↑/↓ navigate between ALL fields; Tab also moves forward
+    if (key.downArrow || key.tab) { advance(1); return; }
+    if (key.upArrow || (key.shift && key.tab)) { advance(-1); return; }
 
     if (isBool && _input === " ") {
       if (currentField === "docker") setDocker((v) => !v);
@@ -152,7 +153,7 @@ export function HostForm({ onSubmit, onCancel = () => {} }: Readonly<Props>) {
         {error && <Text color="red">{error}</Text>}
         <Text> </Text>
         <Box gap={2}>
-          <Text dimColor><Text color="cyan">Tab</Text> next</Text>
+          <Text dimColor><Text color="cyan">↑↓/Tab</Text> navigate</Text>
           <Text dimColor><Text color="cyan">Enter</Text> save</Text>
           <Text dimColor><Text color="cyan">Space</Text> toggle</Text>
           {onCancel !== (() => {}) && <Text dimColor><Text color="cyan">Esc</Text> cancel</Text>}
