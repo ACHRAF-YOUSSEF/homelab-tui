@@ -6,10 +6,7 @@ import type { SortField, StatusFilter } from "./App.js";
 
 const VIEW_HEIGHT = 12;
 
-// Column widths
-const COL_NAME = 26;
-const COL_STATUS = 11;
-const COL_IMAGE = 30;
+const PREFIX_W = 4; // selector (2) + icon (2)
 
 const STATUS_COLOR: Record<ServiceStatus, string> = {
   running: "green",
@@ -117,10 +114,10 @@ export function ServiceList({
 
       {/* Column headers */}
       <Box>
-        <Box width={4} />
-        <Box width={COL_NAME}><Text bold dimColor>NAME</Text></Box>
-        <Box width={COL_STATUS}><Text bold dimColor>STATUS</Text></Box>
-        <Box width={COL_IMAGE}><Text bold dimColor>IMAGE</Text></Box>
+        <Box width={PREFIX_W} />
+        <Box flexGrow={2}><Text bold dimColor>NAME</Text></Box>
+        <Box flexGrow={1}><Text bold dimColor>STATUS</Text></Box>
+        <Box flexGrow={2}><Text bold dimColor>IMAGE</Text></Box>
         <Box flexGrow={1}><Text bold dimColor>PORTS</Text></Box>
       </Box>
 
@@ -145,7 +142,7 @@ export function ServiceList({
               <Box width={2}>
                 <Text color={statusColor}>{icon} </Text>
               </Box>
-              <Box width={COL_NAME}>
+              <Box flexGrow={2}>
                 <Text
                   color={selected ? "white" : undefined}
                   bold={selected}
@@ -155,20 +152,14 @@ export function ServiceList({
                   {svc.name}
                 </Text>
               </Box>
-              <Box width={COL_STATUS}>
-                <Text color={statusColor} wrap="truncate">
-                  {svc.status}
-                </Text>
+              <Box flexGrow={1}>
+                <Text color={statusColor} wrap="truncate">{svc.status}</Text>
               </Box>
-              <Box width={COL_IMAGE}>
-                <Text dimColor wrap="truncate">
-                  {svc.image ?? "—"}
-                </Text>
+              <Box flexGrow={2}>
+                <Text dimColor wrap="truncate">{svc.image ?? "—"}</Text>
               </Box>
               <Box flexGrow={1}>
-                <Text dimColor wrap="truncate">
-                  {ports}
-                </Text>
+                <Text dimColor wrap="truncate">{ports}</Text>
               </Box>
             </Box>
           );
