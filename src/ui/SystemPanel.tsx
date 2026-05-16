@@ -21,7 +21,7 @@ type DiskEntry = { name: string; totalBytes: number; freeBytes: number };
 
 function Metric({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <Box gap={1} marginRight={4}>
+    <Box gap={1}>
       <Text dimColor>{label}</Text>
       {children}
     </Box>
@@ -49,7 +49,7 @@ export function SystemPanel({ system }: Readonly<Props>) {
 
   return (
     <Box borderStyle="single" borderColor="blue" paddingX={1} width="100%" flexDirection="column">
-      <Box gap={0}>
+      <Box justifyContent="space-between">
         {/* CPU */}
         {system.cpuUsagePercent !== undefined && (
           <Metric label="CPU">
