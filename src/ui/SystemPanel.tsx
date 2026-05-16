@@ -23,7 +23,7 @@ function DiskBar({ d }: { d: DiskEntry }) {
   const used = d.totalBytes - d.freeBytes;
   const pct = Math.round((used / d.totalBytes) * 100);
   return (
-    <Box gap={1} marginRight={2}>
+    <Box gap={1}>
       <Text dimColor>{d.name}</Text>
       <Text color={clr(pct)}>{bar(pct)} {fmtBytes(used)}/{fmtBytes(d.totalBytes)}</Text>
     </Box>
@@ -44,7 +44,7 @@ export function SystemPanel({ system }: Readonly<Props>) {
       <Text bold color="blue">System</Text>
 
       {/* Row 1: CPU + RAM */}
-      <Box gap={4}>
+      <Box justifyContent="space-between">
         {system.cpuUsagePercent !== undefined && (
           <Box gap={1}>
             <Text dimColor>CPU</Text>
@@ -65,7 +65,7 @@ export function SystemPanel({ system }: Readonly<Props>) {
 
       {/* Row 2: Disks — wrap into multiple rows if many */}
       {disks.length > 0 && (
-        <Box flexWrap="wrap">
+        <Box justifyContent="space-between" flexWrap="wrap">
           {disks.map((d) => <DiskBar key={d.name} d={d} />)}
         </Box>
       )}
