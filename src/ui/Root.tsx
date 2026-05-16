@@ -2,33 +2,54 @@ import React, { useState, useCallback } from "react";
 import { HostSelector } from "./HostSelector.js";
 import { HostForm } from "./HostForm.js";
 import { CredentialPrompt } from "./CredentialPrompt.js";
+import { ConfigSetup } from "./ConfigSetup.js";
 import { App } from "./App.js";
-import { saveConfig } from "../config/loader.js";
+import { loadConfig, saveConfig } from "../config/loader.js";
+import { saveSettings, loadSettings } from "../config/settings.js";
 import type { ConnectOptions } from "../transports/ssh.js";
 import type { AppConfig, HostConfig } from "../core/types.js";
 
 type Screen =
+  | { kind: "setup" }
   | { kind: "selector" }
   | { kind: "form" }
   | { kind: "credential"; host: HostConfig; mode: "password" | "passphrase" }
   | { kind: "monitor"; host: HostConfig; connectOptions?: ConnectOptions };
 
-function getInitialScreen(config: AppConfig): Screen {
+function getInitialScreen(config: AppConfig, configMissing: boolean): Screen {
+  if (configMissing) return { kind: "setup" };
   if (config.hosts.length === 0) return { kind: "form" };
   return { kind: "selector" };
 }
 
-type Props = { initialConfig: AppConfig };
+type Props = {
+  initialConfig: AppConfig;
+  configPath: string;
+  configMissing?: boolean;
+};
 
-export function Root({ initialConfig }: Readonly<Props>) {
+export function Root({ initialConfig, configPath, configMissing = false }: Readonly<Props>) {
   const [config, setConfig] = useState<AppConfig>(initialConfig);
-  const [screen, setScreen] = useState<Screen>(getInitialScreen(initialConfig));
+  const [currentConfigPath, setCurrentConfigPath] = useState(configPath);
+  const [screen, setScreen] = useState<Screen>(getInitialScreen(initialConfig, configMissing));
 
-  const persistConfig = useCallback((next: AppConfig) => {
+  const persistConfig = useCallback((next: AppConfig, path = currentConfigPath) => {
     setConfig(next);
-    try { saveConfig(next); } catch {}
+    try { saveConfig(next, path); } catch {}
+  }, [currentConfigPath]);
+
+  // ── ConfigSetup callbacks ─────────────────────────────────────────────────
+  const handleConfigReady = useCallback((path: string) => {
+    setCurrentConfigPath(path);
+    const settings = loadSettings();
+    settings.configPath = path;
+    saveSettings(settings);
+    const loaded = loadConfig(path) ?? { hosts: [] };
+    setConfig(loaded);
+    setScreen(loaded.hosts.length === 0 ? { kind: "form" } : { kind: "selector" });
   }, []);
 
+  // ── HostSelector callbacks ────────────────────────────────────────────────
   const handleSelectHost = useCallback((host: HostConfig) => {
     if (host.authMethod === "password") {
       setScreen({ kind: "credential", host, mode: "password" });
@@ -45,6 +66,7 @@ export function Root({ initialConfig }: Readonly<Props>) {
     if (next.hosts.length === 0) setScreen({ kind: "form" });
   }, [config, persistConfig]);
 
+  // ── HostForm callbacks ────────────────────────────────────────────────────
   const handleFormSubmit = useCallback((host: HostConfig) => {
     const next = { hosts: [...config.hosts, host] };
     persistConfig(next);
@@ -53,6 +75,7 @@ export function Root({ initialConfig }: Readonly<Props>) {
 
   const handleFormCancel = useCallback(() => setScreen({ kind: "selector" }), []);
 
+  // ── Monitor callbacks ─────────────────────────────────────────────────────
   const handleSwitchHost = useCallback(() => setScreen({ kind: "selector" }), []);
 
   const handleNeedPassphrase = useCallback(() => {
@@ -61,6 +84,7 @@ export function Root({ initialConfig }: Readonly<Props>) {
     }
   }, [screen]);
 
+  // ── CredentialPrompt callbacks ────────────────────────────────────────────
   const handleCredentialSubmit = useCallback((value: string) => {
     if (screen.kind !== "credential") return;
     const opts: ConnectOptions =
@@ -69,6 +93,11 @@ export function Root({ initialConfig }: Readonly<Props>) {
   }, [screen]);
 
   const handleCredentialCancel = useCallback(() => setScreen({ kind: "selector" }), []);
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  if (screen.kind === "setup") {
+    return <ConfigSetup defaultPath={currentConfigPath} onConfigReady={handleConfigReady} />;
+  }
 
   if (screen.kind === "selector") {
     return (
@@ -101,7 +130,6 @@ export function Root({ initialConfig }: Readonly<Props>) {
     );
   }
 
-  // screen.kind === "monitor"
   return (
     <App
       hostConfig={screen.host}

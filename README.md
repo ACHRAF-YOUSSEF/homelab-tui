@@ -10,6 +10,28 @@ Terminal UI for monitoring a remote homelab server over SSH. Discovers Docker co
 
 ## Installation
 
+### Download a binary (recommended)
+
+Download the latest binary for your platform from [Releases](https://github.com/ACHRAF-YOUSSEF/homelab-tui/releases):
+
+| Platform | File |
+|---|---|
+| Linux x64 | `homelab-tui-linux-x64` |
+| Linux arm64 | `homelab-tui-linux-arm64` |
+| macOS x64 | `homelab-tui-darwin-x64` |
+| macOS arm64 (M-series) | `homelab-tui-darwin-arm64` |
+| Windows x64 | `homelab-tui-windows-x64.exe` |
+
+```sh
+# Linux / macOS
+chmod +x homelab-tui-linux-x64
+mv homelab-tui-linux-x64 /usr/local/bin/homelab-tui
+
+# Windows — add to a folder in your PATH
+```
+
+### From source (requires Bun)
+
 ```sh
 git clone https://github.com/ACHRAF-YOUSSEF/homelab-tui
 cd homelab-tui
@@ -46,15 +68,22 @@ Create `homelab.config.json` in the project root:
 | `"password"` | — | Prompted at launch, never stored |
 | `"key"` | `privateKeyPath` | Supports SSH agent (`SSH_AUTH_SOCK`), passphrase prompted if key is encrypted |
 
-## Running
+## CLI
 
 ```sh
+homelab-tui                        # launch TUI
+homelab-tui --config /path/to/homelab.config.json  # use a specific config (session only)
+homelab-tui --set-config /path/to/homelab.config.json  # persist config path as default
+homelab-tui --update               # self-update to latest GitHub release
+homelab-tui --check-update         # check latest version without installing
+homelab-tui --version              # print version
+homelab-tui --help                 # print help
+
+# From source
 bun dev
-# or
-bun start
 ```
 
-On first launch with no hosts configured, a setup wizard will appear.
+On first launch with no config file, a setup screen lets you create one or point to an existing path. The chosen path is saved to `~/.config/homelab-tui/settings.json` (Windows: `%APPDATA%\homelab-tui\settings.json`) so future launches find it automatically.
 
 ## Screens
 

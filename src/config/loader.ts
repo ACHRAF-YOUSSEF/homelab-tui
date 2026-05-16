@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { loadSettings } from "./settings.js";
 import type { AppConfig } from "../core/types.js";
 
 const DiscoverySchema = z.object({
@@ -28,9 +29,14 @@ const AppConfigSchema = z.object({
   hosts: z.array(HostSchema).default([]),
 });
 
-export const CONFIG_PATH = join(process.cwd(), "homelab.config.json");
+export function resolveConfigPath(explicit?: string): string {
+  if (explicit) return explicit;
+  const { configPath } = loadSettings();
+  if (configPath) return configPath;
+  return join(process.cwd(), "homelab.config.json");
+}
 
-export function loadConfig(configPath = CONFIG_PATH): AppConfig | null {
+export function loadConfig(configPath = resolveConfigPath()): AppConfig | null {
   if (!existsSync(configPath)) return null;
 
   let raw: unknown;
@@ -51,6 +57,6 @@ export function loadConfig(configPath = CONFIG_PATH): AppConfig | null {
   return result.data as AppConfig;
 }
 
-export function saveConfig(config: AppConfig, configPath = CONFIG_PATH): void {
+export function saveConfig(config: AppConfig, configPath = resolveConfigPath()): void {
   writeFileSync(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
 }
