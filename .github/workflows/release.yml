@@ -76,7 +76,7 @@ jobs:
             jq ".version = \"$VERSION\"" npm/platforms/$PLATFORM/package.json > tmp.json
             mv tmp.json npm/platforms/$PLATFORM/package.json
 
-            npm publish npm/platforms/$PLATFORM --access public
+            npm publish ./npm/platforms/$PLATFORM --access public || true
           done
 
       - name: Publish main package to npm
@@ -87,4 +87,4 @@ jobs:
           jq ".version = \"$VERSION\" | .optionalDependencies = (.optionalDependencies | map_values(\"$VERSION\"))" \
             npm/main/package.json > tmp.json && mv tmp.json npm/main/package.json
 
-          npm publish npm/main --access public
+          npm publish ./npm/main --access public
