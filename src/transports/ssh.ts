@@ -33,27 +33,53 @@ function isPassphraseError(err: unknown): boolean {
   );
 }
 
+const READY_TIMEOUT = 15_000;
+const KEEPALIVE_INTERVAL = 15_000;
+const KEEPALIVE_COUNT_MAX = 3;
+const COMMAND_TIMEOUT = 30_000;
+
 export class SSHTransport {
   private readonly ssh = new NodeSSH();
   private readonly cfg: SSHConfig;
+  private readonly onDisconnect?: () => void;
   private connected = false;
+  private disposing = false;
 
-  constructor(cfg: SSHConfig) {
+  constructor(cfg: SSHConfig, onDisconnect?: () => void) {
     this.cfg = cfg;
+    this.onDisconnect = onDisconnect;
+  }
+
+  private wireDisconnect(): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const conn = this.ssh.connection as any;
+    if (!conn) return;
+    const fire = () => {
+      if (this.connected && !this.disposing) {
+        this.connected = false;
+        this.onDisconnect?.();
+      }
+    };
+    conn.on("close", fire);
+    conn.on("error", fire);
   }
 
   async connect(opts: ConnectOptions = {}): Promise<void> {
+    this.disposing = false;
     const base = {
       host: this.cfg.host,
       port: this.cfg.port,
       username: this.cfg.username,
-      readyTimeout: 10_000,
+      readyTimeout: READY_TIMEOUT,
+      keepaliveInterval: KEEPALIVE_INTERVAL,
+      keepaliveCountMax: KEEPALIVE_COUNT_MAX,
     };
 
     if (this.cfg.authMethod === "password") {
       if (!opts.password) throw new Error("Password required but not provided");
       await this.ssh.connect({ ...base, password: opts.password });
       this.connected = true;
+      this.wireDisconnect();
       return;
     }
 
@@ -63,6 +89,7 @@ export class SSHTransport {
       try {
         await this.ssh.connect({ ...base, agent: agentSocket });
         this.connected = true;
+        this.wireDisconnect();
         return;
       } catch {
         // Agent failed — fall through to key file
@@ -81,6 +108,7 @@ export class SSHTransport {
     try {
       await this.ssh.connect({ ...base, privateKey, passphrase: opts.passphrase });
       this.connected = true;
+      this.wireDisconnect();
     } catch (err: unknown) {
       if (isPassphraseError(err)) throw new PassphraseRequiredError();
       throw err;
@@ -112,15 +140,20 @@ export class SSHTransport {
 
   async run(command: string): Promise<string> {
     if (!this.connected) throw new Error("SSH not connected");
-    const result = await this.ssh.execCommand(command, {
-      execOptions: { pty: false },
-    });
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error(`Command timed out after ${COMMAND_TIMEOUT / 1000}s`)), COMMAND_TIMEOUT)
+    );
+    const result = await Promise.race([
+      this.ssh.execCommand(command, { execOptions: { pty: false } }),
+      timeout,
+    ]);
     if (result.stderr && !result.stdout) throw new Error(result.stderr.trim());
     return result.stdout.trim();
   }
 
   async dispose(): Promise<void> {
     if (this.connected) {
+      this.disposing = true;
       this.ssh.dispose();
       this.connected = false;
     }

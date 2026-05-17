@@ -84,7 +84,7 @@ type Props = {
 
 export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function MonitorPane(props, ref) {
   const { hostConfig, connectOptions, isActive, focused, paneIndex, paneCount,
-    version, updateTag, containerWidth, onNeedPassphrase, onAuthFailed, onStateChange } = props;
+    containerWidth, onNeedPassphrase, onAuthFailed, onStateChange } = props;
   const multiPane = (paneCount ?? 1) > 1;
 
   const monitorRef = useRef<Monitor | null>(null);
@@ -95,6 +95,7 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
 
   const [retryKey, setRetryKey] = useState(0);
   const [reconnectCountdown, setReconnectCountdown] = useState<number | null>(null);
+  const [reconnectAttempt, setReconnectAttempt] = useState(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reconnectAttemptsRef = useRef(0);
 
@@ -134,8 +135,10 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
   // Reconnect
   const triggerReconnect = useCallback(() => {
     if (reconnectTimerRef.current) return;
-    const delay = RECONNECT_DELAYS[Math.min(reconnectAttemptsRef.current, RECONNECT_DELAYS.length - 1)];
+    const attempt = reconnectAttemptsRef.current;
+    const delay = RECONNECT_DELAYS[Math.min(attempt, RECONNECT_DELAYS.length - 1)];
     reconnectAttemptsRef.current++;
+    setReconnectAttempt(reconnectAttemptsRef.current);
     let count = delay;
     setReconnectCountdown(count);
     reconnectTimerRef.current = setInterval(() => {
@@ -156,6 +159,7 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
   useEffect(() => {
     if (snapshot && !snapshot.error) {
       reconnectAttemptsRef.current = 0;
+      setReconnectAttempt(0);
       if (reconnectTimerRef.current) {
         clearInterval(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
@@ -182,7 +186,7 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
   }, []);
 
   useEffect(() => {
-    const mon = new Monitor(hostConfig);
+    const mon = new Monitor(hostConfig, triggerReconnect);
     monitorRef.current = mon;
     setConnecting(true);
     setSnapshot(null);
@@ -276,9 +280,9 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
           )}
           {snapshot?.error && <Text color="red" wrap="truncate">✗ {snapshot.error}</Text>}
           <Box flexGrow={1} />
-          {reconnectCountdown !== null
-            ? <Text color="yellow">reconnect {reconnectCountdown}s</Text>
-            : <Text dimColor>{time}</Text>}
+          {reconnectCountdown === null
+            ? <Text dimColor>{time}</Text>
+            : <Text color="yellow">reconnect {reconnectCountdown}s (#{reconnectAttempt})</Text>}
         </Box>
 
         {/* Compact inline metrics — no border */}
@@ -294,7 +298,7 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
     <Box flexDirection="column" flexGrow={1} borderStyle="single" borderColor="cyan">
       <Header
         snapshot={snapshot} connecting={connecting} lastUpdated={lastUpdated}
-        reconnectCountdown={reconnectCountdown}
+        reconnectCountdown={reconnectCountdown} reconnectAttempt={reconnectAttempt}
       />
       {snapshot?.system && <SystemPanel system={snapshot.system} />}
       {serviceList}

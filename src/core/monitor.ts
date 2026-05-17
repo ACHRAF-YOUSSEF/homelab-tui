@@ -52,7 +52,7 @@ export class Monitor {
   private readonly cfg: HostConfig;
   private lastOS: RemoteOS = "unknown";
 
-  constructor(cfg: HostConfig) {
+  constructor(cfg: HostConfig, onDisconnect?: () => void) {
     this.cfg = cfg;
     this.transport = new SSHTransport({
       host: cfg.host,
@@ -60,7 +60,7 @@ export class Monitor {
       username: cfg.username,
       authMethod: cfg.authMethod,
       privateKeyPath: cfg.privateKeyPath,
-    });
+    }, onDisconnect);
   }
 
   async connect(opts: ConnectOptions = {}): Promise<void> {

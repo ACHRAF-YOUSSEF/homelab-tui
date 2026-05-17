@@ -7,12 +7,13 @@ type Props = {
   connecting: boolean;
   lastUpdated: Date | null;
   reconnectCountdown: number | null;
+  reconnectAttempt?: number;
   // Omit these when rendering inside MultiMonitor's app bar (which already shows them)
   version?: string;
   updateTag?: string | null;
 };
 
-export function Header({ snapshot, connecting, lastUpdated, reconnectCountdown, version, updateTag }: Readonly<Props>) {
+export function Header({ snapshot, connecting, lastUpdated, reconnectCountdown, reconnectAttempt, version, updateTag }: Readonly<Props>) {
   const time = lastUpdated ? lastUpdated.toLocaleTimeString() : "—";
 
   return (
@@ -44,7 +45,7 @@ export function Header({ snapshot, connecting, lastUpdated, reconnectCountdown, 
         {reconnectCountdown === null ? (
           <Text dimColor>updated {time}</Text>
         ) : (
-          <Text color="yellow">reconnecting in {reconnectCountdown}s…</Text>
+          <Text color="yellow">reconnecting in {reconnectCountdown}s… (#{reconnectAttempt ?? 1})</Text>
         )}
       </Box>
     </Box>
