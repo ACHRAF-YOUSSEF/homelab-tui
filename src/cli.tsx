@@ -67,7 +67,7 @@ async function main(): Promise<void> {
 
     if (arg === "--update") {
       try {
-        const msg = await selfUpdate();
+        const msg = await selfUpdate(VERSION);
         console.log(msg);
       } catch (err: unknown) {
         console.error(`Update failed: ${err instanceof Error ? err.message : String(err)}`);

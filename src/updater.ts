@@ -78,9 +78,13 @@ async function downloadWithProgress(url: string): Promise<Buffer> {
   return Buffer.concat(chunks);
 }
 
-export async function selfUpdate(): Promise<string> {
+export async function selfUpdate(currentVersion: string): Promise<string> {
   process.stdout.write("Checking for updates…\n");
   const { tag, downloadUrl, name } = await getLatestRelease();
+
+  if (!isNewerVersion(tag, currentVersion)) {
+    return `Already up to date (v${currentVersion}).`;
+  }
 
   process.stdout.write(`Downloading ${name} (${tag})…\n`);
   const buf = await downloadWithProgress(downloadUrl);
