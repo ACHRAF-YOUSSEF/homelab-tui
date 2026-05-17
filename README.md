@@ -1,6 +1,6 @@
 # homelab-tui
 
-Terminal UI for monitoring a remote homelab server over SSH. Discovers Docker containers and native system services, streams live logs, and shows system metrics. Supports Linux, macOS, and Windows remote hosts.
+Terminal UI for monitoring a remote homelab server over SSH. Discovers Docker containers and running programs (Jellyfin, Ollama, LM Studio, game servers…), streams live logs, and shows system metrics. Supports Linux, macOS, and Windows remote hosts.
 
 ## Screenshots
 
@@ -93,7 +93,7 @@ On first launch with no config file, a setup screen lets you create one or point
       "authMethod": "password",
       "discovery": {
         "docker": true,
-        "nativeServices": false,  
+        "nativeServices": false,
         "includeStoppedContainers": true
       }
     }
@@ -134,10 +134,10 @@ Shown on startup. Lists all configured hosts.
 
 | Key | Action |
 |-----|--------|
-| `↑` / `↓` | Select service (scroll logs when log panel is open) |
-| `r` | Restart selected service |
-| `s` | Stop selected service |
-| `t` | Start selected service |
+| `↑` / `↓` | Select service |
+| `r` | Restart selected Docker container |
+| `s` | Stop selected Docker container / kill selected process |
+| `t` | Start selected Docker container |
 | `l` | Toggle live log panel |
 | `↑` / `↓` / `PgUp` / `PgDn` | Scroll log panel (when open) |
 | `/` | Search by name or image |
@@ -146,15 +146,19 @@ Shown on startup. Lists all configured hosts.
 | `h` | Back to host selector |
 | `q` | Quit |
 
+> The footer hints update based on what is selected: Docker containers show `r restart · s stop · t start`, discovered processes show only `s kill`.
+
+
 ## Features
 
 - **Multi-host** — add, edit, delete hosts at runtime; config auto-saved
 - **OS detection** — auto-detects Linux, macOS, Windows over SSH
 - **Docker discovery** — containers with status, image, ports, health, Compose project
 - **Process discovery** — finds programs listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers, etc.) on Linux, macOS, and Windows
-- **Live logs** — `docker logs -f` / `journalctl -f` streamed over SSH, scrollable with auto-follow
+- **Live logs** — `docker logs -f` streamed over SSH, scrollable with auto-follow
 - **System metrics** — CPU %, RAM, disk usage with progress bars
-- **Search / filter / sort** — filter by type (docker/native) or status, sort by name/status/image
+- **Search / filter / sort** — filter by type (docker/processes) or status, sort by name/status/image
+- **Context-aware controls** — Docker: restart/stop/start; discovered processes: kill only
 - **Auto-reconnect** — exponential backoff (3 → 5 → 10 → 20 → 30 s) when SSH drops
 - **Password & key auth** — password prompted securely; SSH agent supported for encrypted keys
 - **Self-update** — `homelab-tui --update` downloads and replaces the binary in place
@@ -186,7 +190,8 @@ Pushes a git tag → GitHub Actions builds all 5 platform binaries → creates G
 ## Known Limitations
 
 - Only one host monitored at a time (no split-pane multi-host view)
-- macOS and Windows native service log streaming not supported (snapshot only)
+- Discovered processes have no log streaming (logs are application-specific)
+- Discovered processes cannot be restarted or started (only killed)
 - CPU usage on Linux requires two `/proc/stat` reads 200 ms apart
 
 ## Star History

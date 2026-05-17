@@ -1,6 +1,6 @@
 # homelab-tui
 
-Terminal UI for monitoring a remote homelab server over SSH. Discovers Docker containers and native system services, streams live logs, and shows system metrics. Supports Linux, macOS, and Windows remote hosts.
+Terminal UI for monitoring a remote homelab server over SSH. Discovers Docker containers and running programs (Jellyfin, Ollama, LM Studio, game servers…), streams live logs, and shows system metrics. Supports Linux, macOS, and Windows remote hosts.
 
 ## Install
 
@@ -67,10 +67,10 @@ On first launch, a setup wizard lets you create or locate your `homelab.config.j
 
 | Key | Action |
 |-----|--------|
-| `↑` / `↓` | Select service (scroll logs when panel is open) |
-| `r` | Restart selected service |
-| `s` | Stop selected service |
-| `t` | Start selected service |
+| `↑` / `↓` | Select service |
+| `r` | Restart selected Docker container |
+| `s` | Stop selected Docker container / kill selected process |
+| `t` | Start selected Docker container |
 | `l` | Toggle live log panel |
 | `PgUp` / `PgDn` | Scroll log panel |
 | `/` | Search by name or image |
@@ -79,12 +79,15 @@ On first launch, a setup wizard lets you create or locate your `homelab.config.j
 | `h` | Switch host |
 | `q` | Quit |
 
+> Footer hints adapt to selection: Docker shows `r restart · s stop · t start`, processes show `s kill` only.
+
 ## Features
 
 - **Multi-host** — add, edit, delete hosts at runtime
 - **Docker discovery** — containers with status, image, ports, health, Compose project
-- **Process discovery** — finds programs listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers, etc.)
-- **Live logs** — streamed over SSH, scrollable, auto-follows new output
+- **Process discovery** — finds programs listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers…) on Linux, macOS, and Windows
+- **Context-aware controls** — Docker: restart/stop/start; discovered processes: kill only
+- **Live logs** — `docker logs -f` streamed over SSH, scrollable, auto-follows new output
 - **System metrics** — CPU %, RAM, disk usage
 - **Auto-reconnect** — automatically reconnects when SSH drops
 - **Self-update** — `homelab-tui --update` replaces the binary in place
