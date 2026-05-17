@@ -1,6 +1,7 @@
 import React from "react";
 import { render } from "ink";
 import { loadConfig, resolveConfigPath } from "./config/loader.js";
+import type { AppConfig } from "./core/types.js";
 import { loadSettings, saveSettings } from "./config/settings.js";
 import { selfUpdate, getLatestRelease, isNewerVersion } from "./updater.js";
 import { Root } from "./ui/Root.js";
@@ -80,7 +81,7 @@ async function main(): Promise<void> {
   // ── Launch TUI ────────────────────────────────────────────────────────────
   const configPath = resolveConfigPath(flagConfig);
 
-  let config;
+  let config: AppConfig = { hosts: [] };
   let configMissing = false;
 
   try {
