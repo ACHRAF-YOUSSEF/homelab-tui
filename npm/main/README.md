@@ -125,7 +125,7 @@ In multi-host mode: `Space` to check/uncheck, `Enter` to open all in split-pane,
 - **Auth error handling** — wrong password shows an error and re-prompts immediately without leaving the app
 - **Auto-reconnect** — automatically reconnects when SSH drops
 - **Self-update** — `homelab-tui --update` replaces the binary in place with a live download progress bar
-- **Update notifications** — checks for a new release on launch; shows `↑ vX.Y.Z available` in the header if one is found
+- **Update notifications** — checks for a newer release on launch using proper semver comparison; shows `↑ vX.Y.Z available` in the app bar only when an actual upgrade exists
 
 ## Supported platforms
 

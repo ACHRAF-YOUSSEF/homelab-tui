@@ -2,7 +2,7 @@ import React from "react";
 import { render } from "ink";
 import { loadConfig, resolveConfigPath } from "./config/loader.js";
 import { loadSettings, saveSettings } from "./config/settings.js";
-import { selfUpdate, getLatestRelease } from "./updater.js";
+import { selfUpdate, getLatestRelease, isNewerVersion } from "./updater.js";
 import { Root } from "./ui/Root.js";
 import { version as VERSION } from "../package.json";
 const HELP = `
@@ -56,7 +56,8 @@ async function main(): Promise<void> {
     if (arg === "--check-update") {
       try {
         const { tag } = await getLatestRelease();
-        console.log(`Latest release: ${tag}  (current: v${VERSION})`);
+        const newer = isNewerVersion(tag, VERSION);
+        console.log(`Latest release: ${tag}  (current: v${VERSION})${newer ? "  ← update available" : "  ✓ up to date"}`);
       } catch (err: unknown) {
         console.error(`Check failed: ${err instanceof Error ? err.message : String(err)}`);
         process.exit(1);

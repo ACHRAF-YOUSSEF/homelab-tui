@@ -12,7 +12,7 @@ import {
   stopDockerService,
 } from "../adapters/docker.js";
 import { stopNativeService } from "../adapters/native-actions.js";
-import { getLatestRelease } from "../updater.js";
+import { getLatestRelease, isNewerVersion } from "../updater.js";
 import { version as VERSION } from "../../package.json";
 import type { ConnectOptions } from "../transports/ssh.js";
 import type { HostConfig, MonitorSnapshot, Service } from "../core/types.js";
@@ -70,7 +70,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   const [updateTag, setUpdateTag] = useState<string | null>(null);
   useEffect(() => {
     getLatestRelease()
-      .then(({ tag }) => { if (tag !== `v${VERSION}`) setUpdateTag(tag); })
+      .then(({ tag }) => { if (isNewerVersion(tag, VERSION)) setUpdateTag(tag); })
       .catch(() => {});
   }, []);
 

@@ -3,6 +3,15 @@ import { chmodSync, existsSync, renameSync, writeFileSync } from "node:fs";
 const REPO = "ACHRAF-YOUSSEF/homelab-tui";
 const BAR_WIDTH = 40;
 
+export function isNewerVersion(remoteTag: string, currentVersion: string): boolean {
+  const parse = (v: string) => v.replace(/^v/, "").split(".").map(Number);
+  const [rMaj = 0, rMin = 0, rPat = 0] = parse(remoteTag);
+  const [cMaj = 0, cMin = 0, cPat = 0] = parse(currentVersion);
+  if (rMaj !== cMaj) return rMaj > cMaj;
+  if (rMin !== cMin) return rMin > cMin;
+  return rPat > cPat;
+}
+
 type Release = {
   tag_name: string;
   assets: Array<{ name: string; browser_download_url: string }>;

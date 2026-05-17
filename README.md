@@ -195,7 +195,7 @@ Shown on startup. Lists all configured hosts.
 - **Auto-reconnect** — exponential backoff (3 → 5 → 10 → 20 → 30 s) when SSH drops
 - **Password & key auth** — password prompted securely; wrong password re-prompts immediately with an error; SSH agent supported for encrypted keys
 - **Self-update** — `homelab-tui --update` downloads and replaces the binary in place with a live progress bar
-- **Update notifications** — checks for a new release on launch and shows a badge in the header if one is available
+- **Update notifications** — checks for a newer release on launch; shows `↑ vX.Y.Z available` badge in the app bar only when the remote version is actually newer
 
 ## Enabling OpenSSH on Windows (remote host)
 

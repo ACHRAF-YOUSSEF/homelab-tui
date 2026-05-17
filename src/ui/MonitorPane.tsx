@@ -294,7 +294,7 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
     <Box flexDirection="column" flexGrow={1} borderStyle="single" borderColor="cyan">
       <Header
         snapshot={snapshot} connecting={connecting} lastUpdated={lastUpdated}
-        reconnectCountdown={reconnectCountdown} version={version} updateTag={updateTag}
+        reconnectCountdown={reconnectCountdown}
       />
       {snapshot?.system && <SystemPanel system={snapshot.system} />}
       {serviceList}

@@ -7,7 +7,8 @@ type Props = {
   connecting: boolean;
   lastUpdated: Date | null;
   reconnectCountdown: number | null;
-  version: string;
+  // Omit these when rendering inside MultiMonitor's app bar (which already shows them)
+  version?: string;
   updateTag?: string | null;
 };
 
@@ -15,15 +16,18 @@ export function Header({ snapshot, connecting, lastUpdated, reconnectCountdown, 
   const time = lastUpdated ? lastUpdated.toLocaleTimeString() : "—";
 
   return (
-    <Box borderStyle="single" borderColor="cyan" paddingX={1} width="100%" flexDirection="column">
+    <Box borderStyle="single" borderColor="cyan" paddingX={1} width="100%">
       <Box flexGrow={1} justifyContent="space-between">
-        <Box gap={1}>
-          <Text bold color="cyan">homelab-tui</Text>
-          <Text dimColor>v{version}</Text>
-          {updateTag && (
-            <Text color="yellow" bold>↑ {updateTag} available</Text>
-          )}
-        </Box>
+        {/* Brand — only when version is provided (not duplicated from app bar) */}
+        {version ? (
+          <Box gap={1}>
+            <Text bold color="cyan">homelab-tui</Text>
+            <Text dimColor>v{version}</Text>
+            {updateTag && <Text color="yellow" bold>↑ {updateTag} available</Text>}
+          </Box>
+        ) : (
+          <Box />
+        )}
 
         {snapshot ? (
           <>
