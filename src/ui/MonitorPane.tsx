@@ -79,14 +79,12 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
   const clampedIndex = Math.min(selectedIndex, Math.max(0, filteredServices.length - 1));
   const selectedService = filteredServices[clampedIndex] ?? null;
 
-  // Report state upward on every render (cheap ref compare)
-  const prevSvc = useRef<Service | null>(null);
-  const prevSnap = useRef<MonitorSnapshot | null>(null);
-  if (selectedService !== prevSvc.current || snapshot !== prevSnap.current) {
-    prevSvc.current = selectedService;
-    prevSnap.current = snapshot;
-    onStateChange(selectedService, snapshot);
-  }
+  // Report state upward — use a ref so the effect never goes stale on callback identity changes
+  const onStateChangeRef = useRef(onStateChange);
+  onStateChangeRef.current = onStateChange;
+  useEffect(() => {
+    onStateChangeRef.current(selectedService, snapshot);
+  }, [selectedService, snapshot]);
 
   // Reconnect
   const triggerReconnect = useCallback(() => {
