@@ -119,6 +119,10 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
     }
   }, [snapshot]);
 
+  // Stable ref so onNeedPassphrase never enters the connection useEffect dep array
+  const onNeedPassphraseRef = useRef(onNeedPassphrase);
+  onNeedPassphraseRef.current = onNeedPassphrase;
+
   const doRefresh = useCallback(async () => {
     const mon = monitorRef.current;
     if (!mon) return;
@@ -139,7 +143,7 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
     mon.connect(connectOptions)
       .then(() => doRefresh())
       .catch((err: unknown) => {
-        if (err instanceof PassphraseRequiredError) { onNeedPassphrase?.(); return; }
+        if (err instanceof PassphraseRequiredError) { onNeedPassphraseRef.current?.(); return; }
         const msg = err instanceof Error ? err.message : String(err);
         setSnapshot({
           hostName: hostConfig.name, remoteOS: "unknown",
@@ -155,7 +159,7 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
       mon.dispose();
       if (reconnectTimerRef.current) { clearInterval(reconnectTimerRef.current); reconnectTimerRef.current = null; }
     };
-  }, [hostConfig, connectOptions, doRefresh, onNeedPassphrase, retryKey]);
+  }, [hostConfig, connectOptions, doRefresh, retryKey]); // onNeedPassphrase intentionally excluded (ref above)
 
   useImperativeHandle(ref, () => ({
     run: (cmd) => monitorRef.current!.run(cmd),
