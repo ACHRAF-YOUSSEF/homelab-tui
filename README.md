@@ -194,9 +194,10 @@ Shown on startup. Lists all configured hosts.
 - **System metrics** — CPU %, RAM, disk usage with progress bars
 - **Search / filter / sort** — filter by type (docker/processes) or status, sort by name/status/image
 - **Context-aware controls** — Docker: restart/stop/start; discovered processes: kill only
-- **Auto-reconnect** — exponential backoff (3 → 5 → 10 → 20 → 30 s) when SSH drops
+- **Auto-reconnect** — SSH keepalive detects silent drops (15 s interval, 3 missed → reconnect); exponential backoff (3 → 5 → 10 → 20 → 30 s); attempt counter shown in header (`reconnect 5s (#2)`)
+- **Command timeout** — SSH commands time out after 30 s so a hanging command never blocks the refresh loop
 - **Password & key auth** — password prompted securely; wrong password re-prompts immediately with an error; SSH agent supported for encrypted keys
-- **Self-update** — `homelab-tui --update` downloads and replaces the binary in place with a live progress bar
+- **Self-update** — `homelab-tui --update` checks version first, skips download if already up to date; otherwise downloads and replaces the binary in place with a live progress bar
 - **Update notifications** — checks for a newer release on launch; shows `↑ vX.Y.Z available` badge in the app bar only when the remote version is actually newer
 
 ## Enabling OpenSSH on Windows (remote host)

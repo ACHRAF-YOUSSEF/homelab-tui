@@ -125,8 +125,9 @@ In multi-host mode: `Space` to check/uncheck, `Enter` to open all in split-pane,
 - **Live logs** — `docker logs -f` streamed over SSH, scrollable, auto-follows new output
 - **System metrics** — CPU %, RAM, disk usage
 - **Auth error handling** — wrong password shows an error and re-prompts immediately without leaving the app
-- **Auto-reconnect** — automatically reconnects when SSH drops
-- **Self-update** — `homelab-tui --update` replaces the binary in place with a live download progress bar
+- **Auto-reconnect** — SSH keepalive detects silent drops (15 s interval, 3 missed → reconnect); exponential backoff (3 → 5 → 10 → 20 → 30 s); attempt counter shown in header
+- **Command timeout** — SSH commands time out after 30 s so a hanging command never blocks the refresh loop
+- **Self-update** — `homelab-tui --update` checks version first, skips download if already up to date; otherwise replaces the binary in place with a live progress bar
 - **Update notifications** — checks for a newer release on launch using proper semver comparison; shows `↑ vX.Y.Z available` in the app bar only when an actual upgrade exists
 
 ## Supported platforms
