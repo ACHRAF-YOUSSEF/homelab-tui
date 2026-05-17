@@ -103,7 +103,9 @@ In multi-host mode: `Space` to check/uncheck, `Enter` to open all in split-pane,
 | `t` | Start selected Docker container |
 | `l` | Toggle live log panel |
 | `PgUp` / `PgDn` | Scroll log panel |
-| `Tab` / `Shift+Tab` | Switch focused pane (multi-host) |
+| `a` | Add another host as a new pane (stays connected) |
+| `x` | Close the focused pane |
+| `Tab` / `Shift+Tab` | Switch focused pane |
 | `/` | Search by name or image |
 | `f` | Cycle filter: all → docker → processes → running → stopped → failed → restarting |
 | `o` | Cycle sort: name → status → image |

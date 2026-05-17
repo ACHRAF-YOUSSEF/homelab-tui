@@ -3,7 +3,6 @@ import { HostSelector } from "./HostSelector.js";
 import { HostForm } from "./HostForm.js";
 import { CredentialPrompt } from "./CredentialPrompt.js";
 import { ConfigSetup } from "./ConfigSetup.js";
-import { App } from "./App.js";
 import { MultiMonitor } from "./MultiMonitor.js";
 import { loadConfig, saveConfig } from "../config/loader.js";
 import { saveSettings, loadSettings } from "../config/settings.js";
@@ -108,12 +107,6 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
   // ── Monitor ───────────────────────────────────────────────────────────────
   const handleSwitchHost = useCallback(() => setScreen({ kind: "selector" }), []);
 
-  const handleNeedPassphrase = useCallback(() => {
-    if (screen.kind === "monitor") {
-      setScreen({ kind: "credential", host: screen.host, mode: "passphrase" });
-    }
-  }, [screen]);
-
   // ── CredentialPrompt (single host) ────────────────────────────────────────
   const handleCredentialSubmit = useCallback((value: string) => {
     if (screen.kind !== "credential") return;
@@ -209,19 +202,21 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
   if (screen.kind === "multi-monitor") {
     return (
       <MultiMonitor
-        hosts={screen.hosts}
-        connectOptions={screen.connectOptions}
+        initialHosts={screen.hosts}
+        initialConnectOptions={screen.connectOptions}
+        allHosts={config.hosts}
         onSwitchHost={handleSwitchHost}
       />
     );
   }
 
+  // Single host — also goes through MultiMonitor so "a" can add more panes
   return (
-    <App
-      hostConfig={screen.host}
-      connectOptions={screen.connectOptions}
+    <MultiMonitor
+      initialHosts={[screen.host]}
+      initialConnectOptions={[screen.connectOptions]}
+      allHosts={config.hosts}
       onSwitchHost={handleSwitchHost}
-      onNeedPassphrase={handleNeedPassphrase}
     />
   );
 }

@@ -8,12 +8,14 @@ type Props = {
   selectedKind?: ServiceKind;
   paneCount?: number;
   focusedPane?: number;
+  canAddPane?: boolean;
+  canRemovePane?: boolean;
 };
 
 const KEY = (k: string) => <Text color="cyan" bold>{k}</Text>;
 const SEP = <Text dimColor> · </Text>;
 
-export function Footer({ actionMessage, error, selectedKind, paneCount, focusedPane }: Readonly<Props>) {
+export function Footer({ actionMessage, error, selectedKind, paneCount, focusedPane, canAddPane, canRemovePane }: Readonly<Props>) {
   const isProcess = selectedKind === "system-service";
   const multiPane = (paneCount ?? 1) > 1;
 
@@ -55,6 +57,20 @@ export function Footer({ actionMessage, error, selectedKind, paneCount, focusedP
         {KEY("o")}
         <Text dimColor> sort</Text>
         {SEP}
+        {canAddPane && (
+          <>
+            {KEY("a")}
+            <Text dimColor> add pane</Text>
+            {SEP}
+          </>
+        )}
+        {canRemovePane && (
+          <>
+            {KEY("x")}
+            <Text dimColor> close pane</Text>
+            {SEP}
+          </>
+        )}
         {multiPane && (
           <>
             {KEY("Tab")}

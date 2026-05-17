@@ -170,7 +170,9 @@ Shown on startup. Lists all configured hosts.
 | `t` | Start selected Docker container |
 | `l` | Toggle live log panel |
 | `↑` / `↓` / `PgUp` / `PgDn` | Scroll log panel (when open) |
-| `Tab` / `Shift+Tab` | Switch focused pane (multi-host mode) |
+| `a` | Add another host as a new pane (while staying connected) |
+| `x` | Close the focused pane |
+| `Tab` / `Shift+Tab` | Switch focused pane |
 | `/` | Search by name or image |
 | `f` | Cycle filter: all → docker → processes → running → stopped → failed → restarting |
 | `o` | Cycle sort: name → status → image |
