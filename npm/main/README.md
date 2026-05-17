@@ -105,6 +105,7 @@ In multi-host mode: `Space` to check/uncheck, `Enter` to open all in split-pane,
 | `PgUp` / `PgDn` | Scroll log panel |
 | `a` | Add another host as a new pane (stays connected) |
 | `x` | Close the focused pane |
+| `<` / `>` | Move focused pane left / right (swap, connections stay alive) |
 | `Tab` / `Shift+Tab` | Switch focused pane |
 | `/` | Search by name or image |
 | `f` | Cycle filter: all → docker → processes → running → stopped → failed → restarting |

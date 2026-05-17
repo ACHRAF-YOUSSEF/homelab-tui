@@ -73,6 +73,10 @@ export function Footer({ actionMessage, error, selectedKind, paneCount, focusedP
         )}
         {multiPane && (
           <>
+            {KEY("<")}
+            {KEY(">")}
+            <Text dimColor> swap pane</Text>
+            {SEP}
             {KEY("Tab")}
             <Text dimColor> pane {(focusedPane ?? 0) + 1}/{paneCount}</Text>
             {SEP}

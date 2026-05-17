@@ -101,13 +101,26 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   }, []);
 
   const removePane = useCallback((idx: number) => {
-    if (hosts.length <= 1) return; // keep at least one pane
+    if (hosts.length <= 1) return;
     paneRefsMap.current.delete(paneKey(hosts[idx]));
     setHosts((prev) => prev.filter((_, i) => i !== idx));
     setConnectOpts((prev) => prev.filter((_, i) => i !== idx));
     setPaneStates((prev) => prev.filter((_, i) => i !== idx));
     setFocusedPane((prev) => Math.min(prev, hosts.length - 2));
   }, [hosts]);
+
+  const swapPane = useCallback((fromIdx: number, toIdx: number) => {
+    if (toIdx < 0 || toIdx >= hosts.length) return;
+    const swap = <T,>(arr: T[]): T[] => {
+      const next = [...arr];
+      [next[fromIdx], next[toIdx]] = [next[toIdx], next[fromIdx]];
+      return next;
+    };
+    setHosts(swap);
+    setConnectOpts(swap);
+    setPaneStates(swap);
+    setFocusedPane(toIdx); // focus follows the moved pane
+  }, [hosts.length]);
 
   // ── Log streaming ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -195,10 +208,9 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
       setMode("picking");
       return;
     }
-    if (input === "x" && hosts.length > 1) {
-      removePane(focusedPane);
-      return;
-    }
+    if (input === "x" && hosts.length > 1) { removePane(focusedPane); return; }
+    if (input === "<" && hosts.length > 1) { swapPane(focusedPane, focusedPane - 1); return; }
+    if (input === ">" && hosts.length > 1) { swapPane(focusedPane, focusedPane + 1); return; }
 
     if (!selectedService || busy) return;
 

@@ -172,6 +172,7 @@ Shown on startup. Lists all configured hosts.
 | `↑` / `↓` / `PgUp` / `PgDn` | Scroll log panel (when open) |
 | `a` | Add another host as a new pane (while staying connected) |
 | `x` | Close the focused pane |
+| `<` / `>` | Move focused pane left / right (swap positions, connections stay alive) |
 | `Tab` / `Shift+Tab` | Switch focused pane |
 | `/` | Search by name or image |
 | `f` | Cycle filter: all → docker → processes → running → stopped → failed → restarting |
