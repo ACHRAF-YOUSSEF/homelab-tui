@@ -190,6 +190,7 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
     const done = screen.collected.filter((c) => c !== undefined).length;
     return (
       <CredentialPrompt
+        key={screen.currentIdx}
         host={host}
         mode="password"
         prompt={total > 1 ? `Password for ${host.name} (${done + 1}/${total})` : undefined}
