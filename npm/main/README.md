@@ -116,7 +116,7 @@ In multi-host mode: `Space` to check/uncheck, `Enter` to open all in split-pane,
 
 ## Features
 
-- **Multi-host split-pane** — monitor multiple hosts simultaneously side-by-side; `Tab` to switch focus
+- **Multi-host split-pane** — monitor multiple hosts simultaneously side-by-side; compact per-pane headers with inline metrics; app bar shows all pane statuses; `Tab` to switch focus
 - **Docker discovery** — containers with status, image, ports, health, Compose project
 - **Process discovery** — finds programs listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers…) on Linux, macOS, and Windows
 - **Context-aware controls** — Docker: restart/stop/start; discovered processes: kill only

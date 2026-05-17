@@ -229,6 +229,32 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
 
   return (
     <Box flexDirection="column" width="100%">
+
+      {/* App bar — version + pane status overview */}
+      <Box borderStyle="single" borderColor="cyan" paddingX={1} width="100%">
+        <Box gap={1} flexGrow={1}>
+          <Text bold color="cyan">homelab-tui</Text>
+          <Text dimColor>v{VERSION}</Text>
+          {updateTag && <Text color="yellow" bold>↑ {updateTag} available</Text>}
+        </Box>
+        <Box gap={2}>
+          {hosts.map((h, i) => {
+            const snap = paneStates[i]?.snapshot;
+            const ok = snap && !snap.error;
+            const isFocused = i === focusedPane;
+            return (
+              <Text key={i} color={isFocused ? "cyan" : "gray"}>
+                {isFocused ? "▶ " : "  "}
+                <Text bold={isFocused}>[{i + 1}] {h.name}</Text>
+                {"  "}
+                <Text color={ok ? "green" : "yellow"}>{ok ? "●" : "○"}</Text>
+              </Text>
+            );
+          })}
+        </Box>
+        {multi && <Text dimColor>  Tab: switch</Text>}
+      </Box>
+
       {/* Panes */}
       <Box flexDirection="row" width="100%">
         {hosts.map((host, i) => (
@@ -239,6 +265,8 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
             connectOptions={connectOpts[i]}
             isActive={focusedPane === i && mode === "normal"}
             focused={focusedPane === i}
+            paneIndex={i}
+            paneCount={hosts.length}
             version={VERSION}
             updateTag={updateTag}
             containerWidth={paneWidth}
@@ -292,7 +320,12 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
       )}
 
       {/* Shared details (only in normal mode) */}
-      {mode === "normal" && <ServiceDetails service={selectedService} />}
+      {mode === "normal" && (
+        <ServiceDetails
+          service={selectedService}
+          paneLabel={multi ? `[${focusedPane + 1}] ${hosts[focusedPane].name}` : undefined}
+        />
+      )}}
 
       <LogPanel
         lines={logLines} loading={logsLoading}

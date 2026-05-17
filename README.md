@@ -184,7 +184,7 @@ Shown on startup. Lists all configured hosts.
 
 ## Features
 
-- **Multi-host split-pane** — monitor multiple hosts simultaneously, side-by-side; `Tab` to switch focus between panes
+- **Multi-host split-pane** — monitor multiple hosts simultaneously, side-by-side; compact per-pane headers with inline metrics; app bar shows all pane statuses at a glance; `Tab` to switch focus
 - **OS detection** — auto-detects Linux, macOS, Windows over SSH
 - **Docker discovery** — containers with status, image, ports, health, Compose project
 - **Process discovery** — finds programs listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers, etc.) on Linux, macOS, and Windows

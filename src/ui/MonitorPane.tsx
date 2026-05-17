@@ -8,6 +8,37 @@ import { SystemPanel } from "./SystemPanel.js";
 import { ServiceList } from "./ServiceList.js";
 import type { SortField, StatusFilter } from "./App.js";
 
+// ── Compact metrics (used in multi-pane mode, no border) ────────────────────
+function fmtBytes(b: number) {
+  if (b >= 1_073_741_824) return `${(b / 1_073_741_824).toFixed(1)}G`;
+  if (b >= 1_048_576) return `${(b / 1_048_576).toFixed(0)}M`;
+  return `${b}B`;
+}
+function clr(pct: number) { return pct > 80 ? "red" : pct > 50 ? "yellow" : "green"; }
+
+function CompactMetrics({ system }: { system: import("../core/types.js").SystemInfo }) {
+  const ramPct = system.ram
+    ? Math.round((system.ram.usedBytes / system.ram.totalBytes) * 100) : null;
+  return (
+    <Box paddingX={1} gap={2} flexWrap="wrap">
+      {system.cpuUsagePercent !== undefined && (
+        <Text dimColor>CPU <Text color={clr(system.cpuUsagePercent)}>{system.cpuUsagePercent}%</Text></Text>
+      )}
+      {system.ram && ramPct !== null && (
+        <Text dimColor>RAM <Text color={clr(ramPct)}>{fmtBytes(system.ram.usedBytes)}/{fmtBytes(system.ram.totalBytes)}</Text></Text>
+      )}
+      {(system.disks ?? []).slice(0, 3).map((d) => {
+        const pct = Math.round(((d.totalBytes - d.freeBytes) / d.totalBytes) * 100);
+        return (
+          <Text key={d.name} dimColor>
+            {d.name} <Text color={clr(pct)}>{fmtBytes(d.totalBytes - d.freeBytes)}/{fmtBytes(d.totalBytes)}</Text>
+          </Text>
+        );
+      })}
+    </Box>
+  );
+}
+
 const REFRESH_MS = 3_000;
 const RECONNECT_DELAYS = [3, 5, 10, 20, 30];
 const STATUS_FILTER_CYCLE: StatusFilter[] = ["all", "docker", "native", "running", "stopped", "failed", "restarting"];
@@ -31,6 +62,8 @@ type Props = {
   connectOptions?: ConnectOptions;
   isActive: boolean;
   focused: boolean;
+  paneIndex?: number;   // undefined → single-pane (full Header)
+  paneCount?: number;
   version: string;
   updateTag?: string | null;
   containerWidth?: number;
@@ -39,8 +72,9 @@ type Props = {
 };
 
 export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function MonitorPane(props, ref) {
-  const { hostConfig, connectOptions, isActive, focused, version, updateTag,
-    containerWidth, onNeedPassphrase, onStateChange } = props;
+  const { hostConfig, connectOptions, isActive, focused, paneIndex, paneCount,
+    version, updateTag, containerWidth, onNeedPassphrase, onStateChange } = props;
+  const multiPane = (paneCount ?? 1) > 1;
 
   const monitorRef = useRef<Monitor | null>(null);
   const [snapshot, setSnapshot] = useState<MonitorSnapshot | null>(null);
@@ -186,22 +220,67 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
     }
   }, { isActive });
 
+  const serviceList = (
+    <ServiceList
+      services={filteredServices} allCount={allServices.length}
+      selectedIndex={clampedIndex} searchQuery={searchQuery}
+      searchMode={searchMode} statusFilter={statusFilter} sortBy={sortBy}
+      filterKey={`${statusFilter}-${sortBy}-${searchQuery}`}
+      onSearchChange={setSearchQuery}
+      onSearchSubmit={() => { setSearchMode(false); setSelectedIndex(0); }}
+      containerWidth={containerWidth}
+    />
+  );
+
+  // ── Multi-pane compact layout ────────────────────────────────────────────
+  if (multiPane) {
+    const time = lastUpdated
+      ? lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      : "—";
+    const borderColor = focused ? "cyan" : "gray";
+
+    return (
+      <Box flexDirection="column" flexGrow={1}
+        borderStyle={focused ? "double" : "single"}
+        borderColor={borderColor}>
+
+        {/* Compact pane header — no nested border */}
+        <Box paddingX={1} gap={1} flexWrap="nowrap">
+          <Text bold color={focused ? "cyan" : "gray"}>[{(paneIndex ?? 0) + 1}]</Text>
+          <Text bold color={focused ? "white" : "gray"}>{hostConfig.name}</Text>
+          {snapshot && !connecting ? (
+            <>
+              <Text color="green">●</Text>
+              <Text dimColor>{snapshot.remoteOS}</Text>
+              <Text dimColor>{snapshot.system.hostname}</Text>
+            </>
+          ) : (
+            <Text color="yellow">○ {connecting ? "connecting…" : "—"}</Text>
+          )}
+          {snapshot?.error && <Text color="red" wrap="truncate">✗ {snapshot.error}</Text>}
+          <Box flexGrow={1} />
+          {reconnectCountdown !== null
+            ? <Text color="yellow">reconnect {reconnectCountdown}s</Text>
+            : <Text dimColor>{time}</Text>}
+        </Box>
+
+        {/* Compact inline metrics — no border */}
+        {snapshot?.system && <CompactMetrics system={snapshot.system} />}
+
+        {serviceList}
+      </Box>
+    );
+  }
+
+  // ── Single-pane full layout ──────────────────────────────────────────────
   return (
-    <Box flexDirection="column" flexGrow={1} borderStyle="single" borderColor={focused ? "cyan" : "gray"}>
+    <Box flexDirection="column" flexGrow={1} borderStyle="single" borderColor="cyan">
       <Header
         snapshot={snapshot} connecting={connecting} lastUpdated={lastUpdated}
         reconnectCountdown={reconnectCountdown} version={version} updateTag={updateTag}
       />
       {snapshot?.system && <SystemPanel system={snapshot.system} />}
-      <ServiceList
-        services={filteredServices} allCount={allServices.length}
-        selectedIndex={clampedIndex} searchQuery={searchQuery}
-        searchMode={searchMode} statusFilter={statusFilter} sortBy={sortBy}
-        filterKey={`${statusFilter}-${sortBy}-${searchQuery}`}
-        onSearchChange={setSearchQuery}
-        onSearchSubmit={() => { setSearchMode(false); setSelectedIndex(0); }}
-        containerWidth={containerWidth}
-      />
+      {serviceList}
       {snapshot?.error && <Text color="red" wrap="truncate"> {snapshot.error}</Text>}
     </Box>
   );

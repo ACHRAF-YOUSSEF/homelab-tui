@@ -2,9 +2,9 @@ import React from "react";
 import { Box, Text } from "ink";
 import type { Service } from "../core/types.js";
 
-type Props = { service: Service | null };
+type Props = { service: Service | null; paneLabel?: string };
 
-export function ServiceDetails({ service }: Readonly<Props>) {
+export function ServiceDetails({ service, paneLabel }: Readonly<Props>) {
   if (!service) {
     return (
       <Box borderStyle="single" borderColor="gray" paddingX={1} width="100%">
@@ -39,7 +39,7 @@ export function ServiceDetails({ service }: Readonly<Props>) {
 
   return (
     <Box borderStyle="single" borderColor="gray" paddingX={1} width="100%" flexDirection="column">
-      <Text bold color="gray">Details</Text>
+      <Text bold color="gray">Details{paneLabel ? <Text dimColor> ({paneLabel})</Text> : ""}</Text>
       <Box>
         <Box flexDirection="column" flexGrow={1}>
           {left.map(([label, value]) => (
