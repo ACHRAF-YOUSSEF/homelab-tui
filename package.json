@@ -1,6 +1,7 @@
 {
   "name": "homelab-tui",
   "version": "1.0.1",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "homelab-tui": "./src/cli.tsx"

@@ -1,6 +1,33 @@
-# homelab-tui
+<div align="center">
 
-Terminal UI for monitoring a remote homelab server over SSH. Discovers Docker containers and running programs (Jellyfin, Ollama, LM Studio, game servers…), streams live logs, and shows system metrics. Supports Linux, macOS, and Windows remote hosts.
+# 🖥️ homelab-tui
+
+**A cross-platform terminal UI for monitoring your homelab over SSH**
+
+[![Bun](https://img.shields.io/badge/Bun-000000?style=for-the-badge&logo=bun&logoColor=white)](https://bun.sh)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React%20Ink-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://github.com/vadimdemedes/ink)
+[![npm](https://img.shields.io/npm/v/homelab-tui?style=for-the-badge&logo=npm&logoColor=white)](https://www.npmjs.com/package/homelab-tui)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
+
+[![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)]()
+[![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)]()
+[![Windows](https://img.shields.io/badge/Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white)]()
+
+<p>
+  <a href="https://github.com/ACHRAF-YOUSSEF">
+    <img src="https://img.shields.io/badge/Author-Achraf%20Youssef-181717?style=for-the-badge&logo=github" />
+  </a>
+  <a href="https://achraf-youssef.github.io/portfolio/">
+    <img src="https://img.shields.io/badge/Portfolio-Visit-blueviolet?style=for-the-badge&logo=firefox" />
+  </a>
+</p>
+
+> Discovers Docker containers and running programs (Jellyfin, Ollama, LM Studio, game servers…), streams live logs, and shows system metrics — all over SSH. Supports Linux, macOS, and Windows remote hosts.
+
+</div>
+
+---
 
 ## Screenshots
 
@@ -161,7 +188,8 @@ Shown on startup. Lists all configured hosts.
 - **Context-aware controls** — Docker: restart/stop/start; discovered processes: kill only
 - **Auto-reconnect** — exponential backoff (3 → 5 → 10 → 20 → 30 s) when SSH drops
 - **Password & key auth** — password prompted securely; SSH agent supported for encrypted keys
-- **Self-update** — `homelab-tui --update` downloads and replaces the binary in place
+- **Self-update** — `homelab-tui --update` downloads and replaces the binary in place with a live progress bar
+- **Update notifications** — checks for a new release on launch and shows a badge in the header if one is available
 
 ## Enabling OpenSSH on Windows (remote host)
 
@@ -186,6 +214,10 @@ bun run release:major   # 1.0.0 → 2.0.0
 ```
 
 Pushes a git tag → GitHub Actions builds all 5 platform binaries → creates GitHub release → publishes to npm.
+
+## Header
+
+The top bar always shows the app version (`v1.0.1`). If a newer release is available it shows `↑ v1.0.2 available` in yellow next to the version. Run `homelab-tui --update` to install it.
 
 ## Known Limitations
 
