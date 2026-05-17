@@ -288,7 +288,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
             ref={(el) => { paneRefsMap.current.set(paneKey(host), el); }}
             hostConfig={host}
             connectOptions={connectOpts[i]}
-            isActive={focusedPane === i && mode === "normal"}
+            isActive={focusedPane === i && mode === "normal" && !logsOpen}
             focused={focusedPane === i}
             paneIndex={i}
             paneCount={hosts.length}
