@@ -152,10 +152,8 @@ export class SSHTransport {
   }
 
   async dispose(): Promise<void> {
-    if (this.connected) {
-      this.disposing = true;
-      this.ssh.dispose();
-      this.connected = false;
-    }
+    this.disposing = true;
+    this.connected = false;
+    try { this.ssh.dispose(); } catch {}
   }
 }

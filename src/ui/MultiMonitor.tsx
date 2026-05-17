@@ -199,7 +199,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     if (key.tab && !shiftTab) { setFocusedPane((p) => (p + 1) % hosts.length); return; }
     if (shiftTab)             { setFocusedPane((p) => (p - 1 + hosts.length) % hosts.length); return; }
 
-    if (input === "q") { exit(); return; }
+    if (input === "q") { exit(); setTimeout(() => process.exit(0), 50); return; }
     if (input === "h") { onSwitchHost(); return; }
     if (input === "l") { setLogsOpen((o) => !o); return; }
 
