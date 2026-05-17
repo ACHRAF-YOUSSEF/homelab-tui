@@ -7,11 +7,7 @@ import {
   startDockerService,
   stopDockerService,
 } from "../adapters/docker.js";
-import {
-  restartNativeService,
-  startNativeService,
-  stopNativeService,
-} from "../adapters/native-actions.js";
+import { stopNativeService } from "../adapters/native-actions.js";
 import type { HostConfig, MonitorSnapshot, Service, ServiceStatus } from "../core/types.js";
 import { Header } from "./Header.js";
 import { SystemPanel } from "./SystemPanel.js";
@@ -283,19 +279,17 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
     const os = snapshot?.remoteOS ?? "unknown";
     const isNative = selectedService.kind === "system-service";
 
-    if (input === "r") runAction("restart", () =>
-      isNative ? restartNativeService(run, selectedService, os)
-               : restartDockerService(run, selectedService)
-    );
-    else if (input === "s") runAction("stop", () =>
-      isNative ? stopNativeService(run, selectedService, os)
-               : stopDockerService(run, selectedService)
-    );
-    else if (input === "t") runAction("start", () =>
-      isNative ? startNativeService(run, selectedService, os)
-               : startDockerService(run, selectedService)
-    );
-    else if (input === "l") setLogsOpen((open) => !open);
+    if (isNative) {
+      // Discovered processes: only kill (stop) is supported
+      if (input === "s") runAction("kill", () => stopNativeService(run, selectedService, os));
+      else if (input === "r" || input === "t") flash("Not available for discovered processes", true);
+      else if (input === "l") setLogsOpen((open) => !open);
+    } else {
+      if (input === "r") runAction("restart", () => restartDockerService(run, selectedService));
+      else if (input === "s") runAction("stop",    () => stopDockerService(run, selectedService));
+      else if (input === "t") runAction("start",   () => startDockerService(run, selectedService));
+      else if (input === "l") setLogsOpen((open) => !open);
+    }
   });
 
   const error = snapshot?.error ?? actionError ?? null;
@@ -328,7 +322,7 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
         serviceName={selectedService?.name ?? null}
         visible={logsOpen}
       />
-      <Footer actionMessage={actionMessage} error={error} />
+      <Footer actionMessage={actionMessage} error={error} selectedKind={selectedService?.kind} />
     </Box>
   );
 }

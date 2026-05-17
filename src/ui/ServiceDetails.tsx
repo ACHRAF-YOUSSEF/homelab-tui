@@ -13,13 +13,20 @@ export function ServiceDetails({ service }: Readonly<Props>) {
     );
   }
 
+  const isProcess = service.kind === "system-service";
+  const pid = isProcess ? service.id.replace(/^proc:/, "") : null;
+
+  const kindLabel = service.kind === "system-service" ? "process"
+    : service.kind === "docker-compose" ? "docker-compose"
+    : "docker";
+
   const rows: [string, string][] = [
-    ["ID", service.id],
+    ["ID", pid ? `pid ${pid}` : service.id],
     ["Name", service.name],
-    ["Kind", service.kind],
+    ["Kind", kindLabel],
     ["Status", service.status],
-    ["Image", service.image ?? "—"],
     ["Ports", service.ports ?? "—"],
+    ["Image", service.image ?? "—"],
     ["Health", service.health ?? "—"],
   ];
   if (service.composeProject) rows.push(["Compose Project", service.composeProject]);

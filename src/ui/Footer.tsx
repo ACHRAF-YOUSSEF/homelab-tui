@@ -1,15 +1,20 @@
 import React from "react";
 import { Box, Text } from "ink";
+import type { ServiceKind } from "../core/types.js";
 
 type Props = {
   actionMessage: string | null;
   error: string | null;
+  selectedKind?: ServiceKind;
 };
 
 const KEY = (k: string) => <Text color="cyan" bold>{k}</Text>;
 const SEP = <Text dimColor> · </Text>;
 
-export function Footer({ actionMessage, error }: Readonly<Props>) {
+export function Footer({ actionMessage, error, selectedKind }: Readonly<Props>) {
+  const isProcess = selectedKind === "system-service";
+  const isDocker = selectedKind === "docker-container" || selectedKind === "docker-compose";
+
   return (
     <Box borderStyle="single" borderColor="gray" paddingX={1} width="100%" flexDirection="column">
       {error && <Text color="red">Error: {error}</Text>}
@@ -18,14 +23,23 @@ export function Footer({ actionMessage, error }: Readonly<Props>) {
         {KEY("↑↓")}
         <Text dimColor> select</Text>
         {SEP}
-        {KEY("r")}
-        <Text dimColor> restart</Text>
-        {SEP}
-        {KEY("s")}
-        <Text dimColor> stop</Text>
-        {SEP}
-        {KEY("t")}
-        <Text dimColor> start</Text>
+        {isProcess ? (
+          <>
+            {KEY("s")}
+            <Text dimColor> kill</Text>
+          </>
+        ) : (
+          <>
+            {KEY("r")}
+            <Text dimColor> restart</Text>
+            {SEP}
+            {KEY("s")}
+            <Text dimColor> stop</Text>
+            {SEP}
+            {KEY("t")}
+            <Text dimColor> start</Text>
+          </>
+        )}
         {SEP}
         {KEY("l")}
         <Text dimColor> logs</Text>
