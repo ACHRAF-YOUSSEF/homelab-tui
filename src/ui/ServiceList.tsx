@@ -11,8 +11,8 @@ const PREFIX = 4;   // selector (2) + icon (2)
 // Proportional column widths — must sum to 1.0
 const RATIOS = { name: 0.28, status: 0.12, image: 0.35, ports: 0.25 };
 
-function getColWidths() {
-  const total = Math.max(40, (process.stdout.columns ?? 80) - PADDING - PREFIX);
+function getColWidths(containerWidth?: number) {
+  const total = Math.max(40, (containerWidth ?? process.stdout.columns ?? 80) - PADDING - PREFIX);
   const name   = Math.floor(total * RATIOS.name);
   const status = Math.floor(total * RATIOS.status);
   const image  = Math.floor(total * RATIOS.image);
@@ -45,27 +45,29 @@ type Props = {
   statusFilter: StatusFilter;
   sortBy: SortField;
   filterKey: string;
+  containerWidth?: number;
   onSearchChange: (q: string) => void;
   onSearchSubmit: () => void;
 };
 
 export function ServiceList({
   services, allCount, selectedIndex,
-  searchQuery, searchMode, statusFilter, sortBy, filterKey,
+  searchQuery, searchMode, statusFilter, sortBy, filterKey, containerWidth,
   onSearchChange, onSearchSubmit,
 }: Readonly<Props>) {
   const [scrollTop, setScrollTop] = useState(0);
-  const [cols, setCols] = useState(getColWidths);
+  const [cols, setCols] = useState(() => getColWidths(containerWidth));
 
   // Reset scroll instantly when filter/sort/search changes
   useEffect(() => { setScrollTop(0); }, [filterKey]);
 
-  // Recalculate on resize
+  // Recalculate on resize or containerWidth change
   useEffect(() => {
-    const onResize = () => setCols(getColWidths());
+    setCols(getColWidths(containerWidth));
+    const onResize = () => setCols(getColWidths(containerWidth));
     process.stdout.on("resize", onResize);
     return () => { process.stdout.off("resize", onResize); };
-  }, []);
+  }, [containerWidth]);
 
   useEffect(() => {
     setScrollTop((prev) => {

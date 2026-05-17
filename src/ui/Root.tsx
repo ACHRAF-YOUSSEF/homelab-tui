@@ -4,6 +4,7 @@ import { HostForm } from "./HostForm.js";
 import { CredentialPrompt } from "./CredentialPrompt.js";
 import { ConfigSetup } from "./ConfigSetup.js";
 import { App } from "./App.js";
+import { MultiMonitor } from "./MultiMonitor.js";
 import { loadConfig, saveConfig } from "../config/loader.js";
 import { saveSettings, loadSettings } from "../config/settings.js";
 import type { ConnectOptions } from "../transports/ssh.js";
@@ -15,7 +16,14 @@ type Screen =
   | { kind: "form" }
   | { kind: "form-edit"; index: number }
   | { kind: "credential"; host: HostConfig; mode: "password" | "passphrase" }
-  | { kind: "monitor"; host: HostConfig; connectOptions?: ConnectOptions };
+  | { kind: "monitor"; host: HostConfig; connectOptions?: ConnectOptions }
+  | {
+      kind: "multi-credential";
+      hosts: HostConfig[];
+      currentIdx: number;            // which host we're prompting for now
+      collected: (ConnectOptions | undefined)[];
+    }
+  | { kind: "multi-monitor"; hosts: HostConfig[]; connectOptions: (ConnectOptions | undefined)[] };
 
 function getInitialScreen(config: AppConfig, configMissing: boolean): Screen {
   if (configMissing) return { kind: "setup" };
@@ -39,7 +47,7 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
     try { saveConfig(next, path); } catch {}
   }, [currentConfigPath]);
 
-  // ── ConfigSetup callbacks ─────────────────────────────────────────────────
+  // ── ConfigSetup ───────────────────────────────────────────────────────────
   const handleConfigReady = useCallback((path: string) => {
     setCurrentConfigPath(path);
     const settings = loadSettings();
@@ -50,7 +58,7 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
     setScreen(loaded.hosts.length === 0 ? { kind: "form" } : { kind: "selector" });
   }, []);
 
-  // ── HostSelector callbacks ────────────────────────────────────────────────
+  // ── HostSelector ──────────────────────────────────────────────────────────
   const handleSelectHost = useCallback((host: HostConfig) => {
     if (host.authMethod === "password") {
       setScreen({ kind: "credential", host, mode: "password" });
@@ -59,11 +67,22 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
     }
   }, []);
 
+  // Start credential collection for multi-host, then launch MultiMonitor
+  const handleMultiSelect = useCallback((hosts: HostConfig[]) => {
+    const collected: (ConnectOptions | undefined)[] = new Array(hosts.length).fill(undefined);
+    // Find first host that needs a credential prompt
+    const firstPasswordIdx = hosts.findIndex((h) => h.authMethod === "password");
+    if (firstPasswordIdx === -1) {
+      // All key auth — launch directly
+      setScreen({ kind: "multi-monitor", hosts, connectOptions: collected });
+    } else {
+      setScreen({ kind: "multi-credential", hosts, currentIdx: firstPasswordIdx, collected });
+    }
+  }, []);
+
   const handleAddHost = useCallback(() => setScreen({ kind: "form" }), []);
 
-  const handleEditHost = useCallback((index: number) => {
-    setScreen({ kind: "form-edit", index });
-  }, []);
+  const handleEditHost = useCallback((index: number) => setScreen({ kind: "form-edit", index }), []);
 
   const handleFormEditSubmit = useCallback((index: number, host: HostConfig) => {
     const next = { hosts: config.hosts.map((h, i) => i === index ? host : h) };
@@ -77,7 +96,7 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
     if (next.hosts.length === 0) setScreen({ kind: "form" });
   }, [config, persistConfig]);
 
-  // ── HostForm callbacks ────────────────────────────────────────────────────
+  // ── HostForm ──────────────────────────────────────────────────────────────
   const handleFormSubmit = useCallback((host: HostConfig) => {
     const next = { hosts: [...config.hosts, host] };
     persistConfig(next);
@@ -86,7 +105,7 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
 
   const handleFormCancel = useCallback(() => setScreen({ kind: "selector" }), []);
 
-  // ── Monitor callbacks ─────────────────────────────────────────────────────
+  // ── Monitor ───────────────────────────────────────────────────────────────
   const handleSwitchHost = useCallback(() => setScreen({ kind: "selector" }), []);
 
   const handleNeedPassphrase = useCallback(() => {
@@ -95,7 +114,7 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
     }
   }, [screen]);
 
-  // ── CredentialPrompt callbacks ────────────────────────────────────────────
+  // ── CredentialPrompt (single host) ────────────────────────────────────────
   const handleCredentialSubmit = useCallback((value: string) => {
     if (screen.kind !== "credential") return;
     const opts: ConnectOptions =
@@ -104,6 +123,24 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
   }, [screen]);
 
   const handleCredentialCancel = useCallback(() => setScreen({ kind: "selector" }), []);
+
+  // ── CredentialPrompt (multi-host sequential) ──────────────────────────────
+  const handleMultiCredentialSubmit = useCallback((value: string) => {
+    if (screen.kind !== "multi-credential") return;
+    const { hosts, currentIdx, collected } = screen;
+
+    const updated = [...collected];
+    updated[currentIdx] = { password: value };
+
+    // Find next host that needs a credential
+    const nextIdx = hosts.findIndex((h, i) => i > currentIdx && h.authMethod === "password");
+    if (nextIdx === -1) {
+      // Done collecting — launch
+      setScreen({ kind: "multi-monitor", hosts, connectOptions: updated });
+    } else {
+      setScreen({ kind: "multi-credential", hosts, currentIdx: nextIdx, collected: updated });
+    }
+  }, [screen]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   if (screen.kind === "setup") {
@@ -115,6 +152,7 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
       <HostSelector
         hosts={config.hosts}
         onSelect={handleSelectHost}
+        onMultiSelect={handleMultiSelect}
         onAdd={handleAddHost}
         onEdit={handleEditHost}
         onDelete={handleDeleteHost}
@@ -149,6 +187,31 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
         mode={screen.mode}
         onSubmit={handleCredentialSubmit}
         onCancel={handleCredentialCancel}
+      />
+    );
+  }
+
+  if (screen.kind === "multi-credential") {
+    const host = screen.hosts[screen.currentIdx];
+    const total = screen.hosts.filter((h) => h.authMethod === "password").length;
+    const done = screen.collected.filter((c) => c !== undefined).length;
+    return (
+      <CredentialPrompt
+        host={host}
+        mode="password"
+        prompt={total > 1 ? `Password for ${host.name} (${done + 1}/${total})` : undefined}
+        onSubmit={handleMultiCredentialSubmit}
+        onCancel={handleCredentialCancel}
+      />
+    );
+  }
+
+  if (screen.kind === "multi-monitor") {
+    return (
+      <MultiMonitor
+        hosts={screen.hosts}
+        connectOptions={screen.connectOptions}
+        onSwitchHost={handleSwitchHost}
       />
     );
   }

@@ -143,10 +143,13 @@ Shown on startup. Lists all configured hosts.
 | Key | Action |
 |-----|--------|
 | `↑` / `↓` | Select host |
-| `Enter` | Connect |
+| `Enter` | Connect to selected host |
+| `m` | Enter multi-host mode (select multiple hosts) |
 | `a` | Add new host |
 | `e` | Edit selected host |
 | `d` | Delete selected host |
+
+**Multi-host mode** — press `m` to enter, `Space` to check/uncheck hosts, `Enter` to open all selected hosts in a split-pane view, `Esc` to cancel.
 
 ### Add / Edit host form
 
@@ -167,6 +170,7 @@ Shown on startup. Lists all configured hosts.
 | `t` | Start selected Docker container |
 | `l` | Toggle live log panel |
 | `↑` / `↓` / `PgUp` / `PgDn` | Scroll log panel (when open) |
+| `Tab` / `Shift+Tab` | Switch focused pane (multi-host mode) |
 | `/` | Search by name or image |
 | `f` | Cycle filter: all → docker → processes → running → stopped → failed → restarting |
 | `o` | Cycle sort: name → status → image |
@@ -178,7 +182,7 @@ Shown on startup. Lists all configured hosts.
 
 ## Features
 
-- **Multi-host** — add, edit, delete hosts at runtime; config auto-saved
+- **Multi-host split-pane** — monitor multiple hosts simultaneously, side-by-side; `Tab` to switch focus between panes
 - **OS detection** — auto-detects Linux, macOS, Windows over SSH
 - **Docker discovery** — containers with status, image, ports, health, Compose project
 - **Process discovery** — finds programs listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers, etc.) on Linux, macOS, and Windows
@@ -221,7 +225,7 @@ The top bar always shows the app version (`v1.0.1`). If a newer release is avail
 
 ## Known Limitations
 
-- Only one host monitored at a time (no split-pane multi-host view)
+- Split-pane view is horizontal only; very narrow terminals with 3+ hosts may truncate service columns
 - Discovered processes have no log streaming (logs are application-specific)
 - Discovered processes cannot be restarted or started (only killed)
 - CPU usage on Linux requires two `/proc/stat` reads 200 ms apart

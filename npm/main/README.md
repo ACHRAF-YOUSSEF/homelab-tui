@@ -85,10 +85,13 @@ On first launch, a setup wizard lets you create or locate your `homelab.config.j
 | Key | Action |
 |-----|--------|
 | `↑` / `↓` | Select host |
-| `Enter` | Connect |
+| `Enter` | Connect to selected host |
+| `m` | Multi-host mode (select multiple hosts) |
 | `a` | Add new host |
 | `e` | Edit selected host |
 | `d` | Delete selected host |
+
+In multi-host mode: `Space` to check/uncheck, `Enter` to open all in split-pane, `Esc` to cancel.
 
 ### Monitor
 
@@ -100,6 +103,7 @@ On first launch, a setup wizard lets you create or locate your `homelab.config.j
 | `t` | Start selected Docker container |
 | `l` | Toggle live log panel |
 | `PgUp` / `PgDn` | Scroll log panel |
+| `Tab` / `Shift+Tab` | Switch focused pane (multi-host) |
 | `/` | Search by name or image |
 | `f` | Cycle filter: all → docker → processes → running → stopped → failed → restarting |
 | `o` | Cycle sort: name → status → image |
@@ -110,7 +114,7 @@ On first launch, a setup wizard lets you create or locate your `homelab.config.j
 
 ## Features
 
-- **Multi-host** — add, edit, delete hosts at runtime
+- **Multi-host split-pane** — monitor multiple hosts simultaneously side-by-side; `Tab` to switch focus
 - **Docker discovery** — containers with status, image, ports, health, Compose project
 - **Process discovery** — finds programs listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers…) on Linux, macOS, and Windows
 - **Context-aware controls** — Docker: restart/stop/start; discovered processes: kill only

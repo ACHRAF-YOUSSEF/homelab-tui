@@ -6,11 +6,12 @@ import type { HostConfig } from "../core/types.js";
 type Props = {
   host: HostConfig;
   mode: "password" | "passphrase";
+  prompt?: string;
   onSubmit: (value: string) => void;
   onCancel: () => void;
 };
 
-export function CredentialPrompt({ host, mode, onSubmit, onCancel }: Readonly<Props>) {
+export function CredentialPrompt({ host, mode, prompt, onSubmit, onCancel }: Readonly<Props>) {
   const [value, setValue] = useState("");
 
   useInput((_input, key) => {
@@ -18,7 +19,7 @@ export function CredentialPrompt({ host, mode, onSubmit, onCancel }: Readonly<Pr
   });
 
   const isPassword = mode === "password";
-  const title = isPassword ? "SSH password required" : "SSH key passphrase required";
+  const title = prompt ?? (isPassword ? "SSH password required" : "SSH key passphrase required");
   const label = isPassword ? "Password:   " : "Passphrase: ";
   const subtitle = isPassword
     ? null
