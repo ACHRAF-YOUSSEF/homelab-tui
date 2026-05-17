@@ -201,6 +201,8 @@ Shown on startup. Lists all configured hosts.
 - **Service-down alerts** — audible bell + red banner when a running container transitions to stopped/failed
 - **Disk full warnings** — ⚠ badge on disks above 85% in the system panel
 - **Compose stack restart** — pressing `r` on a Compose service asks: restart this container or the entire stack
+- **Config hot-reload** — edit `homelab.config.json` while the TUI is running; changes are picked up automatically within 150 ms (no restart needed)
+- **Service health history** — the details panel shows the last 5 status transitions (with timestamps) for the selected service
 - **OS detection** — auto-detects Linux, macOS, Windows over SSH
 - **Docker discovery** — containers with status, image, ports, health, Compose project
 - **Process discovery** — finds programs listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers, etc.) on Linux, macOS, and Windows

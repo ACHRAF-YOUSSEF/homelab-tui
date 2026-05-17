@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
+import { watch } from "node:fs";
 import { HostSelector } from "./HostSelector.js";
 import { HostForm } from "./HostForm.js";
 import { CredentialPrompt } from "./CredentialPrompt.js";
@@ -45,6 +46,27 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
   const persistConfig = useCallback((next: AppConfig, path = currentConfigPath) => {
     setConfig(next);
     try { saveConfig(next, path); } catch {}
+  }, [currentConfigPath]);
+
+  // ── Config hot-reload ─────────────────────────────────────────────────────
+  const reloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    let watcher: ReturnType<typeof watch> | null = null;
+    try {
+      watcher = watch(currentConfigPath, () => {
+        if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+        reloadTimerRef.current = setTimeout(() => {
+          try {
+            const next = loadConfig(currentConfigPath);
+            if (next) setConfig(next);
+          } catch {}
+        }, 150);
+      });
+    } catch {}
+    return () => {
+      watcher?.close();
+      if (reloadTimerRef.current) clearTimeout(reloadTimerRef.current);
+    };
   }, [currentConfigPath]);
 
   // ── ConfigSetup ───────────────────────────────────────────────────────────

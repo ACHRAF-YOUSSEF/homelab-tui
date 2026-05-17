@@ -16,11 +16,32 @@ import { stopNativeService, restartNativeService } from "../adapters/native-acti
 import { getLatestRelease, isNewerVersion } from "../updater.js";
 import { version as VERSION } from "../../package.json";
 import type { ConnectOptions } from "../transports/ssh.js";
-import type { HostConfig, MonitorSnapshot, Service } from "../core/types.js";
+import type { HostConfig, MonitorSnapshot, Service, ServiceStatus, StatusChange } from "../core/types.js";
 
 const MAX_LOG_LINES = 2000;
+const MAX_HISTORY = 5;
 
-type PaneState = { service: Service | null; snapshot: MonitorSnapshot | null };
+type PaneState = {
+  service: Service | null;
+  snapshot: MonitorSnapshot | null;
+  history: Map<string, StatusChange[]>;
+};
+
+function mergeHistory(
+  prev: Map<string, StatusChange[]>,
+  oldSnap: MonitorSnapshot | null,
+  newSnap: MonitorSnapshot | null,
+): Map<string, StatusChange[]> {
+  if (!newSnap || newSnap.error) return prev;
+  const next = new Map(prev);
+  for (const svc of newSnap.services) {
+    const old = oldSnap?.services.find((s) => s.id === svc.id);
+    if (!old || old.status === svc.status) continue;
+    const existing = next.get(svc.id) ?? [];
+    next.set(svc.id, [...existing, { status: svc.status as ServiceStatus, at: new Date() }].slice(-MAX_HISTORY));
+  }
+  return next;
+}
 type Mode = "normal" | "picking" | "new-password" | "passphrase" | "auth-failed" | "compose-restart";
 
 type Props = {
@@ -37,7 +58,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   const [hosts, setHosts] = useState<HostConfig[]>(initialHosts);
   const [connectOpts, setConnectOpts] = useState<(ConnectOptions | undefined)[]>(initialConnectOptions);
   const [paneStates, setPaneStates] = useState<PaneState[]>(
-    () => initialHosts.map(() => ({ service: null, snapshot: null }))
+    () => initialHosts.map(() => ({ service: null, snapshot: null, history: new Map() }))
   );
   const [focusedPane, setFocusedPane] = useState(0);
 
@@ -94,7 +115,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   const addPane = useCallback((host: HostConfig, opts?: ConnectOptions) => {
     setHosts((prev) => [...prev, host]);
     setConnectOpts((prev) => [...prev, opts]);
-    setPaneStates((prev) => [...prev, { service: null, snapshot: null }]);
+    setPaneStates((prev) => [...prev, { service: null, snapshot: null, history: new Map() }]);
     setFocusedPane((prev) => prev + 1); // focus the new pane (it will be last)
     setMode("normal");
     setCredentialValue("");
@@ -324,7 +345,10 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
             onNeedPassphrase={() => handleNeedPassphrase(i)}
             onAuthFailed={(msg) => handleAuthFailed(i, msg)}
             onStateChange={(svc, snap) =>
-              setPaneStates((prev) => prev.map((s, j) => j === i ? { service: svc, snapshot: snap } : s))
+              setPaneStates((prev) => prev.map((s, j) => {
+                if (j !== i) return s;
+                return { service: svc, snapshot: snap, history: mergeHistory(s.history, s.snapshot, snap) };
+              }))
             }
           />
         ))}
@@ -419,6 +443,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
       {mode === "normal" && (
         <ServiceDetails
           service={selectedService}
+          history={focused.history}
           paneLabel={multi ? `[${focusedPane + 1}] ${hosts[focusedPane].name}` : undefined}
         />
       )}

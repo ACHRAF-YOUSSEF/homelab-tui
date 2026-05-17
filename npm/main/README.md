@@ -126,6 +126,8 @@ In multi-host mode: `Space` to check/uncheck, `Enter` to open all in split-pane,
 - **Service-down alerts** — audible bell + red banner on running → stopped/failed transitions
 - **Disk full warnings** — ⚠ badge on disks above 85%
 - **Compose stack restart** — `r` on a Compose service opens a scope picker (container vs whole stack)
+- **Config hot-reload** — edit `homelab.config.json` while running; picked up automatically within 150 ms
+- **Service health history** — details panel shows last 5 status transitions with timestamps
 - **Docker discovery** — containers with status, image, ports, health, Compose project
 - **Process discovery** — finds programs listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers…) on Linux, macOS, and Windows
 - **Context-aware controls** — Docker: restart/stop/start; discovered processes: kill + restart via systemd (Linux)

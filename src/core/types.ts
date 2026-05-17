@@ -31,6 +31,8 @@ export type SystemInfo = {
   }[];
 };
 
+export type StatusChange = { status: ServiceStatus; at: Date };
+
 export type MonitorSnapshot = {
   hostName: string;
   remoteOS: RemoteOS;
