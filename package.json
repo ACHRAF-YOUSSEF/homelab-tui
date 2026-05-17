@@ -1,6 +1,6 @@
 {
   "name": "homelab-tui",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "bin": {
     "homelab-tui": "./src/cli.tsx"
