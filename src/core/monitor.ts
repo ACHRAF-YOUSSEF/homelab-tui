@@ -124,7 +124,7 @@ export class Monitor {
           return () => {};
         });
       }
-      onData("Log streaming not supported for this OS.");
+      onData(`No logs available for discovered process "${service.name}". Check the application's own log files.`);
       onClose?.(0);
       return Promise.resolve(() => {});
     }

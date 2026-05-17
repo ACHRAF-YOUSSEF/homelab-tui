@@ -93,7 +93,7 @@ On first launch with no config file, a setup screen lets you create one or point
       "authMethod": "password",
       "discovery": {
         "docker": true,
-        "nativeServices": false,
+        "nativeServices": false,  
         "includeStoppedContainers": true
       }
     }
@@ -105,7 +105,7 @@ On first launch with no config file, a setup screen lets you create one or point
 |---|---|
 | `authMethod` | `"password"` (prompted at launch) or `"key"` (SSH private key, supports agent) |
 | `privateKeyPath` | Required when `authMethod` is `"key"` |
-| `nativeServices` | Discover systemd / launchd / Windows Services in addition to Docker |
+| `nativeServices` | Discover processes listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers…) |
 | `includeStoppedContainers` | Show stopped Docker containers |
 
 ## Screens
@@ -141,7 +141,7 @@ Shown on startup. Lists all configured hosts.
 | `l` | Toggle live log panel |
 | `↑` / `↓` / `PgUp` / `PgDn` | Scroll log panel (when open) |
 | `/` | Search by name or image |
-| `f` | Cycle filter: all → docker → native → running → stopped → failed → restarting |
+| `f` | Cycle filter: all → docker → processes → running → stopped → failed → restarting |
 | `o` | Cycle sort: name → status → image |
 | `h` | Back to host selector |
 | `q` | Quit |
@@ -151,7 +151,7 @@ Shown on startup. Lists all configured hosts.
 - **Multi-host** — add, edit, delete hosts at runtime; config auto-saved
 - **OS detection** — auto-detects Linux, macOS, Windows over SSH
 - **Docker discovery** — containers with status, image, ports, health, Compose project
-- **Native services** — systemd (Linux), launchd (macOS), Windows Services
+- **Process discovery** — finds programs listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers, etc.) on Linux, macOS, and Windows
 - **Live logs** — `docker logs -f` / `journalctl -f` streamed over SSH, scrollable with auto-follow
 - **System metrics** — CPU %, RAM, disk usage with progress bars
 - **Search / filter / sort** — filter by type (docker/native) or status, sort by name/status/image

@@ -48,7 +48,7 @@ On first launch, a setup wizard lets you create or locate your `homelab.config.j
 | Field | Description |
 |---|---|
 | `authMethod` | `"password"` (prompted at launch) or `"key"` (SSH private key, supports agent) |
-| `nativeServices` | Also discover systemd / launchd / Windows Services |
+| `nativeServices` | Discover processes listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers…) |
 | `includeStoppedContainers` | Show stopped Docker containers |
 
 ## Keyboard shortcuts
@@ -74,7 +74,7 @@ On first launch, a setup wizard lets you create or locate your `homelab.config.j
 | `l` | Toggle live log panel |
 | `PgUp` / `PgDn` | Scroll log panel |
 | `/` | Search by name or image |
-| `f` | Cycle filter: all → docker → native → running → stopped → failed → restarting |
+| `f` | Cycle filter: all → docker → processes → running → stopped → failed → restarting |
 | `o` | Cycle sort: name → status → image |
 | `h` | Switch host |
 | `q` | Quit |
@@ -83,7 +83,7 @@ On first launch, a setup wizard lets you create or locate your `homelab.config.j
 
 - **Multi-host** — add, edit, delete hosts at runtime
 - **Docker discovery** — containers with status, image, ports, health, Compose project
-- **Native services** — systemd (Linux), launchd (macOS), Windows Services
+- **Process discovery** — finds programs listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers, etc.)
 - **Live logs** — streamed over SSH, scrollable, auto-follows new output
 - **System metrics** — CPU %, RAM, disk usage
 - **Auto-reconnect** — automatically reconnects when SSH drops

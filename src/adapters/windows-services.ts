@@ -1,38 +1,46 @@
-import type { Service, ServiceStatus } from "../core/types.js";
-
-function mapStatus(status: string): ServiceStatus {
-  const s = status.toLowerCase();
-  if (s === "running") return "running";
-  if (s === "stopped") return "stopped";
-  if (s === "paused") return "stopped";
-  if (s.includes("pending")) return "restarting";
-  return "unknown";
-}
+import type { Service } from "../core/types.js";
 
 export async function getNativeServices(
   run: (cmd: string) => Promise<string>
 ): Promise<Service[]> {
   try {
-    const out = await run(
-      'powershell -NoProfile -Command "Get-Service | ForEach-Object { $_.Name + \'|\' + $_.DisplayName + \'|\' + $_.Status }"'
-    );
+    // Get listening TCP connections with owning process names
+    const cmd = `powershell -NoProfile -Command "Get-NetTCPConnection -State Listen -EA SilentlyContinue | ForEach-Object { try { $p = Get-Process -Id $_.OwningProcess -EA Stop; Write-Output ($p.Name + '|' + $_.LocalPort + '|' + $_.OwningProcess) } catch {} } | Sort-Object -Unique"`;
+    const out = await run(cmd);
     if (!out.trim()) return [];
 
-    return out
-      .trim()
-      .split("\n")
-      .flatMap((line): Service[] => {
-        const parts = line.trim().split("|");
-        if (parts.length < 3) return [];
-        const [name, displayName, status] = parts;
-        if (!name.trim()) return [];
-        return [{
-          id: `winsvc:${name.trim()}`,
-          name: displayName.trim() || name.trim(),
-          kind: "system-service",
-          status: mapStatus(status.trim()),
-        }];
-      });
+    const seen = new Set<string>();
+    const byName = new Map<string, { pid: string; ports: string[] }>();
+
+    for (const line of out.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      const parts = trimmed.split("|");
+      if (parts.length < 3) continue;
+
+      const [name, port, pid] = parts.map(p => p.trim());
+      if (!name || !port) continue;
+
+      const key = `${name}:${port}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const existing = byName.get(name);
+      if (existing) {
+        existing.ports.push(port);
+      } else {
+        byName.set(name, { pid, ports: [port] });
+      }
+    }
+
+    return Array.from(byName.entries()).map(([name, { pid, ports }]) => ({
+      id: `proc:${pid}`,
+      name,
+      kind: "system-service",
+      status: "running",
+      ports: ports.join(", "),
+    } satisfies Service));
   } catch {
     return [];
   }

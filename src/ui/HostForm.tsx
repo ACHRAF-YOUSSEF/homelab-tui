@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import TextInput from "ink-text-input";
 import type { HostConfig } from "../core/types.js";
@@ -47,19 +47,28 @@ export function HostForm({ onSubmit, onCancel, initialHost }: Readonly<Props>) {
     "docker", "native", "stopped",
   ];
 
-  const currentField = fields[focusIndex];
+  const fieldsRef = useRef(fields);
+  fieldsRef.current = fields;
+
+  // Clamp so authMethod toggle (removes privateKeyPath) never leaves focusIndex OOB
+  const safeFocusIndex = Math.min(focusIndex, fields.length - 1);
+  const currentField = fields[safeFocusIndex];
   const isBool = currentField === "docker" || currentField === "native" || currentField === "stopped";
   const isAuth = currentField === "authMethod";
 
   const advance = (delta = 1) =>
-    setFocusIndex((i) => (i + delta + fields.length) % fields.length);
+    setFocusIndex((i) => {
+      const len = fieldsRef.current.length;
+      return (Math.min(i, len - 1) + delta + len) % len;
+    });
 
   useInput((_input, key) => {
     if (key.escape) { onCancel ? onCancel() : exit(); return; }
 
-    // ↑/↓ navigate between ALL fields; Tab also moves forward
-    if (key.downArrow || key.tab) { advance(1); return; }
-    if (key.upArrow || (key.shift && key.tab)) { advance(-1); return; }
+    // Shift+Tab sends \e[Z in most terminals; also handle key.shift+key.tab
+    const shiftTab = _input === "[Z" || (key.shift && key.tab);
+    if (key.downArrow || (key.tab && !shiftTab)) { advance(1); return; }
+    if (key.upArrow || shiftTab) { advance(-1); return; }
 
     if (isBool && _input === " ") {
       if (currentField === "docker") setDocker((v) => !v);
@@ -115,7 +124,7 @@ export function HostForm({ onSubmit, onCancel, initialHost }: Readonly<Props>) {
         <Text> </Text>
 
         {fields.map((field, i) => {
-          const focused = i === focusIndex;
+          const focused = i === safeFocusIndex;
 
           if (field === "authMethod") {
             return (
@@ -130,7 +139,7 @@ export function HostForm({ onSubmit, onCancel, initialHost }: Readonly<Props>) {
 
           if (field === "docker" || field === "native" || field === "stopped") {
             const val = field === "docker" ? docker : field === "native" ? native : stopped;
-            const label = field === "docker" ? "Docker discovery" : field === "native" ? "Native services" : "Include stopped containers";
+            const label = field === "docker" ? "Docker discovery" : field === "native" ? "Process discovery" : "Include stopped containers";
             return (
               <Box key={field}>
                 <Text color={focused ? "white" : "gray"}>{label.padEnd(28)}</Text>

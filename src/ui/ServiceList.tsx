@@ -29,9 +29,11 @@ const STATUS_ICON: Record<ServiceStatus, string> = {
 
 function shortPorts(ports: string | undefined): string {
   if (!ports) return "—";
-  const matches = [...ports.matchAll(/:(\d+)->/g)].map((m) => m[1]);
-  const unique = [...new Set(matches)];
-  return unique.length ? unique.join(", ") : ports.slice(0, 20);
+  // Docker format: "0.0.0.0:8080->80/tcp" → extract host port
+  const dockerPorts = [...ports.matchAll(/:(\d+)->/g)].map((m) => m[1]);
+  if (dockerPorts.length) return [...new Set(dockerPorts)].join(", ");
+  // Process discovery format: plain "8096, 11434"
+  return ports.length > 24 ? `${ports.slice(0, 22)}…` : ports;
 }
 
 type Props = {
@@ -80,7 +82,7 @@ export function ServiceList({
     ? "0"
     : `${scrollTop + 1}–${Math.min(scrollTop + VIEW_HEIGHT, services.length)} of ${services.length}`;
 
-  const filterLabel = statusFilter === "all" ? "" : ` [${statusFilter}]`;
+  const filterLabel = statusFilter === "all" ? "" : ` [${statusFilter === "native" ? "processes" : statusFilter}]`;
   const sortLabel   = sortBy === "name"      ? "" : ` [↕${sortBy}]`;
 
   return (
