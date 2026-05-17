@@ -7,12 +7,15 @@ type Props = {
   host: HostConfig;
   mode: "password" | "passphrase";
   prompt?: string;
+  error?: string;
   onSubmit: (value: string) => void;
   onCancel: () => void;
 };
 
-export function CredentialPrompt({ host, mode, prompt, onSubmit, onCancel }: Readonly<Props>) {
+export function CredentialPrompt({ host, mode, prompt, error, onSubmit, onCancel }: Readonly<Props>) {
   const [value, setValue] = useState("");
+  // Clear input whenever error changes (re-prompt after failed attempt)
+  React.useEffect(() => { if (error) setValue(""); }, [error]);
 
   useInput((_input, key) => {
     if (key.escape) onCancel();
@@ -34,6 +37,12 @@ export function CredentialPrompt({ host, mode, prompt, onSubmit, onCancel }: Rea
           Host: <Text color="white">{host.username}@{host.host}:{host.port}</Text>
         </Text>
         {subtitle}
+        {error && (
+          <>
+            <Text> </Text>
+            <Text color="red">{error}</Text>
+          </>
+        )}
         <Text> </Text>
         <Box>
           <Text color="yellow">{label}</Text>

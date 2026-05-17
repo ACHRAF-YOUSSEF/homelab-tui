@@ -193,7 +193,7 @@ Shown on startup. Lists all configured hosts.
 - **Search / filter / sort** — filter by type (docker/processes) or status, sort by name/status/image
 - **Context-aware controls** — Docker: restart/stop/start; discovered processes: kill only
 - **Auto-reconnect** — exponential backoff (3 → 5 → 10 → 20 → 30 s) when SSH drops
-- **Password & key auth** — password prompted securely; SSH agent supported for encrypted keys
+- **Password & key auth** — password prompted securely; wrong password re-prompts immediately with an error; SSH agent supported for encrypted keys
 - **Self-update** — `homelab-tui --update` downloads and replaces the binary in place with a live progress bar
 - **Update notifications** — checks for a new release on launch and shows a badge in the header if one is available
 

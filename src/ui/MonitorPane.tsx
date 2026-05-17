@@ -54,6 +54,9 @@ const SORT_CYCLE: SortField[] = ["name", "status", "image"];
 function isConnectionError(msg: string): boolean {
   return /not connected|ssh not|econnreset|socket|connection (lost|closed|refused)|timed?\s?out/i.test(msg);
 }
+function isAuthError(msg: string): boolean {
+  return /all configured authentication methods failed|authentication failed|auth.*failed|permission denied|bad packet|incorrect passphrase|verification failed/i.test(msg);
+}
 
 export type MonitorPaneHandle = {
   run: (cmd: string) => Promise<string>;
@@ -75,12 +78,13 @@ type Props = {
   updateTag?: string | null;
   containerWidth?: number;
   onNeedPassphrase?: () => void;
+  onAuthFailed?: (msg: string) => void;
   onStateChange: (service: Service | null, snapshot: MonitorSnapshot | null) => void;
 };
 
 export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function MonitorPane(props, ref) {
   const { hostConfig, connectOptions, isActive, focused, paneIndex, paneCount,
-    version, updateTag, containerWidth, onNeedPassphrase, onStateChange } = props;
+    version, updateTag, containerWidth, onNeedPassphrase, onAuthFailed, onStateChange } = props;
   const multiPane = (paneCount ?? 1) > 1;
 
   const monitorRef = useRef<Monitor | null>(null);
@@ -163,6 +167,8 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
   // Stable ref so onNeedPassphrase never enters the connection useEffect dep array
   const onNeedPassphraseRef = useRef(onNeedPassphrase);
   onNeedPassphraseRef.current = onNeedPassphrase;
+  const onAuthFailedRef = useRef(onAuthFailed);
+  onAuthFailedRef.current = onAuthFailed;
 
   const doRefresh = useCallback(async () => {
     const mon = monitorRef.current;
@@ -186,6 +192,10 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
       .catch((err: unknown) => {
         if (err instanceof PassphraseRequiredError) { onNeedPassphraseRef.current?.(); return; }
         const msg = err instanceof Error ? err.message : String(err);
+        if (isAuthError(msg) && onAuthFailedRef.current) {
+          onAuthFailedRef.current(msg);
+          return;
+        }
         setSnapshot({
           hostName: hostConfig.name, remoteOS: "unknown",
           system: { hostname: hostConfig.host, os: "unknown" },

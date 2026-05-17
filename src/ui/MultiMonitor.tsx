@@ -20,7 +20,7 @@ import type { HostConfig, MonitorSnapshot, Service } from "../core/types.js";
 const MAX_LOG_LINES = 2000;
 
 type PaneState = { service: Service | null; snapshot: MonitorSnapshot | null };
-type Mode = "normal" | "picking" | "new-password" | "passphrase";
+type Mode = "normal" | "picking" | "new-password" | "passphrase" | "auth-failed";
 
 type Props = {
   initialHosts: HostConfig[];
@@ -61,6 +61,10 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Auth failure re-prompt
+  const [authFailedPane, setAuthFailedPane] = useState(-1);
+  const [authFailedError, setAuthFailedError] = useState("");
 
   // Update check (once)
   const [updateTag, setUpdateTag] = useState<string | null>(null);
@@ -168,10 +172,12 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
       return;
     }
 
-    // ── Credential modes ──
-    if (mode === "new-password" || mode === "passphrase") {
-      if (key.escape) { setMode(mode === "passphrase" ? "normal" : "picking"); return; }
-      // TextInput handles the rest via onSubmit
+    // ── Credential / auth-failed modes ──
+    if (mode === "new-password" || mode === "passphrase" || mode === "auth-failed") {
+      if (key.escape) {
+        setMode(mode === "new-password" ? "picking" : "normal");
+        return;
+      }
       return;
     }
 
@@ -224,6 +230,14 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     setPassphrasePane(-1);
   }, [passphrasePane]);
 
+  const handleAuthFailed = useCallback((paneIdx: number, msg: string) => {
+    setAuthFailedPane(paneIdx);
+    setPendingHost(hosts[paneIdx]);
+    setCredentialValue("");
+    setAuthFailedError(msg);
+    setMode("auth-failed");
+  }, [hosts]);
+
   const paneWidth = Math.floor(process.stdout.columns / hosts.length) - 2;
   const multi = hosts.length > 1;
 
@@ -270,6 +284,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
             updateTag={updateTag}
             containerWidth={paneWidth}
             onNeedPassphrase={() => handleNeedPassphrase(i)}
+            onAuthFailed={(msg) => handleAuthFailed(i, msg)}
             onStateChange={(svc, snap) =>
               setPaneStates((prev) => prev.map((s, j) => j === i ? { service: svc, snapshot: snap } : s))
             }
@@ -300,23 +315,40 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
         </Box>
       )}
 
-      {/* Overlay: credential (new pane password or existing pane passphrase) */}
-      {(mode === "new-password" || mode === "passphrase") && pendingHost && (
-        <Box borderStyle="single" borderColor="yellow" paddingX={1}>
-          <Text color="yellow">
-            {mode === "passphrase" ? "Passphrase" : "Password"} for {pendingHost.name}:{" "}
-          </Text>
-          <TextInput
-            value={credentialValue}
-            onChange={setCredentialValue}
-            onSubmit={(val) => {
-              if (mode === "new-password") addPane(pendingHost, { password: val });
-              else handlePassphraseSubmit(val);
-            }}
-            mask="*"
-            focus
-          />
-          <Text dimColor>  Esc cancel</Text>
+      {/* Overlay: credential (new pane password, passphrase, or auth re-prompt) */}
+      {(mode === "new-password" || mode === "passphrase" || mode === "auth-failed") && pendingHost && (
+        <Box borderStyle="single" borderColor={mode === "auth-failed" ? "red" : "yellow"}
+          paddingX={1} flexDirection="column">
+          {mode === "auth-failed" && (
+            <Text color="red">Authentication failed — check your password and try again.</Text>
+          )}
+          <Box>
+            <Text color={mode === "auth-failed" ? "red" : "yellow"}>
+              {mode === "passphrase" ? "Passphrase" : "Password"} for {pendingHost.name}:{" "}
+            </Text>
+            <TextInput
+              value={credentialValue}
+              onChange={setCredentialValue}
+              onSubmit={(val) => {
+                if (!val.trim()) return;
+                if (mode === "new-password") {
+                  addPane(pendingHost, { password: val });
+                } else if (mode === "auth-failed") {
+                  setConnectOpts((prev) =>
+                    prev.map((o, i) => i === authFailedPane ? { password: val } : o)
+                  );
+                  setMode("normal");
+                  setAuthFailedPane(-1);
+                  setAuthFailedError("");
+                } else {
+                  handlePassphraseSubmit(val);
+                }
+              }}
+              mask="*"
+              focus
+            />
+            <Text dimColor>  Esc cancel</Text>
+          </Box>
         </Box>
       )}
 

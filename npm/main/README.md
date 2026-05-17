@@ -122,6 +122,7 @@ In multi-host mode: `Space` to check/uncheck, `Enter` to open all in split-pane,
 - **Context-aware controls** — Docker: restart/stop/start; discovered processes: kill only
 - **Live logs** — `docker logs -f` streamed over SSH, scrollable, auto-follows new output
 - **System metrics** — CPU %, RAM, disk usage
+- **Auth error handling** — wrong password shows an error and re-prompts immediately without leaving the app
 - **Auto-reconnect** — automatically reconnects when SSH drops
 - **Self-update** — `homelab-tui --update` replaces the binary in place with a live download progress bar
 - **Update notifications** — checks for a new release on launch; shows `↑ vX.Y.Z available` in the header if one is found
