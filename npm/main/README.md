@@ -114,15 +114,15 @@ In multi-host mode: `Space` to check/uncheck, `Enter` to open all in split-pane,
 | `h` | Switch host |
 | `q` | Quit |
 
-> Footer hints adapt to selection: Docker shows `r restart · s stop · t start`, processes show `s kill` only.
+> Footer hints adapt to selection: Docker shows `r restart · s stop · t start`; processes show `r restart · s kill` (`r` uses systemd on Linux).
 
 ## Features
 
 - **Multi-host split-pane** — monitor multiple hosts simultaneously side-by-side; compact per-pane headers with inline metrics; app bar shows all pane statuses; `Tab` to switch focus
 - **Docker discovery** — containers with status, image, ports, health, Compose project
 - **Process discovery** — finds programs listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers…) on Linux, macOS, and Windows
-- **Context-aware controls** — Docker: restart/stop/start; discovered processes: kill only
-- **Live logs** — `docker logs -f` streamed over SSH, scrollable, auto-follows new output
+- **Context-aware controls** — Docker: restart/stop/start; discovered processes: kill + restart via systemd (Linux)
+- **Live logs** — `docker logs -f` streamed over SSH; discovered processes stream via `journalctl -f` (Linux) or `log stream` (macOS); scrollable with auto-follow
 - **System metrics** — CPU %, RAM, disk usage
 - **Auth error handling** — wrong password shows an error and re-prompts immediately without leaving the app
 - **Auto-reconnect** — SSH keepalive detects silent drops (15 s interval, 3 missed → reconnect); exponential backoff (3 → 5 → 10 → 20 → 30 s); attempt counter shown in header

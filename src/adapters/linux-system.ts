@@ -1,27 +1,25 @@
 import type { SystemInfo } from "../core/types.js";
 
+export type LinuxSystemInfo = SystemInfo & { cpuStat?: number[] };
+
 export async function getSystemInfo(
-  run: (cmd: string) => Promise<string>
-): Promise<SystemInfo> {
+  run: (cmd: string) => Promise<string>,
+  prevCpuStat?: number[]
+): Promise<LinuxSystemInfo> {
   let hostname = "unknown";
   try { hostname = await run("hostname"); } catch {}
 
   let cpuUsagePercent: number | undefined;
+  let cpuStat: number[] | undefined;
   try {
-    // Read /proc/stat twice 1s apart and compute idle delta
-    const read = () => run("cat /proc/stat | head -1");
-    const parse = (line: string) => line.split(/\s+/).slice(1).map(Number);
-    const before = parse(await read());
-    await new Promise((r) => setTimeout(r, 200));
-    const after = parse(await read());
-    const totalBefore = before.reduce((a, b) => a + b, 0);
-    const totalAfter = after.reduce((a, b) => a + b, 0);
-    const idleBefore = before[3];
-    const idleAfter = after[3];
-    const totalDiff = totalAfter - totalBefore;
-    const idleDiff = idleAfter - idleBefore;
-    if (totalDiff > 0) {
-      cpuUsagePercent = Math.round(((totalDiff - idleDiff) / totalDiff) * 100);
+    const line = await run("cat /proc/stat | head -1");
+    cpuStat = line.split(/\s+/).slice(1).map(Number);
+    if (prevCpuStat && prevCpuStat.length === cpuStat.length) {
+      const totalBefore = prevCpuStat.reduce((a, b) => a + b, 0);
+      const totalAfter  = cpuStat.reduce((a, b) => a + b, 0);
+      const totalDiff = totalAfter - totalBefore;
+      const idleDiff  = cpuStat[3] - prevCpuStat[3];
+      if (totalDiff > 0) cpuUsagePercent = Math.round(((totalDiff - idleDiff) / totalDiff) * 100);
     }
   } catch {}
 
@@ -59,5 +57,5 @@ export async function getSystemInfo(
     if (parsed.length > 0) disks = parsed;
   } catch {}
 
-  return { hostname, os: "linux", cpuUsagePercent, ram, disks };
+  return { hostname, os: "linux", cpuUsagePercent, ram, disks, cpuStat };
 }

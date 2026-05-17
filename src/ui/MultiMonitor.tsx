@@ -11,7 +11,7 @@ import {
   startDockerService,
   stopDockerService,
 } from "../adapters/docker.js";
-import { stopNativeService } from "../adapters/native-actions.js";
+import { stopNativeService, restartNativeService } from "../adapters/native-actions.js";
 import { getLatestRelease, isNewerVersion } from "../updater.js";
 import { version as VERSION } from "../../package.json";
 import type { ConnectOptions } from "../transports/ssh.js";
@@ -218,8 +218,9 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     const isNative = selectedService.kind === "system-service";
 
     if (isNative) {
-      if (input === "s") runAction("kill", () => stopNativeService(run, selectedService, os));
-      else if (input === "r" || input === "t") flash("Not available for discovered processes", true);
+      if (input === "s") runAction("kill",    () => stopNativeService(run, selectedService, os));
+      else if (input === "r") runAction("restart", () => restartNativeService(run, selectedService, os));
+      else if (input === "t") flash("Cannot start a discovered process", true);
     } else {
       if (input === "r") runAction("restart", () => restartDockerService(run, selectedService));
       else if (input === "s") runAction("stop",    () => stopDockerService(run, selectedService));

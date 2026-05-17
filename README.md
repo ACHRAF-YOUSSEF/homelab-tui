@@ -181,7 +181,7 @@ Shown on startup. Lists all configured hosts.
 | `h` | Back to host selector |
 | `q` | Quit |
 
-> The footer hints update based on what is selected: Docker containers show `r restart · s stop · t start`, discovered processes show only `s kill`.
+> The footer hints update based on what is selected: Docker containers show `r restart · s stop · t start`; discovered processes show `r restart · s kill` (`r` uses systemd on Linux).
 
 
 ## Features
@@ -190,10 +190,10 @@ Shown on startup. Lists all configured hosts.
 - **OS detection** — auto-detects Linux, macOS, Windows over SSH
 - **Docker discovery** — containers with status, image, ports, health, Compose project
 - **Process discovery** — finds programs listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers, etc.) on Linux, macOS, and Windows
-- **Live logs** — `docker logs -f` streamed over SSH, scrollable with auto-follow
+- **Live logs** — `docker logs -f` streamed over SSH; discovered processes stream via `journalctl -f` (Linux) or `log stream` (macOS); scrollable with auto-follow
 - **System metrics** — CPU %, RAM, disk usage with progress bars
 - **Search / filter / sort** — filter by type (docker/processes) or status, sort by name/status/image
-- **Context-aware controls** — Docker: restart/stop/start; discovered processes: kill only
+- **Context-aware controls** — Docker: restart/stop/start; discovered processes: kill + restart via systemd (Linux)
 - **Auto-reconnect** — SSH keepalive detects silent drops (15 s interval, 3 missed → reconnect); exponential backoff (3 → 5 → 10 → 20 → 30 s); attempt counter shown in header (`reconnect 5s (#2)`)
 - **Command timeout** — SSH commands time out after 30 s so a hanging command never blocks the refresh loop
 - **Password & key auth** — password prompted securely; wrong password re-prompts immediately with an error; SSH agent supported for encrypted keys
@@ -230,10 +230,10 @@ The top bar always shows the app version (`v1.0.1`). If a newer release is avail
 
 ## Known Limitations
 
-- Split-pane view is horizontal only; very narrow terminals with 3+ hosts may truncate service columns
-- Discovered processes have no log streaming (logs are application-specific)
-- Discovered processes cannot be restarted or started (only killed)
-- CPU usage on Linux requires two `/proc/stat` reads 200 ms apart
+- Split-pane view is horizontal only; very narrow terminals (< 50 cols/pane) collapse to name+status only
+- Discovered process logs require `journalctl` (Linux) or `log stream` (macOS) to be available
+- Discovered process restart requires systemd (Linux only); Windows/macOS processes can only be killed
+- Discovered processes cannot be started (command-line is unknown)
 
 ## Star History
 

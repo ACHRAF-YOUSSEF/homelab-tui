@@ -29,6 +29,9 @@ export function Footer({ actionMessage, error, selectedKind, paneCount, focusedP
         {SEP}
         {isProcess ? (
           <>
+            {KEY("r")}
+            <Text dimColor> restart</Text>
+            {SEP}
             {KEY("s")}
             <Text dimColor> kill</Text>
           </>

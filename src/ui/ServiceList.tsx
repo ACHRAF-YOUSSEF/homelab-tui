@@ -131,8 +131,8 @@ export function ServiceList({
         <Box width={PREFIX} />
         <Box width={cols.name}><Text bold dimColor>NAME</Text></Box>
         <Box width={cols.status}><Text bold dimColor>STATUS</Text></Box>
-        <Box width={cols.image}><Text bold dimColor>IMAGE</Text></Box>
-        <Box width={cols.ports}><Text bold dimColor>PORTS</Text></Box>
+        {cols.image > 0 && <Box width={cols.image}><Text bold dimColor>IMAGE</Text></Box>}
+        {cols.ports > 0 && <Box width={cols.ports}><Text bold dimColor>PORTS</Text></Box>}
       </Box>
 
       {/* Rows */}
@@ -161,12 +161,16 @@ export function ServiceList({
               <Box width={cols.status}>
                 <Text color={sc} wrap="truncate">{svc.status}</Text>
               </Box>
-              <Box width={cols.image}>
-                <Text dimColor wrap="truncate">{svc.image ?? "—"}</Text>
-              </Box>
-              <Box width={cols.ports}>
-                <Text dimColor wrap="truncate">{shortPorts(svc.ports)}</Text>
-              </Box>
+              {cols.image > 0 && (
+                <Box width={cols.image}>
+                  <Text dimColor wrap="truncate">{svc.image ?? "—"}</Text>
+                </Box>
+              )}
+              {cols.ports > 0 && (
+                <Box width={cols.ports}>
+                  <Text dimColor wrap="truncate">{shortPorts(svc.ports)}</Text>
+                </Box>
+              )}
             </Box>
           );
         })

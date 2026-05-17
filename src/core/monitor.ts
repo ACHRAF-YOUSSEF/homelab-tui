@@ -9,11 +9,12 @@ export { PassphraseRequiredError } from "../transports/ssh.js";
 
 async function getSystemInfo(
   run: (cmd: string) => Promise<string>,
-  os: RemoteOS
-): Promise<SystemInfo> {
+  os: RemoteOS,
+  prevCpuStat?: number[]
+): Promise<SystemInfo & { cpuStat?: number[] }> {
   if (os === "linux") {
     const { getSystemInfo } = await import("../adapters/linux-system.js");
-    return getSystemInfo(run);
+    return getSystemInfo(run, prevCpuStat);
   }
   if (os === "macos") {
     const { getSystemInfo } = await import("../adapters/macos-system.js");
@@ -51,6 +52,7 @@ export class Monitor {
   private readonly transport: SSHTransport;
   private readonly cfg: HostConfig;
   private lastOS: RemoteOS = "unknown";
+  private linuxCpuStat: number[] | undefined;
 
   constructor(cfg: HostConfig, onDisconnect?: () => void) {
     this.cfg = cfg;
@@ -81,11 +83,13 @@ export class Monitor {
       const remoteOS = await detectRemoteOS(run);
       this.lastOS = remoteOS;
 
-      const [system, dockerServices, nativeSvcs] = await Promise.all([
-        getSystemInfo(run, remoteOS),
+      const [systemResult, dockerServices, nativeSvcs] = await Promise.all([
+        getSystemInfo(run, remoteOS, this.linuxCpuStat),
         this.cfg.discovery.docker ? getDockerServices(run) : Promise.resolve([]),
         this.cfg.discovery.nativeServices ? getNativeServices(run, remoteOS) : Promise.resolve([]),
       ]);
+      if (systemResult.cpuStat) this.linuxCpuStat = systemResult.cpuStat;
+      const system: SystemInfo = systemResult;
 
       return {
         hostName: this.cfg.name,
