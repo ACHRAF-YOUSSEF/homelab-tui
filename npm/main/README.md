@@ -35,6 +35,14 @@
 npm install -g homelab-tui
 ```
 
+**Using Bun?** Bun blocks postinstall scripts by default — trust the package first:
+
+```sh
+bun add -g homelab-tui
+bun pm trust homelab-tui
+bun add -g homelab-tui   # re-run so the postinstall executes
+```
+
 The correct binary for your platform is downloaded automatically on install. No Bun runtime needed.
 
 ## Usage
