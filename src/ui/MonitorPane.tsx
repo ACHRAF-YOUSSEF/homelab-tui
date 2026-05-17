@@ -2,7 +2,7 @@ import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo
 import { Box, Text, useInput } from "ink";
 import { Monitor, PassphraseRequiredError } from "../core/monitor.js";
 import type { ConnectOptions } from "../transports/ssh.js";
-import type { HostConfig, MonitorSnapshot, Service, SystemInfo } from "../core/types.js";
+import type { HostConfig, MonitorSnapshot, Service, ServiceStatus, SystemInfo } from "../core/types.js";
 import { Header } from "./Header.js";
 import { SystemPanel } from "./SystemPanel.js";
 import { ServiceList } from "./ServiceList.js";
@@ -93,11 +93,20 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const [retryKey, setRetryKey] = useState(0);
   const [reconnectCountdown, setReconnectCountdown] = useState<number | null>(null);
   const [reconnectAttempt, setReconnectAttempt] = useState(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reconnectAttemptsRef = useRef(0);
+
+  const [downAlert, setDownAlert] = useState<string | null>(null);
+  const downAlertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevServicesRef = useRef<Map<string, ServiceStatus>>(new Map());
+
+  // Stable refs so callbacks don't go stale inside timers / counters
+  const connectOptionsRef = useRef(connectOptions);
+  connectOptionsRef.current = connectOptions;
+  const hostConfigRef = useRef(hostConfig);
+  hostConfigRef.current = hostConfig;
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMode, setSearchMode] = useState(false);
@@ -132,7 +141,9 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
     onStateChangeRef.current(selectedService, snapshot);
   }, [selectedService, snapshot]);
 
-  // Reconnect
+  const doRefreshRef = useRef<() => Promise<void>>(() => Promise.resolve());
+
+  // Reuse Monitor instance — no React teardown, just reconnect transport
   const triggerReconnect = useCallback(() => {
     if (reconnectTimerRef.current) return;
     const attempt = reconnectAttemptsRef.current;
@@ -141,13 +152,25 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
     setReconnectAttempt(reconnectAttemptsRef.current);
     let count = delay;
     setReconnectCountdown(count);
+    setConnecting(true);
     reconnectTimerRef.current = setInterval(() => {
       count--;
       if (count <= 0) {
         clearInterval(reconnectTimerRef.current!);
         reconnectTimerRef.current = null;
         setReconnectCountdown(null);
-        setRetryKey((k) => k + 1);
+        monitorRef.current?.reconnect(connectOptionsRef.current ?? {})
+          .then(() => doRefreshRef.current())
+          .catch((err: unknown) => {
+            const msg = err instanceof Error ? err.message : String(err);
+            const cfg = hostConfigRef.current;
+            setSnapshot({
+              hostName: cfg.name, remoteOS: "unknown",
+              system: { hostname: cfg.host, os: "unknown" },
+              services: [], error: msg,
+            });
+            setConnecting(false);
+          });
       } else setReconnectCountdown(count);
     }, 1000);
   }, []);
@@ -168,6 +191,26 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
     }
   }, [snapshot]);
 
+  // Service-down alerts: detect running → stopped/failed transitions
+  useEffect(() => {
+    if (!snapshot || snapshot.error) return;
+    const prev = prevServicesRef.current;
+    const alerts: string[] = [];
+    for (const svc of snapshot.services) {
+      const prevStatus = prev.get(svc.id);
+      if (prevStatus === "running" && (svc.status === "stopped" || svc.status === "failed")) {
+        alerts.push(`${svc.name} ↓ ${svc.status}`);
+      }
+    }
+    prevServicesRef.current = new Map(snapshot.services.map((s) => [s.id, s.status]));
+    if (alerts.length === 0) return;
+    process.stdout.write(""); // terminal bell
+    const msg = alerts.join("  ·  ");
+    setDownAlert(msg);
+    if (downAlertTimerRef.current) clearTimeout(downAlertTimerRef.current);
+    downAlertTimerRef.current = setTimeout(() => setDownAlert(null), 10_000);
+  }, [snapshot]);
+
   // Stable ref so onNeedPassphrase never enters the connection useEffect dep array
   const onNeedPassphraseRef = useRef(onNeedPassphrase);
   onNeedPassphraseRef.current = onNeedPassphrase;
@@ -184,6 +227,7 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
       setConnecting(false);
     } catch { setConnecting(false); }
   }, []);
+  doRefreshRef.current = doRefresh;
 
   useEffect(() => {
     const mon = new Monitor(hostConfig, triggerReconnect);
@@ -208,13 +252,14 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
         setConnecting(false);
       });
 
-    const interval = setInterval(doRefresh, REFRESH_MS);
+    const refreshMs = hostConfig.refreshInterval ?? REFRESH_MS;
+    const interval = setInterval(doRefresh, refreshMs);
     return () => {
       clearInterval(interval);
       mon.dispose();
       if (reconnectTimerRef.current) { clearInterval(reconnectTimerRef.current); reconnectTimerRef.current = null; }
     };
-  }, [hostConfig, connectOptions, doRefresh, retryKey]); // onNeedPassphrase intentionally excluded (ref above)
+  }, [hostConfig, connectOptions, doRefresh]); // onNeedPassphrase/retryKey intentionally excluded (refs above)
 
   useImperativeHandle(ref, () => ({
     run: (cmd) => monitorRef.current!.run(cmd),
@@ -285,6 +330,12 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
             : <Text color="yellow">reconnect {reconnectCountdown}s (#{reconnectAttempt})</Text>}
         </Box>
 
+        {downAlert && (
+          <Box paddingX={1}>
+            <Text color="red" bold>⚠ {downAlert}</Text>
+          </Box>
+        )}
+
         {/* Compact inline metrics — no border */}
         {snapshot?.system && <CompactMetrics system={snapshot.system} />}
 
@@ -301,6 +352,11 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
         reconnectCountdown={reconnectCountdown} reconnectAttempt={reconnectAttempt}
       />
       {snapshot?.system && <SystemPanel system={snapshot.system} />}
+      {downAlert && (
+        <Box paddingX={1}>
+          <Text color="red" bold>⚠ {downAlert}</Text>
+        </Box>
+      )}
       {serviceList}
       {snapshot?.error && <Text color="red" wrap="truncate"> {snapshot.error}</Text>}
     </Box>

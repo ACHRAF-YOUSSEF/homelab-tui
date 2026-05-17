@@ -53,9 +53,11 @@ export class Monitor {
   private readonly cfg: HostConfig;
   private lastOS: RemoteOS = "unknown";
   private linuxCpuStat: number[] | undefined;
+  private readonly onDisconnectCb?: () => void;
 
   constructor(cfg: HostConfig, onDisconnect?: () => void) {
     this.cfg = cfg;
+    this.onDisconnectCb = onDisconnect;
     this.transport = new SSHTransport({
       host: cfg.host,
       port: cfg.port,
@@ -67,6 +69,11 @@ export class Monitor {
 
   async connect(opts: ConnectOptions = {}): Promise<void> {
     await this.transport.connect(opts);
+  }
+
+  async reconnect(opts: ConnectOptions = {}): Promise<void> {
+    this.linuxCpuStat = undefined;
+    await this.transport.reconnect(opts);
   }
 
   run(cmd: string): Promise<string> {

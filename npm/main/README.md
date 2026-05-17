@@ -75,6 +75,8 @@ On first launch, a setup wizard lets you create or locate your `homelab.config.j
 | Field | Description |
 |---|---|
 | `authMethod` | `"password"` (prompted at launch) or `"key"` (SSH private key, supports agent) |
+| `group` | Optional label to group hosts in the selector (filter with `g`) |
+| `refreshInterval` | Polling interval in ms (default `3000`, min `1000`, max `60000`) |
 | `nativeServices` | Discover processes listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers…) |
 | `includeStoppedContainers` | Show stopped Docker containers |
 
@@ -119,6 +121,11 @@ In multi-host mode: `Space` to check/uncheck, `Enter` to open all in split-pane,
 ## Features
 
 - **Multi-host split-pane** — monitor multiple hosts simultaneously side-by-side; compact per-pane headers with inline metrics; app bar shows all pane statuses; `Tab` to switch focus
+- **Host groups** — tag hosts with `"group"` in config; press `g` in the selector to filter by group
+- **Configurable refresh interval** — set per-host polling rate (`"refreshInterval": 5000`)
+- **Service-down alerts** — audible bell + red banner on running → stopped/failed transitions
+- **Disk full warnings** — ⚠ badge on disks above 85%
+- **Compose stack restart** — `r` on a Compose service opens a scope picker (container vs whole stack)
 - **Docker discovery** — containers with status, image, ports, health, Compose project
 - **Process discovery** — finds programs listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers…) on Linux, macOS, and Windows
 - **Context-aware controls** — Docker: restart/stop/start; discovered processes: kill + restart via systemd (Linux)

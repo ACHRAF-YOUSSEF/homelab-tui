@@ -18,6 +18,8 @@ const HostSchema = z
     username: z.string().min(1),
     authMethod: z.enum(["key", "password"]).default("key"),
     privateKeyPath: z.string().optional(),
+    group: z.string().optional(),
+    refreshInterval: z.number().int().min(1000).max(60_000).optional(),
     discovery: DiscoverySchema.default({}),
   })
   .refine(

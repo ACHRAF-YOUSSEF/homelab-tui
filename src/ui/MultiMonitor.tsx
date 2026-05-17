@@ -8,6 +8,7 @@ import { LogPanel } from "./LogPanel.js";
 import { Footer } from "./Footer.js";
 import {
   restartDockerService,
+  restartDockerStack,
   startDockerService,
   stopDockerService,
 } from "../adapters/docker.js";
@@ -20,7 +21,7 @@ import type { HostConfig, MonitorSnapshot, Service } from "../core/types.js";
 const MAX_LOG_LINES = 2000;
 
 type PaneState = { service: Service | null; snapshot: MonitorSnapshot | null };
-type Mode = "normal" | "picking" | "new-password" | "passphrase" | "auth-failed";
+type Mode = "normal" | "picking" | "new-password" | "passphrase" | "auth-failed" | "compose-restart";
 
 type Props = {
   initialHosts: HostConfig[];
@@ -194,6 +195,23 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
       return;
     }
 
+    // ── Compose restart picker ──
+    if (mode === "compose-restart") {
+      if (key.escape) { setMode("normal"); return; }
+      const run = (cmd: string) => paneRefsMap.current.get(paneKey(hosts[focusedPane]))!.run(cmd);
+      if (input === "1" || key.return) {
+        setMode("normal");
+        if (selectedService) runAction("restart", () => restartDockerService(run, selectedService));
+        return;
+      }
+      if (input === "2") {
+        setMode("normal");
+        if (selectedService) runAction("restart stack", () => restartDockerStack(run, selectedService));
+        return;
+      }
+      return;
+    }
+
     // ── Normal mode ──
     const shiftTab = input === "[Z" || (key.shift && key.tab);
     if (key.tab && !shiftTab) { setFocusedPane((p) => (p + 1) % hosts.length); return; }
@@ -222,7 +240,14 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
       else if (input === "r") runAction("restart", () => restartNativeService(run, selectedService, os));
       else if (input === "t") flash("Cannot start a discovered process", true);
     } else {
-      if (input === "r") runAction("restart", () => restartDockerService(run, selectedService));
+      if (input === "r") {
+        // For compose services, ask: restart container or whole stack?
+        if (selectedService.composeProject) {
+          setMode("compose-restart");
+        } else {
+          runAction("restart", () => restartDockerService(run, selectedService));
+        }
+      }
       else if (input === "s") runAction("stop",    () => stopDockerService(run, selectedService));
       else if (input === "t") runAction("start",   () => startDockerService(run, selectedService));
     }
@@ -361,6 +386,31 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
               focus
             />
             <Text dimColor>  Esc cancel</Text>
+          </Box>
+        </Box>
+      )}
+
+      {/* Overlay: compose restart picker */}
+      {mode === "compose-restart" && selectedService?.composeProject && (
+        <Box borderStyle="single" borderColor="cyan" paddingX={1} flexDirection="column">
+          <Box gap={2}>
+            <Text bold color="cyan">Restart scope — {selectedService.name}</Text>
+            <Text dimColor>stack: {selectedService.composeProject}</Text>
+          </Box>
+          <Box gap={2} marginTop={1}>
+            <Box gap={1}>
+              <Text color="cyan" bold>1</Text>
+              <Text>/ Enter</Text>
+              <Text dimColor>restart this container only</Text>
+            </Box>
+            <Box gap={1}>
+              <Text color="cyan" bold>2</Text>
+              <Text dimColor>restart entire stack ({selectedService.composeProject})</Text>
+            </Box>
+            <Box gap={1}>
+              <Text color="cyan" bold>Esc</Text>
+              <Text dimColor>cancel</Text>
+            </Box>
           </Box>
         </Box>
       )}

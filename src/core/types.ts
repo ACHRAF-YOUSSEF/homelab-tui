@@ -46,6 +46,8 @@ export type HostConfig = {
   username: string;
   authMethod: "key" | "password";
   privateKeyPath?: string;
+  group?: string;
+  refreshInterval?: number;  // ms, default 3000
   discovery: {
     docker: boolean;
     nativeServices: boolean;

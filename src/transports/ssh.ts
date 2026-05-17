@@ -39,7 +39,7 @@ const KEEPALIVE_COUNT_MAX = 3;
 const COMMAND_TIMEOUT = 30_000;
 
 export class SSHTransport {
-  private readonly ssh = new NodeSSH();
+  private ssh = new NodeSSH();
   private readonly cfg: SSHConfig;
   private readonly onDisconnect?: () => void;
   private connected = false;
@@ -48,6 +48,15 @@ export class SSHTransport {
   constructor(cfg: SSHConfig, onDisconnect?: () => void) {
     this.cfg = cfg;
     this.onDisconnect = onDisconnect;
+  }
+
+  async reconnect(opts: ConnectOptions = {}): Promise<void> {
+    this.disposing = true;
+    try { this.ssh.dispose(); } catch {}
+    this.ssh = new NodeSSH();
+    this.connected = false;
+    this.disposing = false;
+    await this.connect(opts);
   }
 
   private wireDisconnect(): void {

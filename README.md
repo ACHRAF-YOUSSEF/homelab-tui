@@ -132,6 +132,8 @@ On first launch with no config file, a setup screen lets you create one or point
 |---|---|
 | `authMethod` | `"password"` (prompted at launch) or `"key"` (SSH private key, supports agent) |
 | `privateKeyPath` | Required when `authMethod` is `"key"` |
+| `group` | Optional label to group hosts in the selector (filter with `g`) |
+| `refreshInterval` | Polling interval in ms (default `3000`, min `1000`, max `60000`) |
 | `nativeServices` | Discover processes listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers…) |
 | `includeStoppedContainers` | Show stopped Docker containers |
 
@@ -182,11 +184,23 @@ Shown on startup. Lists all configured hosts.
 | `q` | Quit |
 
 > The footer hints update based on what is selected: Docker containers show `r restart · s stop · t start`; discovered processes show `r restart · s kill` (`r` uses systemd on Linux).
+> For Docker Compose services, pressing `r` opens a scope picker: **1** restart just this container, **2** restart the entire stack.
+
+### Host selector
+
+| Key | Action |
+|-----|--------|
+| `g` | Cycle group filter (shows only hosts in that group) |
 
 
 ## Features
 
 - **Multi-host split-pane** — monitor multiple hosts simultaneously, side-by-side; compact per-pane headers with inline metrics; app bar shows all pane statuses at a glance; `Tab` to switch focus
+- **Host groups** — tag hosts with `"group"` in config; press `g` in the selector to cycle through group filters
+- **Configurable refresh interval** — set `"refreshInterval": 5000` per host; fast hosts get 1 s, slow remote hosts get 10 s+
+- **Service-down alerts** — audible bell + red banner when a running container transitions to stopped/failed
+- **Disk full warnings** — ⚠ badge on disks above 85% in the system panel
+- **Compose stack restart** — pressing `r` on a Compose service asks: restart this container or the entire stack
 - **OS detection** — auto-detects Linux, macOS, Windows over SSH
 - **Docker discovery** — containers with status, image, ports, health, Compose project
 - **Process discovery** — finds programs listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers, etc.) on Linux, macOS, and Windows

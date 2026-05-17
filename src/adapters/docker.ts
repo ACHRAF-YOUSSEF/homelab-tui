@@ -117,6 +117,14 @@ export async function restartDockerService(
   }
 }
 
+export async function restartDockerStack(
+  run: (cmd: string) => Promise<string>,
+  service: Service
+): Promise<void> {
+  if (!service.composeProject) throw new Error("Not a compose service");
+  await run(`docker compose -p ${service.composeProject} restart`);
+}
+
 export async function stopDockerService(
   run: (cmd: string) => Promise<string>,
   service: Service

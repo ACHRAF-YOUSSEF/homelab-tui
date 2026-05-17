@@ -33,7 +33,9 @@ function DiskBar({ d }: Readonly<{ d: DiskEntry }>) {
   const pct = Math.round((used / d.totalBytes) * 100);
   return (
     <Metric label={d.name}>
-      <Text color={clr(pct)}>{bar(pct)} {fmtBytes(used)}/{fmtBytes(d.totalBytes)}</Text>
+      <Text color={clr(pct)}>
+        {pct >= 85 ? "⚠ " : ""}{bar(pct)} {fmtBytes(used)}/{fmtBytes(d.totalBytes)} ({pct}%)
+      </Text>
     </Metric>
   );
 }
