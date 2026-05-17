@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Box, useApp, useInput } from "ink";
 import { Monitor, PassphraseRequiredError } from "../core/monitor.js";
 import type { ConnectOptions } from "../transports/ssh.js";
+import { getLatestRelease } from "../updater.js";
+import { version as VERSION } from "../../package.json";
 import {
   restartDockerService,
   startDockerService,
@@ -68,6 +70,18 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Update check
+  const [updateTag, setUpdateTag] = useState<string | null>(null);
+
+  useEffect(() => {
+    getLatestRelease()
+      .then(({ tag }) => {
+        // Only show if tag is strictly newer (tag format: "v1.2.3")
+        if (tag !== `v${VERSION}`) setUpdateTag(tag);
+      })
+      .catch(() => {}); // silently ignore — no network / no release
+  }, []);
 
   const allServices: Service[] = snapshot?.services ?? [];
 
@@ -299,6 +313,8 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
         connecting={connecting}
         lastUpdated={lastUpdated}
         reconnectCountdown={reconnectCountdown}
+        version={VERSION}
+        updateTag={updateTag}
       />
       {snapshot?.system && <SystemPanel system={snapshot.system} />}
       <ServiceList

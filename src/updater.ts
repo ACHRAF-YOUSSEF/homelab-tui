@@ -1,6 +1,7 @@
 import { chmodSync, existsSync, renameSync, writeFileSync } from "node:fs";
 
 const REPO = "ACHRAF-YOUSSEF/homelab-tui";
+const BAR_WIDTH = 40;
 
 type Release = {
   tag_name: string;
@@ -30,19 +31,54 @@ export async function getLatestRelease(): Promise<{ tag: string; downloadUrl: st
   return { tag: release.tag_name, downloadUrl: asset.browser_download_url, name };
 }
 
+async function downloadWithProgress(url: string): Promise<Buffer> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+
+  const total = Number.parseInt(res.headers.get("content-length") ?? "0", 10);
+
+  if (!res.body) {
+    // No streaming — fallback
+    return Buffer.from(await res.arrayBuffer());
+  }
+
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let received = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    received += value.byteLength;
+
+    if (total > 0) {
+      const pct = Math.min(100, Math.floor((received / total) * 100));
+      const filled = Math.floor((pct / 100) * BAR_WIDTH);
+      const bar = "█".repeat(filled) + "░".repeat(BAR_WIDTH - filled);
+      const mb = (received / 1_048_576).toFixed(1);
+      const totalMb = (total / 1_048_576).toFixed(1);
+      process.stdout.write(`\r  [${bar}] ${pct}%  ${mb} / ${totalMb} MB`);
+    } else {
+      const mb = (received / 1_048_576).toFixed(1);
+      process.stdout.write(`\r  ${mb} MB downloaded…`);
+    }
+  }
+
+  process.stdout.write("\n");
+  return Buffer.concat(chunks);
+}
+
 export async function selfUpdate(): Promise<string> {
   process.stdout.write("Checking for updates…\n");
   const { tag, downloadUrl, name } = await getLatestRelease();
 
   process.stdout.write(`Downloading ${name} (${tag})…\n`);
-  const dl = await fetch(downloadUrl);
-  if (!dl.ok) throw new Error(`Download failed: ${dl.status}`);
+  const buf = await downloadWithProgress(downloadUrl);
 
-  const buf = Buffer.from(await dl.arrayBuffer());
   const current = process.execPath;
 
   if (process.platform === "win32") {
-    // Can't replace a running exe on Windows — write next to it and instruct user
     const next = current.replace(/\.exe$/, "") + "-update.exe";
     writeFileSync(next, buf);
     return `Downloaded to ${next}\nManually replace ${current} with ${next} after closing the app.`;
@@ -58,7 +94,6 @@ export async function selfUpdate(): Promise<string> {
     renameSync(current, backup);
     renameSync(tmp, current);
   } catch (err) {
-    // Attempt rollback
     if (existsSync(backup)) {
       try { renameSync(backup, current); } catch {}
     }

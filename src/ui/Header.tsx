@@ -7,15 +7,23 @@ type Props = {
   connecting: boolean;
   lastUpdated: Date | null;
   reconnectCountdown: number | null;
+  version: string;
+  updateTag?: string | null;
 };
 
-export function Header({ snapshot, connecting, lastUpdated, reconnectCountdown }: Readonly<Props>) {
+export function Header({ snapshot, connecting, lastUpdated, reconnectCountdown, version, updateTag }: Readonly<Props>) {
   const time = lastUpdated ? lastUpdated.toLocaleTimeString() : "—";
 
   return (
-    <Box borderStyle="single" borderColor="cyan" paddingX={1} width="100%">
+    <Box borderStyle="single" borderColor="cyan" paddingX={1} width="100%" flexDirection="column">
       <Box flexGrow={1} justifyContent="space-between">
-        <Text bold color="cyan">homelab-tui</Text>
+        <Box gap={1}>
+          <Text bold color="cyan">homelab-tui</Text>
+          <Text dimColor>v{version}</Text>
+          {updateTag && (
+            <Text color="yellow" bold>↑ {updateTag} available</Text>
+          )}
+        </Box>
 
         {snapshot ? (
           <>
