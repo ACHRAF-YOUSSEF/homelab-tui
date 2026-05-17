@@ -68,4 +68,9 @@ jobs:
           jq --arg v "$VERSION" '.version = $v' npm/main/package.json > tmp.json
           mv tmp.json npm/main/package.json
           echo "Publishing homelab-tui@$VERSION"
+          PUBLISHED=$(npm view homelab-tui@$VERSION version 2>/dev/null || echo "")
+          if [ "$PUBLISHED" = "$VERSION" ]; then
+            echo "homelab-tui@$VERSION is already published — skipping."
+            exit 0
+          fi
           npm publish ./npm/main --access public
