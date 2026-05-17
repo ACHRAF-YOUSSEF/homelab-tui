@@ -8,14 +8,24 @@ const VIEW_HEIGHT = 12;
 const PADDING = 2;  
 const PREFIX = 4;   // selector (2) + icon (2)
 
-// Proportional column widths — must sum to 1.0
-const RATIOS = { name: 0.28, status: 0.12, image: 0.35, ports: 0.25 };
+type ColWidths = { name: number; status: number; image: number; ports: number };
 
-function getColWidths(containerWidth?: number) {
-  const total = Math.max(40, (containerWidth ?? process.stdout.columns ?? 80) - PADDING - PREFIX);
-  const name   = Math.floor(total * RATIOS.name);
-  const status = Math.floor(total * RATIOS.status);
-  const image  = Math.floor(total * RATIOS.image);
+function getColWidths(containerWidth?: number): ColWidths {
+  const total = Math.max(30, (containerWidth ?? process.stdout.columns ?? 80) - PADDING - PREFIX);
+  if (total < 50) {
+    // Very narrow: name + status only
+    return { name: total - 12, status: 12, image: 0, ports: 0 };
+  }
+  if (total < 80) {
+    // Narrow: drop image column
+    const status = 12;
+    const ports  = Math.floor(total * 0.3);
+    return { name: total - status - ports, status, image: 0, ports };
+  }
+  // Full layout
+  const name   = Math.floor(total * 0.28);
+  const status = Math.floor(total * 0.12);
+  const image  = Math.floor(total * 0.35);
   const ports  = total - name - status - image;
   return { name, status, image, ports };
 }
