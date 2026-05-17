@@ -5,7 +5,7 @@ import type { Service, ServiceStatus } from "../core/types.js";
 import type { SortField, StatusFilter } from "./App.js";
 
 const VIEW_HEIGHT = 12;
-const PADDING = 2;  // paddingX={1}
+const PADDING = 2;  
 const PREFIX = 4;   // selector (2) + icon (2)
 
 // Proportional column widths — must sum to 1.0

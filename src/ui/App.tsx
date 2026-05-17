@@ -284,12 +284,10 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
       if (input === "s") runAction("kill", () => stopNativeService(run, selectedService, os));
       else if (input === "r" || input === "t") flash("Not available for discovered processes", true);
       else if (input === "l") setLogsOpen((open) => !open);
-    } else {
-      if (input === "r") runAction("restart", () => restartDockerService(run, selectedService));
+    } else if (input === "r") runAction("restart", () => restartDockerService(run, selectedService));
       else if (input === "s") runAction("stop",    () => stopDockerService(run, selectedService));
       else if (input === "t") runAction("start",   () => startDockerService(run, selectedService));
       else if (input === "l") setLogsOpen((open) => !open);
-    }
   });
 
   const error = snapshot?.error ?? actionError ?? null;

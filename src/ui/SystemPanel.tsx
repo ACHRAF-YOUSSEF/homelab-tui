@@ -19,7 +19,7 @@ function clr(pct: number) {
 
 type DiskEntry = { name: string; totalBytes: number; freeBytes: number };
 
-function Metric({ label, children }: { label: string; children: React.ReactNode }) {
+function Metric({ label, children }: Readonly<{ label: string; children: React.ReactNode }>) {
   return (
     <Box gap={1}>
       <Text dimColor>{label}</Text>
@@ -28,7 +28,7 @@ function Metric({ label, children }: { label: string; children: React.ReactNode 
   );
 }
 
-function DiskBar({ d }: { d: DiskEntry }) {
+function DiskBar({ d }: Readonly<{ d: DiskEntry }>) {
   const used = d.totalBytes - d.freeBytes;
   const pct = Math.round((used / d.totalBytes) * 100);
   return (

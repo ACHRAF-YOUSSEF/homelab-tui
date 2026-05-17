@@ -13,7 +13,6 @@ const SEP = <Text dimColor> · </Text>;
 
 export function Footer({ actionMessage, error, selectedKind }: Readonly<Props>) {
   const isProcess = selectedKind === "system-service";
-  const isDocker = selectedKind === "docker-container" || selectedKind === "docker-compose";
 
   return (
     <Box borderStyle="single" borderColor="gray" paddingX={1} width="100%" flexDirection="column">

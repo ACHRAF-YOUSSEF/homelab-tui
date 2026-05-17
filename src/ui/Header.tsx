@@ -29,10 +29,10 @@ export function Header({ snapshot, connecting, lastUpdated, reconnectCountdown }
           </Text>
         )}
 
-        {reconnectCountdown !== null ? (
-          <Text color="yellow">reconnecting in {reconnectCountdown}s…</Text>
-        ) : (
+        {reconnectCountdown === null ? (
           <Text dimColor>updated {time}</Text>
+        ) : (
+          <Text color="yellow">reconnecting in {reconnectCountdown}s…</Text>
         )}
       </Box>
     </Box>
