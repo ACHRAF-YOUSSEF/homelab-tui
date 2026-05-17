@@ -145,6 +145,7 @@ Shown on startup. Lists all configured hosts.
 | `↑` / `↓` | Select host |
 | `Enter` | Connect to selected host |
 | `m` | Enter multi-host mode (select multiple hosts) |
+| `Esc` | Back to previous monitor view (only shown when coming from one) |
 | `a` | Add new host |
 | `e` | Edit selected host |
 | `d` | Delete selected host |

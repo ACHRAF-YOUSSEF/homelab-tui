@@ -40,6 +40,7 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
   const [config, setConfig] = useState<AppConfig>(initialConfig);
   const [currentConfigPath, setCurrentConfigPath] = useState(configPath);
   const [screen, setScreen] = useState<Screen>(getInitialScreen(initialConfig, configMissing));
+  const [previousMonitorScreen, setPreviousMonitorScreen] = useState<Screen | null>(null);
 
   const persistConfig = useCallback((next: AppConfig, path = currentConfigPath) => {
     setConfig(next);
@@ -105,7 +106,19 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
   const handleFormCancel = useCallback(() => setScreen({ kind: "selector" }), []);
 
   // ── Monitor ───────────────────────────────────────────────────────────────
-  const handleSwitchHost = useCallback(() => setScreen({ kind: "selector" }), []);
+  const handleSwitchHost = useCallback(() => {
+    if (screen.kind === "monitor" || screen.kind === "multi-monitor") {
+      setPreviousMonitorScreen(screen);
+    }
+    setScreen({ kind: "selector" });
+  }, [screen]);
+
+  const handleBackToMonitor = useCallback(() => {
+    if (previousMonitorScreen) {
+      setScreen(previousMonitorScreen);
+      setPreviousMonitorScreen(null);
+    }
+  }, [previousMonitorScreen]);
 
   // ── CredentialPrompt (single host) ────────────────────────────────────────
   const handleCredentialSubmit = useCallback((value: string) => {
@@ -149,6 +162,7 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
         onAdd={handleAddHost}
         onEdit={handleEditHost}
         onDelete={handleDeleteHost}
+        onBack={previousMonitorScreen ? handleBackToMonitor : undefined}
       />
     );
   }

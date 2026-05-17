@@ -9,9 +9,10 @@ type Props = {
   onAdd: () => void;
   onEdit: (index: number) => void;
   onDelete: (index: number) => void;
+  onBack?: () => void;
 };
 
-export function HostSelector({ hosts, onSelect, onMultiSelect, onAdd, onEdit, onDelete }: Readonly<Props>) {
+export function HostSelector({ hosts, onSelect, onMultiSelect, onAdd, onEdit, onDelete, onBack }: Readonly<Props>) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [multiMode, setMultiMode] = useState(false);
   const [checked, setChecked] = useState<Set<number>>(new Set());
@@ -34,6 +35,7 @@ export function HostSelector({ hosts, onSelect, onMultiSelect, onAdd, onEdit, on
         return;
       }
     } else {
+      if (key.escape && onBack) { onBack(); return; }
       if (key.return && hosts.length > 0) { onSelect(hosts[clamped]); return; }
       if (input === "m" && hosts.length > 1) { setMultiMode(true); setChecked(new Set([clamped])); return; }
       if (input === "a") { onAdd(); return; }
@@ -87,6 +89,7 @@ export function HostSelector({ hosts, onSelect, onMultiSelect, onAdd, onEdit, on
             <Text dimColor><Text color="cyan">a</Text> add</Text>
             <Text dimColor><Text color="cyan">e</Text> edit</Text>
             <Text dimColor><Text color="cyan">d</Text> delete</Text>
+            {onBack && <Text dimColor><Text color="cyan">Esc</Text> back</Text>}
           </Box>
         )}
       </Box>

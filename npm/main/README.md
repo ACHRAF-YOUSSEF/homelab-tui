@@ -87,6 +87,7 @@ On first launch, a setup wizard lets you create or locate your `homelab.config.j
 | `↑` / `↓` | Select host |
 | `Enter` | Connect to selected host |
 | `m` | Multi-host mode (select multiple hosts) |
+| `Esc` | Back to previous monitor view (when coming from one) |
 | `a` | Add new host |
 | `e` | Edit selected host |
 | `d` | Delete selected host |
