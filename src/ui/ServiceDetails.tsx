@@ -39,7 +39,10 @@ export function ServiceDetails({ service, paneLabel }: Readonly<Props>) {
 
   return (
     <Box borderStyle="single" borderColor="gray" paddingX={1} width="100%" flexDirection="column">
-      <Text bold color="gray">Details{paneLabel ? <Text dimColor> ({paneLabel})</Text> : ""}</Text>
+      <Box>
+        <Text bold color="gray">Details</Text>
+        {paneLabel && <Text dimColor>  ({paneLabel})</Text>}
+      </Box>
       <Box>
         <Box flexDirection="column" flexGrow={1}>
           {left.map(([label, value]) => (

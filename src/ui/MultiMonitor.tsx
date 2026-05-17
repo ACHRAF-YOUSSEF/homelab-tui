@@ -243,12 +243,11 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
             const ok = snap && !snap.error;
             const isFocused = i === focusedPane;
             return (
-              <Text key={i} color={isFocused ? "cyan" : "gray"}>
-                {isFocused ? "▶ " : "  "}
-                <Text bold={isFocused}>[{i + 1}] {h.name}</Text>
-                {"  "}
+              <Box key={i} gap={1}>
+                <Text color={isFocused ? "cyan" : "gray"}>{isFocused ? "▶" : " "}</Text>
+                <Text bold={isFocused} color={isFocused ? "cyan" : "gray"}>[{i + 1}] {h.name}</Text>
                 <Text color={ok ? "green" : "yellow"}>{ok ? "●" : "○"}</Text>
-              </Text>
+              </Box>
             );
           })}
         </Box>
@@ -281,18 +280,20 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
       {/* Overlay: host picker */}
       {mode === "picking" && (
         <Box borderStyle="single" borderColor="cyan" paddingX={1} flexDirection="column">
-          <Text bold color="cyan">
-            Add host  <Text dimColor>  ↑↓ navigate · Enter connect · Esc cancel</Text>
-          </Text>
+          <Box gap={2}>
+            <Text bold color="cyan">Add host</Text>
+            <Text dimColor>↑↓ navigate · Enter connect · Esc cancel</Text>
+          </Box>
           {availableHosts.length === 0 ? (
             <Text dimColor>All configured hosts are already open.</Text>
           ) : (
             availableHosts.map((h, i) => (
-              <Box key={paneKey(h)}>
+              <Box key={paneKey(h)} gap={1}>
+                <Text color={i === pickerIdx ? "white" : "gray"}>{i === pickerIdx ? ">" : " "}</Text>
                 <Text color={i === pickerIdx ? "white" : "gray"} inverse={i === pickerIdx}>
-                  {i === pickerIdx ? "> " : "  "}
-                  {h.name.padEnd(20)}  <Text dimColor>{h.username}@{h.host}:{h.port}</Text>
+                  {h.name.padEnd(20)}
                 </Text>
+                <Text dimColor>{h.username}@{h.host}:{h.port}</Text>
               </Box>
             ))
           )}
@@ -325,7 +326,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
           service={selectedService}
           paneLabel={multi ? `[${focusedPane + 1}] ${hosts[focusedPane].name}` : undefined}
         />
-      )}}
+      )}
 
       <LogPanel
         lines={logLines} loading={logsLoading}

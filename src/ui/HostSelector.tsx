@@ -57,16 +57,15 @@ export function HostSelector({ hosts, onSelect, onMultiSelect, onAdd, onEdit, on
             const isCurrent = i === clamped;
             const isChecked = checked.has(i);
             return (
-              <Box key={h.name}>
-                <Text bold={isCurrent} color={isCurrent ? "white" : "gray"}>
-                  {isCurrent ? "> " : "  "}
-                  {multiMode && (
-                    <Text color={isChecked ? "cyan" : "gray"}>{isChecked ? "[✓] " : "[ ] "}</Text>
-                  )}
-                  <Text inverse={isCurrent}>{h.name.padEnd(20)}</Text>
-                  {"  "}
-                  <Text dimColor={!isCurrent}>{h.username}@{h.host}:{h.port}</Text>
+              <Box key={h.name} gap={1}>
+                <Text bold={isCurrent} color={isCurrent ? "white" : "gray"}>{isCurrent ? ">" : " "}</Text>
+                {multiMode && (
+                  <Text color={isChecked ? "cyan" : "gray"}>{isChecked ? "[✓]" : "[ ]"}</Text>
+                )}
+                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? "white" : "gray"}>
+                  {h.name.padEnd(20)}
                 </Text>
+                <Text dimColor>{h.username}@{h.host}:{h.port}</Text>
               </Box>
             );
           })

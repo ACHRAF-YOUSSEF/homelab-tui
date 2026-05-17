@@ -2,7 +2,7 @@ import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo
 import { Box, Text, useInput } from "ink";
 import { Monitor, PassphraseRequiredError } from "../core/monitor.js";
 import type { ConnectOptions } from "../transports/ssh.js";
-import type { HostConfig, MonitorSnapshot, Service } from "../core/types.js";
+import type { HostConfig, MonitorSnapshot, Service, SystemInfo } from "../core/types.js";
 import { Header } from "./Header.js";
 import { SystemPanel } from "./SystemPanel.js";
 import { ServiceList } from "./ServiceList.js";
@@ -16,23 +16,30 @@ function fmtBytes(b: number) {
 }
 function clr(pct: number) { return pct > 80 ? "red" : pct > 50 ? "yellow" : "green"; }
 
-function CompactMetrics({ system }: { system: import("../core/types.js").SystemInfo }) {
+function CompactMetrics({ system }: Readonly<{ system: SystemInfo }>) {
   const ramPct = system.ram
     ? Math.round((system.ram.usedBytes / system.ram.totalBytes) * 100) : null;
   return (
     <Box paddingX={1} gap={2} flexWrap="wrap">
       {system.cpuUsagePercent !== undefined && (
-        <Text dimColor>CPU <Text color={clr(system.cpuUsagePercent)}>{system.cpuUsagePercent}%</Text></Text>
+        <Box gap={1}>
+          <Text dimColor>CPU</Text>
+          <Text color={clr(system.cpuUsagePercent)}>{system.cpuUsagePercent}%</Text>
+        </Box>
       )}
       {system.ram && ramPct !== null && (
-        <Text dimColor>RAM <Text color={clr(ramPct)}>{fmtBytes(system.ram.usedBytes)}/{fmtBytes(system.ram.totalBytes)}</Text></Text>
+        <Box gap={1}>
+          <Text dimColor>RAM</Text>
+          <Text color={clr(ramPct)}>{fmtBytes(system.ram.usedBytes)}/{fmtBytes(system.ram.totalBytes)}</Text>
+        </Box>
       )}
       {(system.disks ?? []).slice(0, 3).map((d) => {
         const pct = Math.round(((d.totalBytes - d.freeBytes) / d.totalBytes) * 100);
         return (
-          <Text key={d.name} dimColor>
-            {d.name} <Text color={clr(pct)}>{fmtBytes(d.totalBytes - d.freeBytes)}/{fmtBytes(d.totalBytes)}</Text>
-          </Text>
+          <Box key={d.name} gap={1}>
+            <Text dimColor>{d.name}</Text>
+            <Text color={clr(pct)}>{fmtBytes(d.totalBytes - d.freeBytes)}/{fmtBytes(d.totalBytes)}</Text>
+          </Box>
         );
       })}
     </Box>
