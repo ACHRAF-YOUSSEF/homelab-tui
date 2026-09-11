@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Box, Text, useInput } from "ink";
+import { Box, Text, useInput } from "./tui.js";
 import { palette } from "./palette.js";
 import { monitorKeys } from "./keys.js";
 
@@ -41,8 +41,6 @@ export function LogPanel({ lines, loading, serviceName, visible }: Readonly<Prop
     }
   });
 
-  // Always stay mounted — returning null here avoids Ink cursor desyncing
-  // that occurs when a tall component is removed from the tree.
   if (!visible) return null;
 
   const totalLines = lines.length;

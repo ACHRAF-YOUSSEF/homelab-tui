@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Box, Text, useApp, useInput, useStdout } from "ink";
-import TextInput from "ink-text-input";
+import { useTerminalDimensions } from "@opentui/react";
+import { Box, Text, TextInput, useApp, useInput } from "./tui.js";
 import { MonitorPane } from "./MonitorPane.js";
 import type { MonitorPaneHandle } from "./MonitorPane.js";
 import { ServiceDetails } from "./ServiceDetails.js";
@@ -56,20 +56,8 @@ type Props = {
 
 export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, onSwitchHost }: Readonly<Props>) {
   const { exit } = useApp();
-  const { stdout } = useStdout();
-  const [terminalSize, setTerminalSize] = useState(() => ({
-    columns: stdout.columns ?? 80,
-    rows: stdout.rows ?? 24,
-  }));
-
-  useEffect(() => {
-    const onResize = () => setTerminalSize({
-      columns: stdout.columns ?? 80,
-      rows: stdout.rows ?? 24,
-    });
-    stdout.on("resize", onResize);
-    return () => { stdout.off("resize", onResize); };
-  }, [stdout]);
+  const { width: columns, height: rows } = useTerminalDimensions();
+  const terminalSize = { columns, rows };
 
   // Dynamic pane list — grows/shrinks as user adds/removes panes
   const [hosts, setHosts] = useState<HostConfig[]>(initialHosts);
@@ -254,7 +242,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     if (monitorKeys.nextPane.matches(input, key)) { setFocusedPane((p) => (p + 1) % hosts.length); return; }
     if (monitorKeys.previousPane.matches(input, key)) { setFocusedPane((p) => (p - 1 + hosts.length) % hosts.length); return; }
 
-    if (monitorKeys.quit.matches(input, key)) { exit(); setTimeout(() => process.exit(0), 50); return; }
+    if (monitorKeys.quit.matches(input, key)) { exit(); return; }
     if (monitorKeys.hosts.matches(input, key)) { onSwitchHost(); return; }
     if (monitorKeys.logs.matches(input, key)) { setLogsOpen((o) => !o); return; }
 

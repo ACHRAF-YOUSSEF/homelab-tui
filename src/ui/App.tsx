@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Box, useApp, useInput } from "ink";
+import { Box, useApp, useInput } from "./tui.js";
 import { Monitor, PassphraseRequiredError } from "../core/monitor.js";
 import type { ConnectOptions } from "../transports/ssh.js";
 import { getLatestRelease } from "../updater.js";

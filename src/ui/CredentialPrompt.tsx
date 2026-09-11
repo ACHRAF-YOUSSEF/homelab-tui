@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { Box, Text, useInput } from "ink";
-import TextInput from "ink-text-input";
+import { Box, Text, TextInput, useInput } from "./tui.js";
 import type { HostConfig } from "../core/types.js";
 import { palette } from "./palette.js";
 

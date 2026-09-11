@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-import { Box, Text, useApp, useInput } from "ink";
-import TextInput from "ink-text-input";
+import { Box, Text, TextInput, useApp, useInput } from "./tui.js";
 import { existsSync } from "node:fs";
 import { saveConfig } from "../config/loader.js";
 import { saveSettings, loadSettings } from "../config/settings.js";

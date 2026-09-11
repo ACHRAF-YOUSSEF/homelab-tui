@@ -1,5 +1,6 @@
 import React from "react";
-import { render } from "ink";
+import { createCliRenderer } from "@opentui/core";
+import { createRoot } from "@opentui/react";
 import { loadConfig, resolveConfigPath } from "./config/loader.js";
 import type { AppConfig } from "./core/types.js";
 import { loadSettings, saveSettings } from "./config/settings.js";
@@ -98,7 +99,8 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  render(
+  const renderer = await createCliRenderer();
+  createRoot(renderer).render(
     <Root
       initialConfig={config}
       configPath={configPath}

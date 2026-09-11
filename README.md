@@ -11,7 +11,7 @@
 <p align="center">
   <a href="https://bun.sh"><img src="https://img.shields.io/badge/Bun-000000?style=for-the-badge&logo=bun&logoColor=white" alt="Bun"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"></a>
-  <a href="https://github.com/vadimdemedes/ink"><img src="https://img.shields.io/badge/React%20Ink-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React Ink"></a>
+  <a href="https://opentui.com/"><img src="https://img.shields.io/badge/React%20OpenTUI-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React OpenTUI"></a>
   <a href="https://www.npmjs.com/package/homelab-tui"><img src="https://img.shields.io/npm/v/homelab-tui?style=for-the-badge&logo=npm&logoColor=white" alt="npm version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="MIT license"></a>
 </p>
@@ -184,7 +184,7 @@ Remote hosts need an SSH server and standard system utilities. Docker is only re
 - [Bun](https://bun.sh/) — runtime, package manager, test runner, and native binary compiler
 - [TypeScript](https://www.typescriptlang.org/) — strict application code
 - [React](https://react.dev/) — declarative interface components
-- [Ink](https://github.com/vadimdemedes/ink) — React renderer for terminal interfaces
+- [OpenTUI](https://opentui.com/) — native terminal renderer with React bindings
 - [node-ssh](https://github.com/steelbrain/node-ssh) — SSH connections, commands, and log streams
 - [Zod](https://zod.dev/) — configuration validation
 - [VitePress](https://vitepress.dev/) — documentation site

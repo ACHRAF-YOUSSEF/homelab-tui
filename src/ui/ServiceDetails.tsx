@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Text } from "ink";
+import { Box, Text } from "./tui.js";
 import type { Service, ServiceStatus, StatusChange } from "../core/types.js";
 import { palette, statusColor } from "./palette.js";
 

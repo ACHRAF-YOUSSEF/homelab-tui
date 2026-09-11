@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Text } from "ink";
+import { Box, Text } from "./tui.js";
 import type { MonitorSnapshot } from "../core/types.js";
 import { palette } from "./palette.js";
 

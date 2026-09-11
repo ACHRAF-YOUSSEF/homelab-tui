@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Text } from "ink";
-import TextInput from "ink-text-input";
+import { Box, Text, TextInput } from "./tui.js";
 import type { Service, ServiceStatus } from "../core/types.js";
 import type { SortField, StatusFilter } from "./App.js";
 import { getServiceColumns } from "./geometry.js";
