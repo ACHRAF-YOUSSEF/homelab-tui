@@ -483,7 +483,6 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
         focusedPane={focusedPane}
         canAddPane={availableHosts.length > 0}
         canRemovePane={multi}
-        compact={layout.footerCompact}
       />
     </Box>
   );

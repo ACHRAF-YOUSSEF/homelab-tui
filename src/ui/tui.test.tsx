@@ -2,6 +2,7 @@ import React, { act, useState } from "react";
 import { expect, test } from "bun:test";
 import { testRender } from "@opentui/react/test-utils";
 import { Text, TextInput } from "./tui.js";
+import { Footer } from "./Footer.js";
 
 test("selected text remains readable without a solid background", async () => {
   const setup = await testRender(<Text color="#ffffff" inverse>selected</Text>, { width: 20, height: 1 });
@@ -36,6 +37,25 @@ test("masked input never renders the submitted credential", async () => {
     expect(frame).toContain("******");
     expect(frame).not.toContain("secret");
     expect(submitted).toBe("secret");
+  } finally {
+    act(() => { setup.renderer.destroy(); });
+  }
+});
+
+test("wrapped footer keeps every keyboard hint visible", async () => {
+  const setup = await testRender(
+    <Footer actionMessage={null} error={null} paneCount={2} focusedPane={1} canAddPane canRemovePane />,
+    { width: 80, height: 4 },
+  );
+  try {
+    await act(async () => { await setup.renderOnce(); });
+    const frame = setup.captureCharFrame();
+    const lines = frame.trimEnd().split("\n");
+    expect(lines).toHaveLength(4);
+    expect(lines.at(-1)).toStartWith("└");
+    for (const hint of ["filter", "sort", "add pane", "close pane", "swap pane", "hosts", "pane 2/2", "quit"]) {
+      expect(frame).toContain(hint);
+    }
   } finally {
     act(() => { setup.renderer.destroy(); });
   }

@@ -346,7 +346,7 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
         visible={logsOpen}
         viewHeight={layout.logRows}
       />
-      <Footer actionMessage={actionMessage} error={error} selectedKind={selectedService?.kind} compact={layout.footerCompact} />
+      <Footer actionMessage={actionMessage} error={error} selectedKind={selectedService?.kind} />
     </Box>
   );
 }

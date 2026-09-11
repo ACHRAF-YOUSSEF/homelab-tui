@@ -12,7 +12,6 @@ type Props = {
   focusedPane?: number;
   canAddPane?: boolean;
   canRemovePane?: boolean;
-  compact?: boolean;
 };
 
 const SEP = <Text dimColor> · </Text>;
@@ -21,7 +20,7 @@ function Hint({ bindings, label }: Readonly<{ bindings: KeyBinding[]; label?: st
   return <><Text color={palette.structure} bold>{bindings.map((key) => key.display).join("")}</Text><Text dimColor> {label ?? bindings[0].label}</Text></>;
 }
 
-export function Footer({ actionMessage, error, selectedKind, paneCount, focusedPane, canAddPane, canRemovePane, compact = false }: Readonly<Props>) {
+export function Footer({ actionMessage, error, selectedKind, paneCount, focusedPane, canAddPane, canRemovePane }: Readonly<Props>) {
   const isProcess = selectedKind === "system-service";
   const multiPane = (paneCount ?? 1) > 1;
   const primary = isProcess ? monitorKeys.kill : monitorKeys.stop;
@@ -32,14 +31,12 @@ export function Footer({ actionMessage, error, selectedKind, paneCount, focusedP
     ...(!isProcess ? [{ bindings: [monitorKeys.start] }] : []),
     { bindings: [monitorKeys.logs] },
     { bindings: [monitorKeys.search] },
-    ...(!compact ? [
-      { bindings: [monitorKeys.filter] },
-      { bindings: [monitorKeys.sort] },
-      ...(canAddPane ? [{ bindings: [monitorKeys.addPane] }] : []),
-      ...(canRemovePane ? [{ bindings: [monitorKeys.closePane] }] : []),
-      ...(multiPane ? [{ bindings: [monitorKeys.swapLeft, monitorKeys.swapRight] }] : []),
-      { bindings: [monitorKeys.hosts] },
-    ] : []),
+    { bindings: [monitorKeys.filter] },
+    { bindings: [monitorKeys.sort] },
+    ...(canAddPane ? [{ bindings: [monitorKeys.addPane] }] : []),
+    ...(canRemovePane ? [{ bindings: [monitorKeys.closePane] }] : []),
+    ...(multiPane ? [{ bindings: [monitorKeys.swapLeft, monitorKeys.swapRight] }] : []),
+    { bindings: [monitorKeys.hosts] },
     ...(multiPane ? [{ bindings: [monitorKeys.nextPane], label: `pane ${(focusedPane ?? 0) + 1}/${paneCount}` }] : []),
     { bindings: [monitorKeys.quit] },
   ];

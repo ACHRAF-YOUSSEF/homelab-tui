@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { getServiceColumns, getTerminalLayout } from "./geometry.js";
+import { getFooterRows, getServiceColumns, getTerminalLayout } from "./geometry.js";
 
 describe("terminal geometry", () => {
   test("80x24 uses the compact single-pane layout", () => {
@@ -7,9 +7,8 @@ describe("terminal geometry", () => {
       compact: true,
       narrow: true,
       wide: false,
-      footerCompact: true,
       paneWidth: 78,
-      serviceRows: 6,
+      serviceRows: 5,
       logRows: 0,
     });
     expect(getServiceColumns(78)).toEqual({ name: 39, status: 12, image: 0, ports: 21 });
@@ -20,7 +19,6 @@ describe("terminal geometry", () => {
       compact: false,
       narrow: false,
       wide: false,
-      footerCompact: false,
       paneWidth: 118,
       serviceRows: 11,
       logRows: 0,
@@ -33,7 +31,6 @@ describe("terminal geometry", () => {
       compact: false,
       narrow: false,
       wide: true,
-      footerCompact: false,
       paneWidth: 98,
       serviceRows: 12,
       logRows: 0,
@@ -42,7 +39,11 @@ describe("terminal geometry", () => {
   });
 
   test("logs share the available height without overflowing", () => {
-    expect(getTerminalLayout(80, 24, 1, true)).toMatchObject({ serviceRows: 2, logRows: 3 });
+    expect(getFooterRows(80, 1)).toBe(4);
+    expect(getFooterRows(80, 2)).toBe(4);
+    expect(getFooterRows(140, 1)).toBe(3);
+    expect(getFooterRows(140, 2)).toBe(4);
+    expect(getTerminalLayout(80, 24, 1, true)).toMatchObject({ serviceRows: 1, logRows: 3 });
     expect(getTerminalLayout(140, 40, 1, true)).toMatchObject({ serviceRows: 8, logRows: 13 });
   });
 });
