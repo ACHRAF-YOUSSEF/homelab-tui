@@ -56,6 +56,7 @@ type Props = {
   sortBy: SortField;
   filterKey: string;
   containerWidth?: number;
+  viewHeight?: number;
   onSearchChange: (q: string) => void;
   onSearchSubmit: () => void;
 };
@@ -63,10 +64,12 @@ type Props = {
 export function ServiceList({
   services, allCount, selectedIndex,
   searchQuery, searchMode, statusFilter, sortBy, filterKey, containerWidth,
+  viewHeight = VIEW_HEIGHT,
   onSearchChange, onSearchSubmit,
 }: Readonly<Props>) {
   const [scrollTop, setScrollTop] = useState(0);
   const [cols, setCols] = useState(() => getColWidths(containerWidth));
+  const visibleRows = Math.max(1, viewHeight);
 
   // Reset scroll instantly when filter/sort/search changes
   useEffect(() => { setScrollTop(0); }, [filterKey]);
@@ -82,17 +85,17 @@ export function ServiceList({
   useEffect(() => {
     setScrollTop((prev) => {
       if (selectedIndex < prev) return selectedIndex;
-      if (selectedIndex >= prev + VIEW_HEIGHT) return selectedIndex - VIEW_HEIGHT + 1;
+      if (selectedIndex >= prev + visibleRows) return selectedIndex - visibleRows + 1;
       return prev;
     });
-  }, [selectedIndex]);
+  }, [selectedIndex, visibleRows]);
 
-  const visible = services.slice(scrollTop, scrollTop + VIEW_HEIGHT);
+  const visible = services.slice(scrollTop, scrollTop + visibleRows);
   const canScrollUp = scrollTop > 0;
-  const canScrollDown = scrollTop + VIEW_HEIGHT < services.length;
+  const canScrollDown = scrollTop + visibleRows < services.length;
   const position = services.length === 0
     ? "0"
-    : `${scrollTop + 1}–${Math.min(scrollTop + VIEW_HEIGHT, services.length)} of ${services.length}`;
+    : `${scrollTop + 1}–${Math.min(scrollTop + visibleRows, services.length)} of ${services.length}`;
 
   const filterLabel = statusFilter === "all" ? "" : ` [${statusFilter === "native" ? "processes" : statusFilter}]`;
   const sortLabel   = sortBy === "name"      ? "" : ` [↕${sortBy}]`;

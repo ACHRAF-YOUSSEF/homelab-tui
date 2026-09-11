@@ -77,6 +77,8 @@ type Props = {
   version: string;
   updateTag?: string | null;
   containerWidth?: number;
+  viewHeight?: number;
+  compact?: boolean;
   onNeedPassphrase?: () => void;
   onAuthFailed?: (msg: string) => void;
   onStateChange: (service: Service | null, snapshot: MonitorSnapshot | null) => void;
@@ -84,7 +86,7 @@ type Props = {
 
 export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function MonitorPane(props, ref) {
   const { hostConfig, connectOptions, isActive, focused, paneIndex, paneCount,
-    containerWidth, onNeedPassphrase, onAuthFailed, onStateChange } = props;
+    containerWidth, viewHeight, compact, onNeedPassphrase, onAuthFailed, onStateChange } = props;
   const multiPane = (paneCount ?? 1) > 1;
 
   const monitorRef = useRef<Monitor | null>(null);
@@ -295,6 +297,7 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
       onSearchChange={setSearchQuery}
       onSearchSubmit={() => { setSearchMode(false); setSelectedIndex(0); }}
       containerWidth={containerWidth}
+      viewHeight={viewHeight}
     />
   );
 
@@ -337,7 +340,7 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
         )}
 
         {/* Compact inline metrics — no border */}
-        {snapshot?.system && <CompactMetrics system={snapshot.system} />}
+        {!compact && snapshot?.system && <CompactMetrics system={snapshot.system} />}
 
         {serviceList}
       </Box>
@@ -346,12 +349,12 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
 
   // ── Single-pane full layout ──────────────────────────────────────────────
   return (
-    <Box flexDirection="column" flexGrow={1} borderStyle="single" borderColor="cyan">
+    <Box flexDirection="column" flexGrow={1}>
       <Header
         snapshot={snapshot} connecting={connecting} lastUpdated={lastUpdated}
         reconnectCountdown={reconnectCountdown} reconnectAttempt={reconnectAttempt}
       />
-      {snapshot?.system && <SystemPanel system={snapshot.system} />}
+      {!compact && snapshot?.system && <SystemPanel system={snapshot.system} />}
       {downAlert && (
         <Box paddingX={1}>
           <Text color="red" bold>⚠ {downAlert}</Text>

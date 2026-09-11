@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Box, Text, useApp, useInput } from "ink";
+import { Box, Text, useApp, useInput, useStdout } from "ink";
 import TextInput from "ink-text-input";
 import { MonitorPane } from "./MonitorPane.js";
 import type { MonitorPaneHandle } from "./MonitorPane.js";
@@ -51,8 +51,31 @@ type Props = {
   onSwitchHost: () => void;
 };
 
+export function getTerminalLayout(columns = 80, rows = 24, paneCount = 1) {
+  const compact = rows < 30;
+  return {
+    compact,
+    paneWidth: Math.max(20, Math.floor(columns / Math.max(1, paneCount)) - 2),
+    serviceRows: Math.max(1, Math.min(12, rows - (compact ? 18 : 24))),
+  };
+}
+
 export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, onSwitchHost }: Readonly<Props>) {
   const { exit } = useApp();
+  const { stdout } = useStdout();
+  const [terminalSize, setTerminalSize] = useState(() => ({
+    columns: stdout.columns ?? 80,
+    rows: stdout.rows ?? 24,
+  }));
+
+  useEffect(() => {
+    const onResize = () => setTerminalSize({
+      columns: stdout.columns ?? 80,
+      rows: stdout.rows ?? 24,
+    });
+    stdout.on("resize", onResize);
+    return () => { stdout.off("resize", onResize); };
+  }, [stdout]);
 
   // Dynamic pane list — grows/shrinks as user adds/removes panes
   const [hosts, setHosts] = useState<HostConfig[]>(initialHosts);
@@ -297,7 +320,8 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     setMode("auth-failed");
   }, [hosts]);
 
-  const paneWidth = Math.floor(process.stdout.columns / hosts.length) - 2;
+  const layout = getTerminalLayout(terminalSize.columns, terminalSize.rows, hosts.length);
+  const paneWidth = layout.paneWidth;
   const multi = hosts.length > 1;
 
   return (
@@ -342,6 +366,8 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
             version={VERSION}
             updateTag={updateTag}
             containerWidth={paneWidth}
+            viewHeight={layout.serviceRows}
+            compact={layout.compact}
             onNeedPassphrase={() => handleNeedPassphrase(i)}
             onAuthFailed={(msg) => handleAuthFailed(i, msg)}
             onStateChange={(svc, snap) =>
@@ -445,6 +471,8 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
           service={selectedService}
           history={focused.history}
           paneLabel={multi ? `[${focusedPane + 1}] ${hosts[focusedPane].name}` : undefined}
+          containerWidth={terminalSize.columns}
+          compact={layout.compact}
         />
       )}
 

@@ -13,9 +13,11 @@ type Props = {
   service: Service | null;
   history?: Map<string, StatusChange[]>;
   paneLabel?: string;
+  containerWidth?: number;
+  compact?: boolean;
 };
 
-export function ServiceDetails({ service, history, paneLabel }: Readonly<Props>) {
+export function ServiceDetails({ service, history, paneLabel, containerWidth = 80, compact = false }: Readonly<Props>) {
   if (!service) {
     return (
       <Box borderStyle="single" borderColor="gray" paddingX={1} width="100%">
@@ -49,45 +51,51 @@ export function ServiceDetails({ service, history, paneLabel }: Readonly<Props>)
 
   const changes = history?.get(service.id) ?? [];
 
+  if (compact) {
+    return (
+      <Box borderStyle="single" borderColor="gray" paddingX={1} width="100%">
+        <Text bold color="gray">Details  </Text>
+        <Box flexGrow={1}>
+          <Text wrap="truncate">{service.name} · {service.status} · {kindLabel} · {service.ports ?? service.image ?? "—"}</Text>
+        </Box>
+      </Box>
+    );
+  }
+
+  const stacked = containerWidth < 72;
+  const innerWidth = Math.max(20, containerWidth - 4);
+  const columnWidth = stacked ? innerWidth : Math.floor(innerWidth / 2);
+  const columns = stacked ? [rows] : [left, right];
+
   return (
     <Box borderStyle="single" borderColor="gray" paddingX={1} width="100%" flexDirection="column">
       <Box>
         <Text bold color="gray">Details</Text>
         {paneLabel && <Text dimColor>  ({paneLabel})</Text>}
       </Box>
-      <Box>
-        {/* Left / right detail columns */}
-        <Box flexDirection="column" flexGrow={1}>
-          {left.map(([label, value]) => (
-            <Box key={label}>
-              <Text dimColor>{label.padEnd(16)}</Text>
-              <Text>{value}</Text>
-            </Box>
-          ))}
-        </Box>
-        <Box flexDirection="column" flexGrow={1}>
-          {right.map(([label, value]) => (
-            <Box key={label}>
-              <Text dimColor>{label.padEnd(16)}</Text>
-              <Text>{value}</Text>
-            </Box>
-          ))}
-        </Box>
-
-        {/* Status history — shown when at least one change exists */}
-        {changes.length > 0 && (
-          <Box flexDirection="column" marginLeft={2}>
-            <Text dimColor bold>history</Text>
-            {[...changes].reverse().map((c, i) => (
-              <Box key={i} gap={1}>
-                <Text color={STATUS_COLOR[c.status]}>{STATUS_ICON[c.status]}</Text>
-                <Text color={STATUS_COLOR[c.status]}>{c.status.padEnd(10)}</Text>
-                <Text dimColor>{c.at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</Text>
+      <Box flexDirection={stacked ? "column" : "row"}>
+        {columns.map((column, columnIndex) => (
+          <Box key={columnIndex} flexDirection="column" width={columnWidth}>
+            {column.map(([label, value]) => (
+              <Box key={label} width={columnWidth}>
+                <Box width={16}><Text dimColor wrap="truncate">{label}</Text></Box>
+                <Box width={Math.max(1, columnWidth - 16)}><Text wrap="truncate">{value}</Text></Box>
               </Box>
             ))}
           </Box>
-        )}
+        ))}
       </Box>
+
+      {changes.length > 0 && (
+        <Box gap={1} flexWrap="wrap">
+          <Text dimColor bold>history</Text>
+          {[...changes].reverse().map((c, i) => (
+            <Text key={i} color={STATUS_COLOR[c.status]}>
+              {STATUS_ICON[c.status]} {c.status} <Text dimColor>{c.at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</Text>
+            </Text>
+          ))}
+        </Box>
+      )}
     </Box>
   );
 }
