@@ -1,0 +1,68 @@
+:root {
+  --vp-c-brand-1: #0891b2;
+  --vp-c-brand-2: #0e7490;
+  --vp-c-brand-3: #155e75;
+  --vp-c-brand-soft: rgb(8 145 178 / 14%);
+  --vp-c-tip-1: #16a34a;
+  --vp-c-warning-1: #ca8a04;
+  --vp-c-danger-1: #dc2626;
+}
+
+.dark {
+  --vp-c-brand-1: #67e8f9;
+  --vp-c-brand-2: #22d3ee;
+  --vp-c-brand-3: #06b6d4;
+}
+
+.vp-doc td > code:only-child {
+  color: var(--vp-c-brand-1);
+  font-weight: 600;
+}
+
+.VPHero .image-bg {
+  display: none;
+}
+
+.VPHero .image-container {
+  height: auto;
+}
+
+.VPHero .image-src {
+  position: static;
+  width: 100%;
+  max-width: 100%;
+  max-height: none;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 10px;
+  box-shadow: 0 16px 44px -14px rgb(0 0 0 / 60%);
+  transform: none;
+}
+
+@media (min-width: 960px) {
+  .VPHero .container {
+    max-width: 1280px;
+  }
+
+  .VPHero .main {
+    max-width: 460px;
+  }
+
+  .VPHero .image {
+    flex-grow: 1;
+    min-width: 0;
+  }
+
+  .VPHero .image-container {
+    width: 100%;
+    max-width: none;
+    transform: none;
+  }
+}
+
+@media (max-width: 959px) {
+  .VPHero .image {
+    max-width: 680px;
+    margin: 0 auto 32px;
+    padding: 0 12px;
+  }
+}
