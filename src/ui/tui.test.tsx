@@ -3,14 +3,14 @@ import { expect, test } from "bun:test";
 import { testRender } from "@opentui/react/test-utils";
 import { Text, TextInput } from "./tui.js";
 
-test("inverse text remains readable on the default terminal background", async () => {
+test("selected text remains readable without a solid background", async () => {
   const setup = await testRender(<Text color="#ffffff" inverse>selected</Text>, { width: 20, height: 1 });
   try {
     await act(async () => { await setup.renderOnce(); });
 
     const selected = setup.captureSpans().lines.flatMap((line) => line.spans).find((span) => span.text === "selected");
-    expect(selected?.fg.toInts().slice(0, 3)).toEqual([0, 0, 0]);
-    expect(selected?.bg.toInts().slice(0, 3)).toEqual([255, 255, 255]);
+    expect(selected?.fg.toInts().slice(0, 3)).toEqual([255, 255, 255]);
+    expect(selected?.bg.toInts()[3]).toBe(0);
   } finally {
     act(() => { setup.renderer.destroy(); });
   }

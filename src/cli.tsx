@@ -6,6 +6,7 @@ import type { AppConfig } from "./core/types.js";
 import { loadSettings, saveSettings } from "./config/settings.js";
 import { selfUpdate, getLatestRelease, isNewerVersion } from "./updater.js";
 import { Root } from "./ui/Root.js";
+import { Box } from "./ui/tui.js";
 import { version as VERSION } from "../package.json";
 const HELP = `
 homelab-tui v${VERSION} — Terminal UI for homelab monitoring
@@ -99,13 +100,15 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const renderer = await createCliRenderer();
+  const renderer = await createCliRenderer({ backgroundColor: "black" });
   createRoot(renderer).render(
-    <Root
-      initialConfig={config}
-      configPath={configPath}
-      configMissing={configMissing}
-    />
+    <Box width="100%" height="100%" backgroundColor="black" flexDirection="column">
+      <Root
+        initialConfig={config}
+        configPath={configPath}
+        configMissing={configMissing}
+      />
+    </Box>
   );
 }
 

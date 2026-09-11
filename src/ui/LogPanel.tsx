@@ -1,9 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
+import { stripAnsiSequences } from "@opentui/core";
 import { Box, Text, useInput } from "./tui.js";
 import { palette } from "./palette.js";
 import { monitorKeys } from "./keys.js";
 
 const VIEW_HEIGHT = 15;
+const CONTROL_CHARACTERS = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/g;
+
+export const sanitizeLogLine = (line: string) =>
+  stripAnsiSequences(line).replaceAll("\t", "    ").replace(CONTROL_CHARACTERS, "");
 
 type Props = {
   lines: string[];
@@ -68,7 +73,7 @@ export function LogPanel({ lines, loading, serviceName, visible }: Readonly<Prop
         <Text dimColor>no output</Text>
       ) : (
         visibleLines.map((line, i) => (
-          <Text key={start + i} wrap="truncate">{line}</Text>
+          <Text key={start + i} wrap="truncate">{sanitizeLogLine(line)}</Text>
         ))
       )}
     </Box>
