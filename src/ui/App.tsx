@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTerminalDimensions } from "@opentui/react";
 import { Box, useApp, useInput } from "./tui.js";
 import { Monitor, PassphraseRequiredError } from "../core/monitor.js";
 import type { ConnectOptions } from "../transports/ssh.js";
@@ -15,8 +16,9 @@ import { Header } from "./Header.js";
 import { SystemPanel } from "./SystemPanel.js";
 import { ServiceList } from "./ServiceList.js";
 import { ServiceDetails } from "./ServiceDetails.js";
-import { LogPanel } from "./LogPanel.js";
+import { LogPanel, splitLogChunk } from "./LogPanel.js";
 import { Footer } from "./Footer.js";
+import { getTerminalLayout } from "./geometry.js";
 import { monitorKeys } from "./keys.js";
 
 const REFRESH_MS = 3_000;
@@ -160,15 +162,17 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
     setLogLines([]);
     setLogsLoading(true);
     let buf: string[] = [];
+    let remainder = "";
     const mon = monitorRef.current;
     if (!mon) return;
 
     mon.streamLogs(
       selectedService,
       (chunk) => {
-        const incoming = chunk.split("\n").filter((l) => l.length > 0);
-        buf = [...buf, ...incoming].slice(-MAX_LOG_LINES);
-        setLogLines([...buf]);
+        const next = splitLogChunk(remainder, chunk);
+        remainder = next.remainder;
+        buf = [...buf, ...next.lines].slice(-MAX_LOG_LINES);
+        setLogLines(remainder ? [...buf, remainder] : [...buf]);
         setLogsLoading(false);
       },
       () => setLogsLoading(false)
@@ -306,9 +310,11 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
   });
 
   const error = snapshot?.error ?? actionError ?? null;
+  const { width, height } = useTerminalDimensions();
+  const layout = getTerminalLayout(width, height, 1, logsOpen);
 
   return (
-    <Box flexDirection="column" width="100%">
+    <Box flexDirection="column" width="100%" height="100%">
       <Header
         snapshot={snapshot}
         connecting={connecting}
@@ -317,7 +323,7 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
         version={VERSION}
         updateTag={updateTag}
       />
-      {snapshot?.system && <SystemPanel system={snapshot.system} />}
+      {!layout.compact && !logsOpen && snapshot?.system && <SystemPanel system={snapshot.system} />}
       <ServiceList
         services={filteredServices}
         allCount={allServices.length}
@@ -327,17 +333,20 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
         statusFilter={statusFilter}
         sortBy={sortBy}
         filterKey={`${statusFilter}-${sortBy}-${searchQuery}`}
+        containerWidth={layout.paneWidth}
+        viewHeight={layout.serviceRows}
         onSearchChange={setSearchQuery}
         onSearchSubmit={() => { setSearchMode(false); setSelectedIndex(0); }}
       />
-      <ServiceDetails service={selectedService} />
+      <ServiceDetails service={selectedService} containerWidth={width} compact={layout.compact || logsOpen} />
       <LogPanel
         lines={logLines}
         loading={logsLoading}
         serviceName={selectedService?.name ?? null}
         visible={logsOpen}
+        viewHeight={layout.logRows}
       />
-      <Footer actionMessage={actionMessage} error={error} selectedKind={selectedService?.kind} />
+      <Footer actionMessage={actionMessage} error={error} selectedKind={selectedService?.kind} compact={layout.footerCompact} />
     </Box>
   );
 }

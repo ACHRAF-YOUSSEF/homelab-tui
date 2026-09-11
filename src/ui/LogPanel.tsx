@@ -4,22 +4,29 @@ import { Box, Text, useInput } from "./tui.js";
 import { palette } from "./palette.js";
 import { monitorKeys } from "./keys.js";
 
-const VIEW_HEIGHT = 15;
+const DEFAULT_VIEW_HEIGHT = 15;
 const CONTROL_CHARACTERS = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/g;
 
 export const sanitizeLogLine = (line: string) =>
   stripAnsiSequences(line).replaceAll("\t", "    ").replace(CONTROL_CHARACTERS, "");
+
+export function splitLogChunk(remainder: string, chunk: string) {
+  const parts = `${remainder}${chunk}`.split("\n");
+  return { lines: parts.slice(0, -1).filter((line) => line.length > 0), remainder: parts.at(-1) ?? "" };
+}
 
 type Props = {
   lines: string[];
   loading: boolean;
   serviceName: string | null;
   visible: boolean;
+  viewHeight?: number;
 };
 
-export function LogPanel({ lines, loading, serviceName, visible }: Readonly<Props>) {
+export function LogPanel({ lines, loading, serviceName, visible, viewHeight = DEFAULT_VIEW_HEIGHT }: Readonly<Props>) {
   const [scrollOffset, setScrollOffset] = useState(0);
   const prevLenRef = useRef(lines.length);
+  const pageSize = Math.max(1, Math.floor(viewHeight));
 
   // Reset scroll when panel opens for a new service
   useEffect(() => {
@@ -37,11 +44,11 @@ export function LogPanel({ lines, loading, serviceName, visible }: Readonly<Prop
   useInput((input, key) => {
     if (!visible) return;
     if (monitorKeys.up.matches(input, key) || monitorKeys.pageUp.matches(input, key)) {
-      const step = monitorKeys.pageUp.matches(input, key) ? VIEW_HEIGHT : 1;
-      setScrollOffset((off) => Math.min(off + step, Math.max(0, lines.length - VIEW_HEIGHT)));
+      const step = monitorKeys.pageUp.matches(input, key) ? pageSize : 1;
+      setScrollOffset((off) => Math.min(off + step, Math.max(0, lines.length - pageSize)));
     }
     if (monitorKeys.down.matches(input, key) || monitorKeys.pageDown.matches(input, key)) {
-      const step = monitorKeys.pageDown.matches(input, key) ? VIEW_HEIGHT : 1;
+      const step = monitorKeys.pageDown.matches(input, key) ? pageSize : 1;
       setScrollOffset((off) => Math.max(0, off - step));
     }
   });
@@ -50,7 +57,7 @@ export function LogPanel({ lines, loading, serviceName, visible }: Readonly<Prop
 
   const totalLines = lines.length;
   const end = totalLines - scrollOffset;
-  const start = Math.max(0, end - VIEW_HEIGHT);
+  const start = Math.max(0, end - pageSize);
   const visibleLines = lines.slice(start, end);
   const following = scrollOffset === 0;
   const position = totalLines === 0 ? "empty" : `${start + 1}–${end} of ${totalLines}`;

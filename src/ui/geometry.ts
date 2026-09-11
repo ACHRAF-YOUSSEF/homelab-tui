@@ -3,11 +3,15 @@ const MIN_ROWS = 12;
 
 export type TerminalLayout = ReturnType<typeof getTerminalLayout>;
 
-export function getTerminalLayout(columns = 80, rows = 24, paneCount = 1) {
+export function getTerminalLayout(columns = 80, rows = 24, paneCount = 1, logsOpen = false) {
   const safeColumns = Math.max(MIN_COLUMNS, Math.floor(columns));
   const safeRows = Math.max(MIN_ROWS, Math.floor(rows));
   const safePaneCount = Math.max(1, Math.floor(paneCount));
   const compact = safeRows < 30;
+  const sharedRows = Math.max(2, safeRows - 19);
+  const serviceRows = logsOpen
+    ? Math.max(1, Math.min(8, Math.floor(sharedRows * 0.4)))
+    : Math.max(1, Math.min(12, safeRows - (compact ? 18 : 24)));
 
   return {
     compact,
@@ -15,7 +19,8 @@ export function getTerminalLayout(columns = 80, rows = 24, paneCount = 1) {
     wide: safeColumns >= 160,
     footerCompact: compact || safeColumns < 100,
     paneWidth: Math.max(20, Math.floor(safeColumns / safePaneCount) - 2),
-    serviceRows: Math.max(1, Math.min(12, safeRows - (compact ? 18 : 24))),
+    serviceRows,
+    logRows: logsOpen ? Math.max(1, Math.min(15, sharedRows - serviceRows)) : 0,
   };
 }
 

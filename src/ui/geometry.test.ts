@@ -10,6 +10,7 @@ describe("terminal geometry", () => {
       footerCompact: true,
       paneWidth: 78,
       serviceRows: 6,
+      logRows: 0,
     });
     expect(getServiceColumns(78)).toEqual({ name: 39, status: 12, image: 0, ports: 21 });
   });
@@ -22,6 +23,7 @@ describe("terminal geometry", () => {
       footerCompact: false,
       paneWidth: 118,
       serviceRows: 11,
+      logRows: 0,
     });
     expect(getServiceColumns(118)).toEqual({ name: 31, status: 13, image: 39, ports: 29 });
   });
@@ -34,7 +36,13 @@ describe("terminal geometry", () => {
       footerCompact: false,
       paneWidth: 98,
       serviceRows: 12,
+      logRows: 0,
     });
     expect(getServiceColumns(98)).toEqual({ name: 25, status: 11, image: 32, ports: 24 });
+  });
+
+  test("logs share the available height without overflowing", () => {
+    expect(getTerminalLayout(80, 24, 1, true)).toMatchObject({ serviceRows: 2, logRows: 3 });
+    expect(getTerminalLayout(140, 40, 1, true)).toMatchObject({ serviceRows: 8, logRows: 13 });
   });
 });

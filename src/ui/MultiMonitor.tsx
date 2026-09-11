@@ -4,7 +4,7 @@ import { Box, Text, TextInput, useApp, useInput } from "./tui.js";
 import { MonitorPane } from "./MonitorPane.js";
 import type { MonitorPaneHandle } from "./MonitorPane.js";
 import { ServiceDetails } from "./ServiceDetails.js";
-import { LogPanel } from "./LogPanel.js";
+import { LogPanel, splitLogChunk } from "./LogPanel.js";
 import { Footer } from "./Footer.js";
 import {
   restartDockerService,
@@ -158,15 +158,17 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     setLogLines([]);
     setLogsLoading(true);
     let buf: string[] = [];
+    let remainder = "";
     const pane = paneRefsMap.current.get(paneKey(hosts[focusedPane]));
     if (!pane) return;
 
     pane.streamLogs(
       selectedService,
       (chunk) => {
-        const incoming = chunk.split("\n").filter((l) => l.length > 0);
-        buf = [...buf, ...incoming].slice(-MAX_LOG_LINES);
-        setLogLines([...buf]);
+        const next = splitLogChunk(remainder, chunk);
+        remainder = next.remainder;
+        buf = [...buf, ...next.lines].slice(-MAX_LOG_LINES);
+        setLogLines(remainder ? [...buf, remainder] : [...buf]);
         setLogsLoading(false);
       },
       () => setLogsLoading(false)
@@ -301,7 +303,8 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     setMode("auth-failed");
   }, [hosts]);
 
-  const layout = getTerminalLayout(terminalSize.columns, terminalSize.rows, hosts.length);
+  const logsVisible = logsOpen && mode === "normal";
+  const layout = getTerminalLayout(terminalSize.columns, terminalSize.rows, hosts.length, logsVisible);
   const paneWidth = layout.paneWidth;
   const multi = hosts.length > 1;
   const onlineCount = paneStates.filter((pane) => pane.snapshot && !pane.snapshot.error).length;
@@ -312,7 +315,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     : hosts.map((host, index) => ({ host, index })));
 
   return (
-    <Box flexDirection="column" width="100%">
+    <Box flexDirection="column" width="100%" height="100%">
 
       {/* App bar — version + pane status overview */}
       <Box borderStyle="single" borderColor={palette.structure} paddingX={1} width="100%">
@@ -357,7 +360,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
             updateTag={updateTag}
             containerWidth={paneWidth}
             viewHeight={layout.serviceRows}
-            compact={layout.compact}
+            compact={layout.compact || logsVisible}
             onNeedPassphrase={() => handleNeedPassphrase(i)}
             onAuthFailed={(msg) => handleAuthFailed(i, msg)}
             onStateChange={(svc, snap) =>
@@ -462,14 +465,15 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
           history={focused.history}
           paneLabel={multi ? `[${focusedPane + 1}] ${hosts[focusedPane].name}` : undefined}
           containerWidth={terminalSize.columns}
-          compact={layout.compact}
+          compact={layout.compact || logsVisible}
         />
       )}
 
       <LogPanel
         lines={logLines} loading={logsLoading}
         serviceName={selectedService?.name ?? null}
-        visible={logsOpen}
+        visible={logsVisible}
+        viewHeight={layout.logRows}
       />
       <Footer
         actionMessage={actionMessage}
