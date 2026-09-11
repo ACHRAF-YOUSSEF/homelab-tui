@@ -17,7 +17,10 @@
     "build": "bun run build:linux-x64 && bun run build:linux-arm64 && bun run build:darwin-x64 && bun run build:darwin-arm64 && bun run build:windows-x64",
     "release:patch": "npm version patch && git push && git push --tags",
     "release:minor": "npm version minor && git push && git push --tags",
-    "release:major": "npm version major && git push && git push --tags"
+    "release:major": "npm version major && git push && git push --tags",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "overrides": {
     "ws": "^8.21.3"
@@ -33,6 +36,7 @@
     "@types/bun": "^1.4.2",
     "@types/node": "^20.0.0",
     "@types/react": "^18.3.1",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vitepress": "^2.0.0-alpha.20"
   }
 }
