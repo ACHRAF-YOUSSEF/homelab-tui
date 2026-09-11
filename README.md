@@ -9,10 +9,22 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/homelab-tui"><img src="https://img.shields.io/npm/v/homelab-tui?style=flat-square&logo=npm" alt="npm version"></a>
-  <a href="https://www.npmjs.com/package/homelab-tui"><img src="https://img.shields.io/npm/dm/homelab-tui?style=flat-square" alt="npm downloads"></a>
-  <a href="https://github.com/ACHRAF-YOUSSEF/homelab-tui/actions/workflows/docs.yml"><img src="https://github.com/ACHRAF-YOUSSEF/homelab-tui/actions/workflows/docs.yml/badge.svg" alt="Documentation status"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="MIT license"></a>
+  <a href="https://bun.sh"><img src="https://img.shields.io/badge/Bun-000000?style=for-the-badge&logo=bun&logoColor=white" alt="Bun"></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"></a>
+  <a href="https://github.com/vadimdemedes/ink"><img src="https://img.shields.io/badge/React%20Ink-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React Ink"></a>
+  <a href="https://www.npmjs.com/package/homelab-tui"><img src="https://img.shields.io/npm/v/homelab-tui?style=for-the-badge&logo=npm&logoColor=white" alt="npm version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="MIT license"></a>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black" alt="Linux">
+  <img src="https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white" alt="macOS">
+  <img src="https://img.shields.io/badge/Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
+</p>
+
+<p align="center">
+  <a href="https://github.com/ACHRAF-YOUSSEF"><img src="https://img.shields.io/badge/Author-Achraf%20Youssef-181717?style=for-the-badge&logo=github" alt="Author: Achraf Youssef"></a>
+  <a href="https://achraf-youssef.github.io/portfolio/"><img src="https://img.shields.io/badge/Portfolio-Visit-blueviolet?style=for-the-badge&logo=firefox" alt="Portfolio"></a>
 </p>
 
 <p align="center">
@@ -195,3 +207,13 @@ Contributions are welcome. Please open an issue before a large behavioral change
 homelab-tui is released under the [MIT License](LICENSE).
 
 Copyright © 2026 [Achraf Youssef](https://github.com/ACHRAF-YOUSSEF).
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=ACHRAF-YOUSSEF%2Fhomelab-tui&type=timeline&legend=top-left">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=ACHRAF-YOUSSEF/homelab-tui&type=timeline&theme=dark&logscale&legend=top-left">
+    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=ACHRAF-YOUSSEF/homelab-tui&type=timeline&logscale&legend=top-left">
+    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=ACHRAF-YOUSSEF/homelab-tui&type=timeline&logscale&legend=top-left">
+  </picture>
+</a>
