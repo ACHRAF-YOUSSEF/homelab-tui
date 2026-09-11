@@ -6,8 +6,8 @@ hero:
   text: Your entire homelab. One terminal.
   tagline: Inspect services, metrics, and logs over SSH. Control Docker containers and native processes without leaving the keyboard.
   image:
-    src: /terminal-200x50.png
-    alt: homelab-tui monitoring three hosts in a terminal
+    src: /logs.png
+    alt: homelab-tui showing service monitoring and live logs
   actions:
     - theme: brand
       text: Install

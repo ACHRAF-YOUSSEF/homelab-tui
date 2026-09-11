@@ -88,7 +88,7 @@ export default defineConfig({
     ["meta", { property: "og:type", content: "website" }],
     ["meta", { property: "og:title", content: "homelab-tui — multi-host monitoring from your terminal" }],
     ["meta", { property: "og:description", content: "Monitor services, metrics, and logs across Linux, macOS, and Windows hosts over SSH." }],
-    ["meta", { property: "og:image", content: `${repository}/raw/main/assets/terminal-200x50.png` }],
+    ["meta", { property: "og:image", content: `${repository}/raw/main/assets/logs.png` }],
     ["meta", { name: "twitter:card", content: "summary_large_image" }],
   ],
 

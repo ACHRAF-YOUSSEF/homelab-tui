@@ -25,6 +25,7 @@
 
 .VPHero .image-container {
   height: auto;
+  max-height: none;
 }
 
 .VPHero .name,
@@ -43,28 +44,36 @@
 .VPHero .image-src {
   position: static;
   width: 100%;
-  max-width: 560px;
+  max-width: 100%;
   max-height: none;
   border: 1px solid var(--vp-c-divider);
   border-radius: 10px;
   box-shadow: 0 16px 44px -14px rgb(0 0 0 / 60%);
   transform: none;
+  cursor: zoom-in;
+  transition: border-color 0.2s ease;
 }
 
 @media (min-width: 960px) {
   .VPHero .container {
-    max-width: 1200px;
+    max-width: 1280px;
+  }
+
+  .VPHero .main {
+    max-width: 520px;
   }
 
   .VPHero .image {
-    width: 50%;
+    flex-grow: 1;
     min-width: 0;
   }
 
   .VPHero .image-container {
     width: 100%;
-    max-width: 560px;
+    max-width: none;
     transform: none;
+    padding: 0;
+    margin: 0;
   }
 }
 
@@ -73,6 +82,70 @@
     max-width: 680px;
     margin: 0 auto 32px;
     padding: 0 12px;
+  }
+}
+
+.VPHero .image-src:hover {
+  border-color: var(--vp-c-brand-1);
+}
+
+.VPHero .image-src:focus-visible {
+  outline: 3px solid var(--vp-c-brand-1);
+  outline-offset: 4px;
+}
+
+.homelab-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4vmin;
+  background: rgb(0 0 0 / 82%);
+  backdrop-filter: blur(4px);
+  cursor: zoom-out;
+  animation: homelab-lightbox-fade 0.18s ease-out;
+}
+
+.homelab-lightbox > img {
+  max-width: 100%;
+  max-height: 100%;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  box-shadow: 0 24px 70px -20px rgb(0 0 0 / 80%);
+}
+
+.homelab-lightbox-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgb(255 255 255 / 28%);
+  border-radius: 50%;
+  color: white;
+  background: rgb(0 0 0 / 55%);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.homelab-lightbox-close:focus-visible {
+  outline: 3px solid var(--vp-c-brand-1);
+  outline-offset: 3px;
+}
+
+@keyframes homelab-lightbox-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .homelab-lightbox {
+    animation: none;
   }
 }
 
