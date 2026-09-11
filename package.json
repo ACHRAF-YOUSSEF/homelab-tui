@@ -19,6 +19,9 @@
     "release:minor": "npm version minor && git push && git push --tags",
     "release:major": "npm version major && git push && git push --tags"
   },
+  "overrides": {
+    "ws": "^8.21.3"
+  },
   "dependencies": {
     "ink": "^5.0.1",
     "ink-text-input": "^6.0.0",
