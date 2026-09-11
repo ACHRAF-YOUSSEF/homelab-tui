@@ -35,7 +35,7 @@
   <a href="https://github.com/ACHRAF-YOUSSEF/homelab-tui/issues">Issues</a>
 </p>
 
-![homelab-tui monitoring several hosts](assets/terminal-200x50.png)
+![homelab-tui service monitoring and live logs](assets/logs.png)
 
 homelab-tui connects to Linux, macOS, and Windows hosts over SSH, discovers Docker containers and native services, displays system metrics and logs, and provides guarded service controls from one terminal.
 
