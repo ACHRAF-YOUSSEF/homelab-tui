@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Box, Text, useInput } from "ink";
+import { palette } from "./palette.js";
+import { monitorKeys } from "./keys.js";
 
 const VIEW_HEIGHT = 15;
 
@@ -27,14 +29,14 @@ export function LogPanel({ lines, loading, serviceName, visible }: Readonly<Prop
     prevLenRef.current = lines.length;
   }, [lines.length, scrollOffset]);
 
-  useInput((_input, key) => {
+  useInput((input, key) => {
     if (!visible) return;
-    if (key.upArrow || key.pageUp) {
-      const step = key.pageUp ? VIEW_HEIGHT : 1;
+    if (monitorKeys.up.matches(input, key) || monitorKeys.pageUp.matches(input, key)) {
+      const step = monitorKeys.pageUp.matches(input, key) ? VIEW_HEIGHT : 1;
       setScrollOffset((off) => Math.min(off + step, Math.max(0, lines.length - VIEW_HEIGHT)));
     }
-    if (key.downArrow || key.pageDown) {
-      const step = key.pageDown ? VIEW_HEIGHT : 1;
+    if (monitorKeys.down.matches(input, key) || monitorKeys.pageDown.matches(input, key)) {
+      const step = monitorKeys.pageDown.matches(input, key) ? VIEW_HEIGHT : 1;
       setScrollOffset((off) => Math.max(0, off - step));
     }
   });
@@ -51,15 +53,15 @@ export function LogPanel({ lines, loading, serviceName, visible }: Readonly<Prop
   const position = totalLines === 0 ? "empty" : `${start + 1}–${end} of ${totalLines}`;
 
   return (
-    <Box borderStyle="single" borderColor="yellow" paddingX={1} width="100%" flexDirection="column">
+    <Box borderStyle="single" borderColor={palette.logs} paddingX={1} width="100%" flexDirection="column">
       <Box>
-        <Text bold color="yellow">Logs: {serviceName ?? "—"}</Text>
+        <Text bold color={palette.logs}>Logs: {serviceName ?? "—"}</Text>
         <Text>{"  "}</Text>
         <Text dimColor>{loading ? "loading… " : ""}{position}</Text>
         <Text>{"  "}</Text>
         {following
-          ? <Text color="green">▼ follow</Text>
-          : <Text color="yellow">↑ paused  ↓/PgDn resume</Text>
+          ? <Text color={palette.healthy}>▼ follow</Text>
+          : <Text color={palette.warning}>{monitorKeys.up.display} paused  {monitorKeys.down.display}/{monitorKeys.pageDown.display} resume</Text>
         }
       </Box>
       {loading && totalLines === 0 ? (

@@ -17,6 +17,9 @@ import { getLatestRelease, isNewerVersion } from "../updater.js";
 import { version as VERSION } from "../../package.json";
 import type { ConnectOptions } from "../transports/ssh.js";
 import type { HostConfig, MonitorSnapshot, Service, ServiceStatus, StatusChange } from "../core/types.js";
+import { getTerminalLayout } from "./geometry.js";
+import { monitorKeys } from "./keys.js";
+import { palette } from "./palette.js";
 
 const MAX_LOG_LINES = 2000;
 const MAX_HISTORY = 5;
@@ -50,15 +53,6 @@ type Props = {
   allHosts: HostConfig[];       // all configured hosts (for the add-host picker)
   onSwitchHost: () => void;
 };
-
-export function getTerminalLayout(columns = 80, rows = 24, paneCount = 1) {
-  const compact = rows < 30;
-  return {
-    compact,
-    paneWidth: Math.max(20, Math.floor(columns / Math.max(1, paneCount)) - 2),
-    serviceRows: Math.max(1, Math.min(12, rows - (compact ? 18 : 24))),
-  };
-}
 
 export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, onSwitchHost }: Readonly<Props>) {
   const { exit } = useApp();
@@ -214,10 +208,10 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   useInput((input, key) => {
     // ── Picker mode ──
     if (mode === "picking") {
-      if (key.upArrow)   { setPickerIdx((i) => Math.max(0, i - 1)); return; }
-      if (key.downArrow) { setPickerIdx((i) => Math.min(availableHosts.length - 1, i + 1)); return; }
-      if (key.escape)    { setMode("normal"); return; }
-      if (key.return && availableHosts.length > 0) {
+      if (monitorKeys.up.matches(input, key))   { setPickerIdx((i) => Math.max(0, i - 1)); return; }
+      if (monitorKeys.down.matches(input, key)) { setPickerIdx((i) => Math.min(availableHosts.length - 1, i + 1)); return; }
+      if (monitorKeys.cancel.matches(input, key)) { setMode("normal"); return; }
+      if (monitorKeys.confirm.matches(input, key) && availableHosts.length > 0) {
         const host = availableHosts[pickerIdx];
         if (host.authMethod === "password") {
           setPendingHost(host);
@@ -232,7 +226,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
 
     // ── Credential / auth-failed modes ──
     if (mode === "new-password" || mode === "passphrase" || mode === "auth-failed") {
-      if (key.escape) {
+      if (monitorKeys.cancel.matches(input, key)) {
         setMode(mode === "new-password" ? "picking" : "normal");
         return;
       }
@@ -241,9 +235,9 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
 
     // ── Compose restart picker ──
     if (mode === "compose-restart") {
-      if (key.escape) { setMode("normal"); return; }
+      if (monitorKeys.cancel.matches(input, key)) { setMode("normal"); return; }
       const run = (cmd: string) => paneRefsMap.current.get(paneKey(hosts[focusedPane]))!.run(cmd);
-      if (input === "1" || key.return) {
+      if (input === "1" || monitorKeys.confirm.matches(input, key)) {
         setMode("normal");
         if (selectedService) runAction("restart", () => restartDockerService(run, selectedService));
         return;
@@ -257,22 +251,21 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     }
 
     // ── Normal mode ──
-    const shiftTab = input === "[Z" || (key.shift && key.tab);
-    if (key.tab && !shiftTab) { setFocusedPane((p) => (p + 1) % hosts.length); return; }
-    if (shiftTab)             { setFocusedPane((p) => (p - 1 + hosts.length) % hosts.length); return; }
+    if (monitorKeys.nextPane.matches(input, key)) { setFocusedPane((p) => (p + 1) % hosts.length); return; }
+    if (monitorKeys.previousPane.matches(input, key)) { setFocusedPane((p) => (p - 1 + hosts.length) % hosts.length); return; }
 
-    if (input === "q") { exit(); setTimeout(() => process.exit(0), 50); return; }
-    if (input === "h") { onSwitchHost(); return; }
-    if (input === "l") { setLogsOpen((o) => !o); return; }
+    if (monitorKeys.quit.matches(input, key)) { exit(); setTimeout(() => process.exit(0), 50); return; }
+    if (monitorKeys.hosts.matches(input, key)) { onSwitchHost(); return; }
+    if (monitorKeys.logs.matches(input, key)) { setLogsOpen((o) => !o); return; }
 
-    if (input === "a" && availableHosts.length > 0) {
+    if (monitorKeys.addPane.matches(input, key) && availableHosts.length > 0) {
       setPickerIdx(0);
       setMode("picking");
       return;
     }
-    if (input === "x" && hosts.length > 1) { removePane(focusedPane); return; }
-    if (input === "<" && hosts.length > 1) { swapPane(focusedPane, focusedPane - 1); return; }
-    if (input === ">" && hosts.length > 1) { swapPane(focusedPane, focusedPane + 1); return; }
+    if (monitorKeys.closePane.matches(input, key) && hosts.length > 1) { removePane(focusedPane); return; }
+    if (monitorKeys.swapLeft.matches(input, key) && hosts.length > 1) { swapPane(focusedPane, focusedPane - 1); return; }
+    if (monitorKeys.swapRight.matches(input, key) && hosts.length > 1) { swapPane(focusedPane, focusedPane + 1); return; }
 
     if (!selectedService || busy) return;
 
@@ -280,11 +273,11 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     const isNative = selectedService.kind === "system-service";
 
     if (isNative) {
-      if (input === "s") runAction("kill",    () => stopNativeService(run, selectedService, os));
-      else if (input === "r") runAction("restart", () => restartNativeService(run, selectedService, os));
-      else if (input === "t") flash("Cannot start a discovered process", true);
+      if (monitorKeys.kill.matches(input, key)) runAction("kill", () => stopNativeService(run, selectedService, os));
+      else if (monitorKeys.restart.matches(input, key)) runAction("restart", () => restartNativeService(run, selectedService, os));
+      else if (monitorKeys.start.matches(input, key)) flash("Cannot start a discovered process", true);
     } else {
-      if (input === "r") {
+      if (monitorKeys.restart.matches(input, key)) {
         // For compose services, ask: restart container or whole stack?
         if (selectedService.composeProject) {
           setMode("compose-restart");
@@ -292,8 +285,8 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
           runAction("restart", () => restartDockerService(run, selectedService));
         }
       }
-      else if (input === "s") runAction("stop",    () => stopDockerService(run, selectedService));
-      else if (input === "t") runAction("start",   () => startDockerService(run, selectedService));
+      else if (monitorKeys.stop.matches(input, key)) runAction("stop", () => stopDockerService(run, selectedService));
+      else if (monitorKeys.start.matches(input, key)) runAction("start", () => startDockerService(run, selectedService));
     }
   });
 
@@ -323,32 +316,41 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   const layout = getTerminalLayout(terminalSize.columns, terminalSize.rows, hosts.length);
   const paneWidth = layout.paneWidth;
   const multi = hosts.length > 1;
+  const onlineCount = paneStates.filter((pane) => pane.snapshot && !pane.snapshot.error).length;
+  const failedCount = paneStates.filter((pane) => pane.snapshot?.error).length;
+  const pendingCount = hosts.length - onlineCount - failedCount;
+  const hostOverview = (layout.narrow
+    ? hosts.map((host, index) => ({ host, index })).filter(({ index }) => index === focusedPane)
+    : hosts.map((host, index) => ({ host, index })));
 
   return (
     <Box flexDirection="column" width="100%">
 
       {/* App bar — version + pane status overview */}
-      <Box borderStyle="single" borderColor="cyan" paddingX={1} width="100%">
+      <Box borderStyle="single" borderColor={palette.structure} paddingX={1} width="100%">
         <Box gap={1} flexGrow={1}>
-          <Text bold color="cyan">homelab-tui</Text>
+          <Text bold color={palette.brand}>homelab-tui</Text>
           <Text dimColor>v{VERSION}</Text>
-          {updateTag && <Text color="yellow" bold>↑ {updateTag} available</Text>}
+          {updateTag && !layout.narrow && <Text color={palette.warning} bold>↑ {updateTag} available</Text>}
+          {multi && <Text dimColor>{onlineCount}/{hosts.length} online</Text>}
+          {failedCount > 0 && <Text color={palette.danger}>{failedCount} failed</Text>}
+          {pendingCount > 0 && <Text color={palette.warning}>{pendingCount} connecting</Text>}
         </Box>
         <Box gap={2}>
-          {hosts.map((h, i) => {
+          {hostOverview.map(({ host: h, index: i }) => {
             const snap = paneStates[i]?.snapshot;
-            const ok = snap && !snap.error;
             const isFocused = i === focusedPane;
+            const status = snap?.error ? palette.danger : snap ? palette.healthy : palette.warning;
             return (
               <Box key={i} gap={1}>
-                <Text color={isFocused ? "cyan" : "gray"}>{isFocused ? "▶" : " "}</Text>
-                <Text bold={isFocused} color={isFocused ? "cyan" : "gray"}>[{i + 1}] {h.name}</Text>
-                <Text color={ok ? "green" : "yellow"}>{ok ? "●" : "○"}</Text>
+                <Text color={isFocused ? palette.focus : palette.inactive}>{isFocused ? "▶" : " "}</Text>
+                <Text bold={isFocused} color={isFocused ? palette.focus : palette.inactive}>[{i + 1}] {h.name}</Text>
+                <Text color={status}>{snap?.error ? "✗" : snap ? "●" : "○"}</Text>
               </Box>
             );
           })}
         </Box>
-        {multi && <Text dimColor>  Tab: switch</Text>}
+        {multi && !layout.narrow && <Text dimColor>  {monitorKeys.nextPane.display}: switch</Text>}
       </Box>
 
       {/* Panes */}
@@ -382,18 +384,18 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
 
       {/* Overlay: host picker */}
       {mode === "picking" && (
-        <Box borderStyle="single" borderColor="cyan" paddingX={1} flexDirection="column">
+        <Box borderStyle="single" borderColor={palette.structure} paddingX={1} flexDirection="column">
           <Box gap={2}>
-            <Text bold color="cyan">Add host</Text>
-            <Text dimColor>↑↓ navigate · Enter connect · Esc cancel</Text>
+            <Text bold color={palette.structure}>Add host</Text>
+            <Text dimColor>{monitorKeys.up.display}{monitorKeys.down.display} navigate · {monitorKeys.confirm.display} connect · {monitorKeys.cancel.display} cancel</Text>
           </Box>
           {availableHosts.length === 0 ? (
             <Text dimColor>All configured hosts are already open.</Text>
           ) : (
             availableHosts.map((h, i) => (
               <Box key={paneKey(h)} gap={1}>
-                <Text color={i === pickerIdx ? "white" : "gray"}>{i === pickerIdx ? ">" : " "}</Text>
-                <Text color={i === pickerIdx ? "white" : "gray"} inverse={i === pickerIdx}>
+                <Text color={i === pickerIdx ? palette.selected : palette.inactive}>{i === pickerIdx ? ">" : " "}</Text>
+                <Text color={i === pickerIdx ? palette.selected : palette.inactive} inverse={i === pickerIdx}>
                   {h.name.padEnd(20)}
                 </Text>
                 <Text dimColor>{h.username}@{h.host}:{h.port}</Text>
@@ -405,13 +407,13 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
 
       {/* Overlay: credential (new pane password, passphrase, or auth re-prompt) */}
       {(mode === "new-password" || mode === "passphrase" || mode === "auth-failed") && pendingHost && (
-        <Box borderStyle="single" borderColor={mode === "auth-failed" ? "red" : "yellow"}
+        <Box borderStyle="single" borderColor={mode === "auth-failed" ? palette.danger : palette.warning}
           paddingX={1} flexDirection="column">
           {mode === "auth-failed" && (
-            <Text color="red">Authentication failed — check your password and try again.</Text>
+            <Text color={palette.danger}>Authentication failed — check your password and try again.</Text>
           )}
           <Box>
-            <Text color={mode === "auth-failed" ? "red" : "yellow"}>
+            <Text color={mode === "auth-failed" ? palette.danger : palette.warning}>
               {mode === "passphrase" ? "Passphrase" : "Password"} for {pendingHost.name}:{" "}
             </Text>
             <TextInput
@@ -435,30 +437,30 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
               mask="*"
               focus
             />
-            <Text dimColor>  Esc cancel</Text>
+            <Text dimColor>  {monitorKeys.cancel.display} cancel</Text>
           </Box>
         </Box>
       )}
 
       {/* Overlay: compose restart picker */}
       {mode === "compose-restart" && selectedService?.composeProject && (
-        <Box borderStyle="single" borderColor="cyan" paddingX={1} flexDirection="column">
+        <Box borderStyle="single" borderColor={palette.structure} paddingX={1} flexDirection="column">
           <Box gap={2}>
-            <Text bold color="cyan">Restart scope — {selectedService.name}</Text>
+            <Text bold color={palette.structure}>Restart scope — {selectedService.name}</Text>
             <Text dimColor>stack: {selectedService.composeProject}</Text>
           </Box>
           <Box gap={2} marginTop={1}>
             <Box gap={1}>
-              <Text color="cyan" bold>1</Text>
+              <Text color={palette.structure} bold>1</Text>
               <Text>/ Enter</Text>
               <Text dimColor>restart this container only</Text>
             </Box>
             <Box gap={1}>
-              <Text color="cyan" bold>2</Text>
+              <Text color={palette.structure} bold>2</Text>
               <Text dimColor>restart entire stack ({selectedService.composeProject})</Text>
             </Box>
             <Box gap={1}>
-              <Text color="cyan" bold>Esc</Text>
+              <Text color={palette.structure} bold>{monitorKeys.cancel.display}</Text>
               <Text dimColor>cancel</Text>
             </Box>
           </Box>
@@ -489,6 +491,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
         focusedPane={focusedPane}
         canAddPane={availableHosts.length > 0}
         canRemovePane={multi}
+        compact={layout.footerCompact}
       />
     </Box>
   );

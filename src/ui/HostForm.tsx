@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import TextInput from "ink-text-input";
 import type { HostConfig } from "../core/types.js";
+import { palette } from "./palette.js";
 
 type Props = {
   onSubmit: (host: HostConfig) => void;
@@ -119,8 +120,8 @@ export function HostForm({ onSubmit, onCancel, initialHost }: Readonly<Props>) {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Box borderStyle="double" borderColor="cyan" paddingX={2} paddingY={1} flexDirection="column">
-        <Text bold color="cyan">{editing ? "Edit host" : "Add host"}</Text>
+      <Box borderStyle="double" borderColor={palette.structure} paddingX={2} paddingY={1} flexDirection="column">
+        <Text bold color={palette.structure}>{editing ? "Edit host" : "Add host"}</Text>
         <Text> </Text>
 
         {fields.map((field, i) => {
@@ -129,8 +130,8 @@ export function HostForm({ onSubmit, onCancel, initialHost }: Readonly<Props>) {
           if (field === "authMethod") {
             return (
               <Box key="authMethod">
-                <Text color={focused ? "white" : "gray"}>{"Auth method".padEnd(28)}</Text>
-                <Text color={focused ? "cyan" : "gray"}>
+                <Text color={focused ? palette.selected : palette.inactive}>{"Auth method".padEnd(28)}</Text>
+                <Text color={focused ? palette.focus : palette.inactive}>
                   [{authMethod}]{focused ? "  (space to toggle)" : ""}
                 </Text>
               </Box>
@@ -142,8 +143,8 @@ export function HostForm({ onSubmit, onCancel, initialHost }: Readonly<Props>) {
             const label = field === "docker" ? "Docker discovery" : field === "native" ? "Process discovery" : "Include stopped containers";
             return (
               <Box key={field}>
-                <Text color={focused ? "white" : "gray"}>{label.padEnd(28)}</Text>
-                <Text color={focused ? "cyan" : "gray"}>
+                <Text color={focused ? palette.selected : palette.inactive}>{label.padEnd(28)}</Text>
+                <Text color={focused ? palette.focus : palette.inactive}>
                   [{val ? "yes" : "no"}]{focused ? "  (space to toggle)" : ""}
                 </Text>
               </Box>
@@ -153,7 +154,7 @@ export function HostForm({ onSubmit, onCancel, initialHost }: Readonly<Props>) {
           const tf = field as TextField;
           return (
             <Box key={tf}>
-              <Text color={focused ? "white" : "gray"}>{TEXT_LABELS[tf].padEnd(28)}</Text>
+              <Text color={focused ? palette.selected : palette.inactive}>{TEXT_LABELS[tf].padEnd(28)}</Text>
               <TextInput
                 value={textValues[tf]}
                 onChange={textSetters[tf]}
@@ -164,15 +165,15 @@ export function HostForm({ onSubmit, onCancel, initialHost }: Readonly<Props>) {
           );
         })}
 
-        {error && <Text color="red">{error}</Text>}
+        {error && <Text color={palette.danger}>{error}</Text>}
         <Text> </Text>
         <Box gap={2}>
-          <Text dimColor><Text color="cyan">↑↓/Tab</Text> navigate</Text>
-          <Text dimColor><Text color="cyan">Enter</Text> save</Text>
-          <Text dimColor><Text color="cyan">Space</Text> toggle</Text>
+          <Text dimColor><Text color={palette.structure}>↑↓/Tab</Text> navigate</Text>
+          <Text dimColor><Text color={palette.structure}>Enter</Text> save</Text>
+          <Text dimColor><Text color={palette.structure}>Space</Text> toggle</Text>
           {onCancel
-            ? <Text dimColor><Text color="cyan">Esc</Text> cancel</Text>
-            : <Text dimColor><Text color="cyan">Esc</Text> quit</Text>
+            ? <Text dimColor><Text color={palette.structure}>Esc</Text> cancel</Text>
+            : <Text dimColor><Text color={palette.structure}>Esc</Text> quit</Text>
           }
         </Box>
       </Box>

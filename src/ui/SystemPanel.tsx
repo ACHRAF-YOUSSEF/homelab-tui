@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { SystemInfo } from "../core/types.js";
+import { palette } from "./palette.js";
 
 function fmtBytes(bytes: number): string {
   if (bytes >= 1_073_741_824) return `${(bytes / 1_073_741_824).toFixed(1)}G`;
@@ -14,7 +15,7 @@ function bar(pct: number, width = 8): string {
 }
 
 function clr(pct: number) {
-  return pct > 80 ? "red" : pct > 50 ? "yellow" : "green";
+  return pct > 80 ? palette.danger : pct > 50 ? palette.warning : palette.healthy;
 }
 
 type DiskEntry = { name: string; totalBytes: number; freeBytes: number };
@@ -50,7 +51,7 @@ export function SystemPanel({ system }: Readonly<Props>) {
   const disks = system.disks ?? [];
 
   return (
-    <Box borderStyle="single" borderColor="blue" paddingX={1} width="100%" flexDirection="column">
+    <Box borderStyle="single" borderColor={palette.metrics} paddingX={1} width="100%" flexDirection="column">
       <Box justifyContent="space-between">
         {/* CPU */}
         {system.cpuUsagePercent !== undefined && (

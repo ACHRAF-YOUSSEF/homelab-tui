@@ -7,6 +7,8 @@ import { Header } from "./Header.js";
 import { SystemPanel } from "./SystemPanel.js";
 import { ServiceList } from "./ServiceList.js";
 import type { SortField, StatusFilter } from "./App.js";
+import { monitorKeys } from "./keys.js";
+import { palette } from "./palette.js";
 
 // ── Compact metrics (used in multi-pane mode, no border) ────────────────────
 function fmtBytes(b: number) {
@@ -14,7 +16,7 @@ function fmtBytes(b: number) {
   if (b >= 1_048_576) return `${(b / 1_048_576).toFixed(0)}M`;
   return `${b}B`;
 }
-function clr(pct: number) { return pct > 80 ? "red" : pct > 50 ? "yellow" : "green"; }
+function clr(pct: number) { return pct > 80 ? palette.danger : pct > 50 ? palette.warning : palette.healthy; }
 
 function CompactMetrics({ system }: Readonly<{ system: SystemInfo }>) {
   const ramPct = system.ram
@@ -42,6 +44,29 @@ function CompactMetrics({ system }: Readonly<{ system: SystemInfo }>) {
           </Box>
         );
       })}
+    </Box>
+  );
+}
+
+function ConnectionPanel({ host, snapshot, reconnectCountdown, reconnectAttempt, compact }: Readonly<{
+  host: HostConfig;
+  snapshot: MonitorSnapshot | null;
+  reconnectCountdown: number | null;
+  reconnectAttempt: number;
+  compact?: boolean;
+}>) {
+  const reconnecting = reconnectCountdown !== null;
+  const title = reconnecting ? "Connection lost" : snapshot?.error ? "Host unavailable" : "Connecting";
+  const color = snapshot?.error && !reconnecting ? palette.danger : palette.warning;
+  const detail = reconnecting
+    ? `retry #${reconnectAttempt} in ${reconnectCountdown}s`
+    : snapshot?.error ?? `${host.username}@${host.host}:${host.port}`;
+
+  return (
+    <Box borderStyle="single" borderColor={color} paddingX={1} width="100%" flexDirection="column">
+      <Text bold color={color}>{reconnecting ? "↻" : snapshot?.error ? "✗" : "○"} {title}</Text>
+      <Text dimColor wrap="truncate">{detail}</Text>
+      {!compact && reconnecting && snapshot?.error && <Text color={palette.danger} wrap="truncate">{snapshot.error}</Text>}
     </Box>
   );
 }
@@ -270,19 +295,19 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
 
   useInput((input, key) => {
     if (searchMode) {
-      if (key.escape) { setSearchMode(false); setSearchQuery(""); setSelectedIndex(0); return; }
-      if (key.upArrow) { setSelectedIndex((i) => Math.max(0, i - 1)); return; }
-      if (key.downArrow) { setSelectedIndex((i) => Math.min(filteredServices.length - 1, i + 1)); return; }
+      if (monitorKeys.cancel.matches(input, key)) { setSearchMode(false); setSearchQuery(""); setSelectedIndex(0); return; }
+      if (monitorKeys.up.matches(input, key)) { setSelectedIndex((i) => Math.max(0, i - 1)); return; }
+      if (monitorKeys.down.matches(input, key)) { setSelectedIndex((i) => Math.min(filteredServices.length - 1, i + 1)); return; }
       return;
     }
-    if (key.upArrow) { setSelectedIndex((i) => Math.max(0, i - 1)); return; }
-    if (key.downArrow) { setSelectedIndex((i) => Math.min(filteredServices.length - 1, i + 1)); return; }
-    if (input === "/") { setSearchMode(true); return; }
-    if (input === "f") {
+    if (monitorKeys.up.matches(input, key)) { setSelectedIndex((i) => Math.max(0, i - 1)); return; }
+    if (monitorKeys.down.matches(input, key)) { setSelectedIndex((i) => Math.min(filteredServices.length - 1, i + 1)); return; }
+    if (monitorKeys.search.matches(input, key)) { setSearchMode(true); return; }
+    if (monitorKeys.filter.matches(input, key)) {
       setStatusFilter((cur) => STATUS_FILTER_CYCLE[(STATUS_FILTER_CYCLE.indexOf(cur) + 1) % STATUS_FILTER_CYCLE.length]);
       setSelectedIndex(0);
     }
-    if (input === "o") {
+    if (monitorKeys.sort.matches(input, key)) {
       setSortBy((cur) => SORT_CYCLE[(SORT_CYCLE.indexOf(cur) + 1) % SORT_CYCLE.length]);
       setSelectedIndex(0);
     }
@@ -298,15 +323,19 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
       onSearchSubmit={() => { setSearchMode(false); setSelectedIndex(0); }}
       containerWidth={containerWidth}
       viewHeight={viewHeight}
+      emptyMessage={allServices.length === 0 ? "No services discovered on this host." : "No services match the current filter."}
     />
   );
+  const content = snapshot && !snapshot.error
+    ? serviceList
+    : <ConnectionPanel host={hostConfig} snapshot={snapshot} reconnectCountdown={reconnectCountdown} reconnectAttempt={reconnectAttempt} compact={compact} />;
 
   // ── Multi-pane compact layout ────────────────────────────────────────────
   if (multiPane) {
     const time = lastUpdated
       ? lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
       : "—";
-    const borderColor = focused ? "cyan" : "gray";
+    const borderColor = focused ? palette.focus : palette.inactive;
 
     return (
       <Box flexDirection="column" flexGrow={1}
@@ -315,34 +344,35 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
 
         {/* Compact pane header — no nested border */}
         <Box paddingX={1} gap={1} flexWrap="nowrap">
-          <Text bold color={focused ? "cyan" : "gray"}>[{(paneIndex ?? 0) + 1}]</Text>
-          <Text bold color={focused ? "white" : "gray"}>{hostConfig.name}</Text>
-          {snapshot && !connecting ? (
+          <Text bold color={focused ? palette.focus : palette.inactive}>[{(paneIndex ?? 0) + 1}]</Text>
+          <Text bold color={focused ? palette.selected : palette.inactive}>{hostConfig.name}</Text>
+          {snapshot && !snapshot.error && !connecting ? (
             <>
-              <Text color="green">●</Text>
+              <Text color={palette.healthy}>●</Text>
               <Text dimColor>{snapshot.remoteOS}</Text>
               <Text dimColor>{snapshot.system.hostname}</Text>
             </>
+          ) : snapshot?.error && reconnectCountdown === null ? (
+            <Text color={palette.danger}>✗ unavailable</Text>
           ) : (
-            <Text color="yellow">○ {connecting ? "connecting…" : "—"}</Text>
+            <Text color={palette.warning}>○ {reconnectCountdown !== null ? "reconnecting…" : connecting ? "connecting…" : "—"}</Text>
           )}
-          {snapshot?.error && <Text color="red" wrap="truncate">✗ {snapshot.error}</Text>}
           <Box flexGrow={1} />
           {reconnectCountdown === null
             ? <Text dimColor>{time}</Text>
-            : <Text color="yellow">reconnect {reconnectCountdown}s (#{reconnectAttempt})</Text>}
+            : <Text color={palette.warning}>retry {reconnectCountdown}s (#{reconnectAttempt})</Text>}
         </Box>
 
         {downAlert && (
           <Box paddingX={1}>
-            <Text color="red" bold>⚠ {downAlert}</Text>
+            <Text color={palette.danger} bold>⚠ {downAlert}</Text>
           </Box>
         )}
 
         {/* Compact inline metrics — no border */}
         {!compact && snapshot?.system && <CompactMetrics system={snapshot.system} />}
 
-        {serviceList}
+        {content}
       </Box>
     );
   }
@@ -357,11 +387,10 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
       {!compact && snapshot?.system && <SystemPanel system={snapshot.system} />}
       {downAlert && (
         <Box paddingX={1}>
-          <Text color="red" bold>⚠ {downAlert}</Text>
+          <Text color={palette.danger} bold>⚠ {downAlert}</Text>
         </Box>
       )}
-      {serviceList}
-      {snapshot?.error && <Text color="red" wrap="truncate"> {snapshot.error}</Text>}
+      {content}
     </Box>
   );
 });

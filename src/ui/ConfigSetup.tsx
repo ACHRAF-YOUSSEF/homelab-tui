@@ -4,6 +4,7 @@ import TextInput from "ink-text-input";
 import { existsSync } from "node:fs";
 import { saveConfig } from "../config/loader.js";
 import { saveSettings, loadSettings } from "../config/settings.js";
+import { palette } from "./palette.js";
 
 type Stage = "menu" | "enter-path" | "confirm-create";
 
@@ -76,8 +77,8 @@ export function ConfigSetup({ defaultPath, onConfigReady }: Readonly<Props>) {
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Box borderStyle="double" borderColor="yellow" paddingX={2} paddingY={1} flexDirection="column">
-        <Text bold color="yellow">Config file not found</Text>
+      <Box borderStyle="double" borderColor={palette.warning} paddingX={2} paddingY={1} flexDirection="column">
+        <Text bold color={palette.warning}>Config file not found</Text>
         <Text> </Text>
         <Text dimColor>{defaultPath}</Text>
         <Text> </Text>
@@ -87,7 +88,7 @@ export function ConfigSetup({ defaultPath, onConfigReady }: Readonly<Props>) {
             {MENU.map((item, i) => (
               <Text
                 key={item.id}
-                color={i === menuIndex ? "white" : "gray"}
+                color={i === menuIndex ? palette.selected : palette.inactive}
                 bold={i === menuIndex}
                 inverse={i === menuIndex}
               >
@@ -96,8 +97,8 @@ export function ConfigSetup({ defaultPath, onConfigReady }: Readonly<Props>) {
             ))}
             <Text> </Text>
             <Box gap={2}>
-              <Text dimColor><Text color="cyan">↑↓</Text> select</Text>
-              <Text dimColor><Text color="cyan">Enter</Text> confirm</Text>
+              <Text dimColor><Text color={palette.structure}>↑↓</Text> select</Text>
+              <Text dimColor><Text color={palette.structure}>Enter</Text> confirm</Text>
             </Box>
           </>
         )}
@@ -106,7 +107,7 @@ export function ConfigSetup({ defaultPath, onConfigReady }: Readonly<Props>) {
           <>
             <Text dimColor>Enter config path:</Text>
             <Box>
-              <Text color="cyan">→ </Text>
+              <Text color={palette.structure}>→ </Text>
               <TextInput
                 value={customPath}
                 onChange={setCustomPath}
@@ -115,11 +116,11 @@ export function ConfigSetup({ defaultPath, onConfigReady }: Readonly<Props>) {
                 placeholder="/path/to/homelab.config.json"
               />
             </Box>
-            {hint && <Text color="red">{hint}</Text>}
+            {hint && <Text color={palette.danger}>{hint}</Text>}
             <Text> </Text>
             <Box gap={2}>
-              <Text dimColor><Text color="cyan">Enter</Text> confirm</Text>
-              <Text dimColor><Text color="cyan">Esc</Text> back</Text>
+              <Text dimColor><Text color={palette.structure}>Enter</Text> confirm</Text>
+              <Text dimColor><Text color={palette.structure}>Esc</Text> back</Text>
             </Box>
           </>
         )}
@@ -127,10 +128,10 @@ export function ConfigSetup({ defaultPath, onConfigReady }: Readonly<Props>) {
         {stage === "confirm-create" && (
           <>
             <Text>Create new config at:</Text>
-            <Text color="cyan">{customPath}</Text>
+            <Text color={palette.structure}>{customPath}</Text>
             <Text> </Text>
-            <Text><Text color="cyan">y</Text> / <Text color="cyan">Enter</Text> yes  <Text color="cyan">n</Text> / <Text color="cyan">Esc</Text> no</Text>
-            {hint && <Text color="red">{hint}</Text>}
+            <Text><Text color={palette.structure}>y</Text> / <Text color={palette.structure}>Enter</Text> yes  <Text color={palette.structure}>n</Text> / <Text color={palette.structure}>Esc</Text> no</Text>
+            {hint && <Text color={palette.danger}>{hint}</Text>}
           </>
         )}
       </Box>

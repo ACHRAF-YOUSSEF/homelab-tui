@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
 import type { HostConfig } from "../core/types.js";
+import { palette } from "./palette.js";
 
 type Props = {
   hosts: HostConfig[];
@@ -86,30 +87,30 @@ export function HostSelector({ hosts, onSelect, onMultiSelect, onAdd, onEdit, on
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Box borderStyle="double" borderColor="cyan" paddingX={2} paddingY={1} flexDirection="column">
+      <Box borderStyle="double" borderColor={palette.structure} paddingX={2} paddingY={1} flexDirection="column">
         <Box gap={2}>
-          <Text bold color="cyan">homelab-tui  —  {title}</Text>
+          <Text bold color={palette.brand}>homelab-tui  —  {title}</Text>
           {groupFilter && <Text dimColor>({visibleHosts.length}/{hosts.length} hosts)</Text>}
         </Box>
         <Text> </Text>
 
         {visibleHosts.length === 0 ? (
-          <Text dimColor>No hosts configured. Press <Text color="cyan">a</Text> to add one.</Text>
+          <Text dimColor>No hosts configured. Press <Text color={palette.structure}>a</Text> to add one.</Text>
         ) : (
           visibleHosts.map((h, i) => {
             const isCurrent = i === clamped;
             const isChecked = checked.has(i);
             return (
               <Box key={h.name} gap={1}>
-                <Text bold={isCurrent} color={isCurrent ? "white" : "gray"}>{isCurrent ? ">" : " "}</Text>
+                <Text bold={isCurrent} color={isCurrent ? palette.selected : palette.inactive}>{isCurrent ? ">" : " "}</Text>
                 {multiMode && (
-                  <Text color={isChecked ? "cyan" : "gray"}>{isChecked ? "[✓]" : "[ ]"}</Text>
+                  <Text color={isChecked ? palette.focus : palette.inactive}>{isChecked ? "[✓]" : "[ ]"}</Text>
                 )}
-                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? "white" : "gray"}>
+                <Text bold={isCurrent} inverse={isCurrent} color={isCurrent ? palette.selected : palette.inactive}>
                   {h.name.padEnd(20)}
                 </Text>
                 {h.group && !groupFilter && (
-                  <Text color="magenta" dimColor>[{h.group}]</Text>
+                  <Text color={palette.services} dimColor>[{h.group}]</Text>
                 )}
                 <Text dimColor>{h.username}@{h.host}:{h.port}</Text>
               </Box>
@@ -120,21 +121,21 @@ export function HostSelector({ hosts, onSelect, onMultiSelect, onAdd, onEdit, on
         <Text> </Text>
         {multiMode ? (
           <Box gap={2}>
-            <Text dimColor><Text color="cyan">↑↓</Text> navigate</Text>
-            <Text dimColor><Text color="cyan">Space</Text> select</Text>
-            <Text dimColor><Text color="cyan">Enter</Text> connect selected</Text>
-            <Text dimColor><Text color="cyan">Esc</Text> cancel</Text>
+            <Text dimColor><Text color={palette.structure}>↑↓</Text> navigate</Text>
+            <Text dimColor><Text color={palette.structure}>Space</Text> select</Text>
+            <Text dimColor><Text color={palette.structure}>Enter</Text> connect selected</Text>
+            <Text dimColor><Text color={palette.structure}>Esc</Text> cancel</Text>
           </Box>
         ) : (
           <Box gap={2}>
-            <Text dimColor><Text color="cyan">↑↓</Text> select</Text>
-            <Text dimColor><Text color="cyan">Enter</Text> connect</Text>
-            {visibleHosts.length > 1 && <Text dimColor><Text color="cyan">m</Text> multi-host</Text>}
-            {groups.length > 0 && <Text dimColor><Text color="cyan">g</Text> group</Text>}
-            <Text dimColor><Text color="cyan">a</Text> add</Text>
-            <Text dimColor><Text color="cyan">e</Text> edit</Text>
-            <Text dimColor><Text color="cyan">d</Text> delete</Text>
-            {onBack && <Text dimColor><Text color="cyan">Esc</Text> back</Text>}
+            <Text dimColor><Text color={palette.structure}>↑↓</Text> select</Text>
+            <Text dimColor><Text color={palette.structure}>Enter</Text> connect</Text>
+            {visibleHosts.length > 1 && <Text dimColor><Text color={palette.structure}>m</Text> multi-host</Text>}
+            {groups.length > 0 && <Text dimColor><Text color={palette.structure}>g</Text> group</Text>}
+            <Text dimColor><Text color={palette.structure}>a</Text> add</Text>
+            <Text dimColor><Text color={palette.structure}>e</Text> edit</Text>
+            <Text dimColor><Text color={palette.structure}>d</Text> delete</Text>
+            {onBack && <Text dimColor><Text color={palette.structure}>Esc</Text> back</Text>}
           </Box>
         )}
       </Box>

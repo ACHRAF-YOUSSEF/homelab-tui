@@ -1,10 +1,8 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { Service, ServiceStatus, StatusChange } from "../core/types.js";
+import { palette, statusColor } from "./palette.js";
 
-const STATUS_COLOR: Record<ServiceStatus, string> = {
-  running: "green", stopped: "gray", restarting: "yellow", failed: "red", unknown: "gray",
-};
 const STATUS_ICON: Record<ServiceStatus, string> = {
   running: "●", stopped: "○", restarting: "↻", failed: "✗", unknown: "?",
 };
@@ -20,7 +18,7 @@ type Props = {
 export function ServiceDetails({ service, history, paneLabel, containerWidth = 80, compact = false }: Readonly<Props>) {
   if (!service) {
     return (
-      <Box borderStyle="single" borderColor="gray" paddingX={1} width="100%">
+      <Box borderStyle="single" borderColor={palette.inactive} paddingX={1} width="100%">
         <Text dimColor>No service selected.</Text>
       </Box>
     );
@@ -53,8 +51,8 @@ export function ServiceDetails({ service, history, paneLabel, containerWidth = 8
 
   if (compact) {
     return (
-      <Box borderStyle="single" borderColor="gray" paddingX={1} width="100%">
-        <Text bold color="gray">Details  </Text>
+      <Box borderStyle="single" borderColor={palette.inactive} paddingX={1} width="100%">
+        <Text bold color={palette.inactive}>Details  </Text>
         <Box flexGrow={1}>
           <Text wrap="truncate">{service.name} · {service.status} · {kindLabel} · {service.ports ?? service.image ?? "—"}</Text>
         </Box>
@@ -68,9 +66,9 @@ export function ServiceDetails({ service, history, paneLabel, containerWidth = 8
   const columns = stacked ? [rows] : [left, right];
 
   return (
-    <Box borderStyle="single" borderColor="gray" paddingX={1} width="100%" flexDirection="column">
+    <Box borderStyle="single" borderColor={palette.inactive} paddingX={1} width="100%" flexDirection="column">
       <Box>
-        <Text bold color="gray">Details</Text>
+        <Text bold color={palette.inactive}>Details</Text>
         {paneLabel && <Text dimColor>  ({paneLabel})</Text>}
       </Box>
       <Box flexDirection={stacked ? "column" : "row"}>
@@ -90,7 +88,7 @@ export function ServiceDetails({ service, history, paneLabel, containerWidth = 8
         <Box gap={1} flexWrap="wrap">
           <Text dimColor bold>history</Text>
           {[...changes].reverse().map((c, i) => (
-            <Text key={i} color={STATUS_COLOR[c.status]}>
+            <Text key={i} color={statusColor[c.status]}>
               {STATUS_ICON[c.status]} {c.status} <Text dimColor>{c.at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</Text>
             </Text>
           ))}

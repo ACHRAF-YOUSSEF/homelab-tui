@@ -17,6 +17,7 @@ import { ServiceList } from "./ServiceList.js";
 import { ServiceDetails } from "./ServiceDetails.js";
 import { LogPanel } from "./LogPanel.js";
 import { Footer } from "./Footer.js";
+import { monitorKeys } from "./keys.js";
 
 const REFRESH_MS = 3_000;
 const MAX_LOG_LINES = 2000;
@@ -253,24 +254,24 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
 
   useInput((input, key) => {
     if (searchMode) {
-      if (key.escape) { setSearchMode(false); setSearchQuery(""); setSelectedIndex(0); return; }
+      if (monitorKeys.cancel.matches(input, key)) { setSearchMode(false); setSearchQuery(""); setSelectedIndex(0); return; }
       if (!logsOpen) {
-        if (key.upArrow) { setSelectedIndex((i) => Math.max(0, i - 1)); return; }
-        if (key.downArrow) { setSelectedIndex((i) => Math.min(filteredServices.length - 1, i + 1)); return; }
+        if (monitorKeys.up.matches(input, key)) { setSelectedIndex((i) => Math.max(0, i - 1)); return; }
+        if (monitorKeys.down.matches(input, key)) { setSelectedIndex((i) => Math.min(filteredServices.length - 1, i + 1)); return; }
       }
       return;
     }
 
-    if (input === "q") { exit(); return; }
-    if (input === "h") { onSwitchHost(); return; }
+    if (monitorKeys.quit.matches(input, key)) { exit(); return; }
+    if (monitorKeys.hosts.matches(input, key)) { onSwitchHost(); return; }
 
     if (!logsOpen) {
-      if (key.upArrow) { setSelectedIndex((i) => Math.max(0, i - 1)); return; }
-      if (key.downArrow) { setSelectedIndex((i) => Math.min(filteredServices.length - 1, i + 1)); return; }
+      if (monitorKeys.up.matches(input, key)) { setSelectedIndex((i) => Math.max(0, i - 1)); return; }
+      if (monitorKeys.down.matches(input, key)) { setSelectedIndex((i) => Math.min(filteredServices.length - 1, i + 1)); return; }
     }
 
-    if (input === "/") { setSearchMode(true); return; }
-    if (input === "f") {
+    if (monitorKeys.search.matches(input, key)) { setSearchMode(true); return; }
+    if (monitorKeys.filter.matches(input, key)) {
       setStatusFilter((cur) => {
         const idx = STATUS_FILTER_CYCLE.indexOf(cur);
         return STATUS_FILTER_CYCLE[(idx + 1) % STATUS_FILTER_CYCLE.length];
@@ -278,7 +279,7 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
       setSelectedIndex(0);
       return;
     }
-    if (input === "o") {
+    if (monitorKeys.sort.matches(input, key)) {
       setSortBy((cur) => {
         const idx = SORT_CYCLE.indexOf(cur);
         return SORT_CYCLE[(idx + 1) % SORT_CYCLE.length];
@@ -295,13 +296,13 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
 
     if (isNative) {
       // Discovered processes: only kill (stop) is supported
-      if (input === "s") runAction("kill", () => stopNativeService(run, selectedService, os));
-      else if (input === "r" || input === "t") flash("Not available for discovered processes", true);
-      else if (input === "l") setLogsOpen((open) => !open);
-    } else if (input === "r") runAction("restart", () => restartDockerService(run, selectedService));
-      else if (input === "s") runAction("stop",    () => stopDockerService(run, selectedService));
-      else if (input === "t") runAction("start",   () => startDockerService(run, selectedService));
-      else if (input === "l") setLogsOpen((open) => !open);
+      if (monitorKeys.kill.matches(input, key)) runAction("kill", () => stopNativeService(run, selectedService, os));
+      else if (monitorKeys.restart.matches(input, key) || monitorKeys.start.matches(input, key)) flash("Not available for discovered processes", true);
+      else if (monitorKeys.logs.matches(input, key)) setLogsOpen((open) => !open);
+    } else if (monitorKeys.restart.matches(input, key)) runAction("restart", () => restartDockerService(run, selectedService));
+      else if (monitorKeys.stop.matches(input, key)) runAction("stop", () => stopDockerService(run, selectedService));
+      else if (monitorKeys.start.matches(input, key)) runAction("start", () => startDockerService(run, selectedService));
+      else if (monitorKeys.logs.matches(input, key)) setLogsOpen((open) => !open);
   });
 
   const error = snapshot?.error ?? actionError ?? null;

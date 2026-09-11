@@ -3,36 +3,11 @@ import { Box, Text } from "ink";
 import TextInput from "ink-text-input";
 import type { Service, ServiceStatus } from "../core/types.js";
 import type { SortField, StatusFilter } from "./App.js";
+import { getServiceColumns } from "./geometry.js";
+import { palette, statusColor } from "./palette.js";
 
 const VIEW_HEIGHT = 12;
-const PADDING = 2;  
 const PREFIX = 4;   // selector (2) + icon (2)
-
-type ColWidths = { name: number; status: number; image: number; ports: number };
-
-function getColWidths(containerWidth?: number): ColWidths {
-  const total = Math.max(30, (containerWidth ?? process.stdout.columns ?? 80) - PADDING - PREFIX);
-  if (total < 50) {
-    // Very narrow: name + status only
-    return { name: total - 12, status: 12, image: 0, ports: 0 };
-  }
-  if (total < 80) {
-    // Narrow: drop image column
-    const status = 12;
-    const ports  = Math.floor(total * 0.3);
-    return { name: total - status - ports, status, image: 0, ports };
-  }
-  // Full layout
-  const name   = Math.floor(total * 0.28);
-  const status = Math.floor(total * 0.12);
-  const image  = Math.floor(total * 0.35);
-  const ports  = total - name - status - image;
-  return { name, status, image, ports };
-}
-
-const STATUS_COLOR: Record<ServiceStatus, string> = {
-  running: "green", stopped: "gray", restarting: "yellow", failed: "red", unknown: "gray",
-};
 const STATUS_ICON: Record<ServiceStatus, string> = {
   running: "●", stopped: "○", restarting: "↻", failed: "✗", unknown: "?",
 };
@@ -57,6 +32,7 @@ type Props = {
   filterKey: string;
   containerWidth?: number;
   viewHeight?: number;
+  emptyMessage?: string;
   onSearchChange: (q: string) => void;
   onSearchSubmit: () => void;
 };
@@ -65,22 +41,15 @@ export function ServiceList({
   services, allCount, selectedIndex,
   searchQuery, searchMode, statusFilter, sortBy, filterKey, containerWidth,
   viewHeight = VIEW_HEIGHT,
+  emptyMessage = "No services match.",
   onSearchChange, onSearchSubmit,
 }: Readonly<Props>) {
   const [scrollTop, setScrollTop] = useState(0);
-  const [cols, setCols] = useState(() => getColWidths(containerWidth));
+  const cols = getServiceColumns(containerWidth ?? process.stdout.columns ?? 80);
   const visibleRows = Math.max(1, viewHeight);
 
   // Reset scroll instantly when filter/sort/search changes
   useEffect(() => { setScrollTop(0); }, [filterKey]);
-
-  // Recalculate on resize or containerWidth change
-  useEffect(() => {
-    setCols(getColWidths(containerWidth));
-    const onResize = () => setCols(getColWidths(containerWidth));
-    process.stdout.on("resize", onResize);
-    return () => { process.stdout.off("resize", onResize); };
-  }, [containerWidth]);
 
   useEffect(() => {
     setScrollTop((prev) => {
@@ -101,30 +70,30 @@ export function ServiceList({
   const sortLabel   = sortBy === "name"      ? "" : ` [↕${sortBy}]`;
 
   return (
-    <Box borderStyle="single" borderColor="magenta" paddingX={1} width="100%" flexDirection="column">
+    <Box borderStyle="single" borderColor={palette.services} paddingX={1} width="100%" flexDirection="column">
 
       {/* Title */}
       <Box>
-        <Text bold color="magenta">
+        <Text bold color={palette.services}>
           Services ({allCount}{services.length !== allCount ? `→${services.length}` : ""})
         </Text>
-        <Text color="magenta">{filterLabel}</Text>
+        <Text color={palette.services}>{filterLabel}</Text>
         <Text dimColor>{sortLabel}</Text>
         <Text>{"  "}</Text>
-        {canScrollUp   && <Text color="magenta">↑ </Text>}
-        {canScrollDown && <Text color="magenta">↓ </Text>}
+        {canScrollUp   && <Text color={palette.services}>↑ </Text>}
+        {canScrollDown && <Text color={palette.services}>↓ </Text>}
         <Text dimColor>{position}</Text>
       </Box>
 
       {/* Search bar */}
       {searchMode ? (
         <Box>
-          <Text color="cyan">/ </Text>
+          <Text color={palette.structure}>/ </Text>
           <TextInput value={searchQuery} onChange={onSearchChange} onSubmit={onSearchSubmit} focus placeholder="type to search…" />
         </Box>
       ) : searchQuery ? (
         <Box>
-          <Text dimColor>search: </Text><Text color="cyan">{searchQuery}</Text>
+          <Text dimColor>search: </Text><Text color={palette.structure}>{searchQuery}</Text>
           <Text dimColor>  (/ to edit, Esc to clear)</Text>
         </Box>
       ) : null}
@@ -140,24 +109,24 @@ export function ServiceList({
 
       {/* Rows */}
       {services.length === 0 ? (
-        <Text dimColor>No services match.</Text>
+        <Text dimColor>{emptyMessage}</Text>
       ) : (
         visible.map((svc, i) => {
           const absIndex = scrollTop + i;
           const selected = absIndex === selectedIndex;
-          const sc = STATUS_COLOR[svc.status];
+          const sc = statusColor[svc.status];
           const icon = STATUS_ICON[svc.status];
 
           return (
             <Box key={svc.id}>
               <Box width={2}>
-                <Text color={selected ? "white" : "gray"} bold={selected}>{selected ? "> " : "  "}</Text>
+                <Text color={selected ? palette.selected : palette.inactive} bold={selected}>{selected ? "> " : "  "}</Text>
               </Box>
               <Box width={2}>
                 <Text color={sc}>{icon} </Text>
               </Box>
               <Box width={cols.name}>
-                <Text color={selected ? "white" : undefined} bold={selected} inverse={selected} wrap="truncate">
+                <Text color={selected ? palette.selected : undefined} bold={selected} inverse={selected} wrap="truncate">
                   {svc.name}
                 </Text>
               </Box>

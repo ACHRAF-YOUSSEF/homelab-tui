@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
 import type { HostConfig } from "../core/types.js";
+import { palette } from "./palette.js";
 
 type Props = {
   host: HostConfig;
@@ -26,26 +27,26 @@ export function CredentialPrompt({ host, mode, prompt, error, onSubmit, onCancel
   const label = isPassword ? "Password:   " : "Passphrase: ";
   const subtitle = isPassword
     ? null
-    : <Text dimColor>Key:  <Text color="white">{host.privateKeyPath}</Text></Text>;
+    : <Text dimColor>Key:  <Text color={palette.selected}>{host.privateKeyPath}</Text></Text>;
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Box borderStyle="double" borderColor="yellow" paddingX={2} paddingY={1} flexDirection="column">
-        <Text bold color="yellow">{title}</Text>
+      <Box borderStyle="double" borderColor={palette.warning} paddingX={2} paddingY={1} flexDirection="column">
+        <Text bold color={palette.warning}>{title}</Text>
         <Text> </Text>
         <Text dimColor>
-          Host: <Text color="white">{host.username}@{host.host}:{host.port}</Text>
+          Host: <Text color={palette.selected}>{host.username}@{host.host}:{host.port}</Text>
         </Text>
         {subtitle}
         {error && (
           <>
             <Text> </Text>
-            <Text color="red">{error}</Text>
+            <Text color={palette.danger}>{error}</Text>
           </>
         )}
         <Text> </Text>
         <Box>
-          <Text color="yellow">{label}</Text>
+          <Text color={palette.warning}>{label}</Text>
           <TextInput
             value={value}
             onChange={setValue}
@@ -56,8 +57,8 @@ export function CredentialPrompt({ host, mode, prompt, error, onSubmit, onCancel
         </Box>
         <Text> </Text>
         <Box gap={2}>
-          <Text dimColor><Text color="cyan">Enter</Text> connect</Text>
-          <Text dimColor><Text color="cyan">Esc</Text> cancel</Text>
+          <Text dimColor><Text color={palette.structure}>Enter</Text> connect</Text>
+          <Text dimColor><Text color={palette.structure}>Esc</Text> cancel</Text>
         </Box>
       </Box>
     </Box>
