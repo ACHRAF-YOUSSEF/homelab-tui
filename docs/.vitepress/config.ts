@@ -83,6 +83,7 @@ export default defineConfig({
   },
 
   head: [
+    ["link", { rel: "icon", type: "image/svg+xml", href: "/homelab-tui/logo.svg" }],
     ["meta", { property: "og:type", content: "website" }],
     ["meta", { property: "og:title", content: "homelab-tui — multi-host monitoring from your terminal" }],
     ["meta", { property: "og:description", content: "Monitor services, metrics, and logs across Linux, macOS, and Windows hosts over SSH." }],
