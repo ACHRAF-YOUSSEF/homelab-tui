@@ -1,134 +1,105 @@
-<div align="center">
-
-# 🖥️ homelab-tui
-
-**A cross-platform terminal UI for monitoring your homelab over SSH**
-
-[![Bun](https://img.shields.io/badge/Bun-000000?style=for-the-badge&logo=bun&logoColor=white)](https://bun.sh)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React%20Ink-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://github.com/vadimdemedes/ink)
-[![npm](https://img.shields.io/npm/v/homelab-tui?style=for-the-badge&logo=npm&logoColor=white)](https://www.npmjs.com/package/homelab-tui)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
-
-[![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)]()
-[![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)]()
-[![Windows](https://img.shields.io/badge/Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white)]()
-
-<p>
-  <a href="https://github.com/ACHRAF-YOUSSEF">
-    <img src="https://img.shields.io/badge/Author-Achraf%20Youssef-181717?style=for-the-badge&logo=github" />
-  </a>
-  <a href="https://achraf-youssef.github.io/portfolio/">
-    <img src="https://img.shields.io/badge/Portfolio-Visit-blueviolet?style=for-the-badge&logo=firefox" />
-  </a>
+<p align="center">
+  <img src="docs/public/logo.svg" width="88" height="88" alt="homelab-tui logo">
 </p>
 
-> Discovers Docker containers and running programs (Jellyfin, Ollama, LM Studio, game servers…), streams live logs, and shows system metrics — all over SSH. Supports Linux, macOS, and Windows remote hosts.
+<h1 align="center">homelab-tui</h1>
 
-</div>
+<p align="center">
+  A fast, keyboard-first terminal interface for monitoring and controlling homelab hosts over SSH.
+</p>
 
----
+<p align="center">
+  <a href="https://www.npmjs.com/package/homelab-tui"><img src="https://img.shields.io/npm/v/homelab-tui?style=flat-square&logo=npm" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/homelab-tui"><img src="https://img.shields.io/npm/dm/homelab-tui?style=flat-square" alt="npm downloads"></a>
+  <a href="https://github.com/ACHRAF-YOUSSEF/homelab-tui/actions/workflows/docs.yml"><img src="https://github.com/ACHRAF-YOUSSEF/homelab-tui/actions/workflows/docs.yml/badge.svg" alt="Documentation status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat-square" alt="MIT license"></a>
+</p>
 
-## Screenshots
+<p align="center">
+  <a href="https://achraf-youssef.github.io/homelab-tui/">Documentation</a>
+  ·
+  <a href="https://github.com/ACHRAF-YOUSSEF/homelab-tui/releases">Releases</a>
+  ·
+  <a href="https://github.com/ACHRAF-YOUSSEF/homelab-tui/issues">Issues</a>
+</p>
 
-<table>
-  <tr>
-    <td><img src="assets/monitor.png" alt="Monitor view" /></td>
-    <td><img src="assets/logs.png" alt="Live logs panel" /></td>
-  </tr>
-  <tr>
-    <td><em>Service list with filter, sort and search</em></td>
-    <td><em>Live log streaming</em></td>
-  </tr>
-  <tr>
-    <td><img src="assets/host-selector.png" alt="Host selector" /></td>
-    <td><img src="assets/add-host.png" alt="Add host form" /></td>
-  </tr>
-  <tr>
-    <td><em>Host selector</em></td>
-    <td><em>Add host form</em></td>
-  </tr>
-</table>
+![homelab-tui monitoring several hosts](assets/terminal-200x50.png)
 
-## Installation
+homelab-tui connects to Linux, macOS, and Windows hosts over SSH, discovers Docker containers and native services, displays system metrics and logs, and provides guarded service controls from one terminal.
 
-### npm (recommended)
+## Features
+
+- **Multi-host monitoring** — open several independent SSH connections in responsive panes.
+- **Docker and Compose discovery** — inspect status, image, ports, health, and Compose projects.
+- **Native service discovery** — find programs listening on TCP ports across supported operating systems.
+- **System metrics** — monitor CPU, memory, and disk usage without installing a remote agent.
+- **Live logs** — follow Docker logs and supported native-process logs over SSH.
+- **Keyboard-first controls** — search, filter, sort, restart, stop, start, and switch panes without a mouse.
+- **Resilient connections** — keep healthy hosts usable while another host reconnects or fails.
+- **Secure authentication** — use passwords, private keys, encrypted keys, or an SSH agent.
+- **Self-update support** — check for and install new GitHub releases from the CLI.
+
+## Install
+
+### npm
 
 ```sh
 npm install -g homelab-tui
+homelab-tui
 ```
 
-### bun
+The npm package installs the compiled binary for your operating system and CPU architecture. Bun is not required after installation.
 
-Bun blocks postinstall scripts by default. Trust the package first, then install:
+### Bun
+
+Bun requires packages with lifecycle scripts to be trusted:
 
 ```sh
 bun add -g homelab-tui
 bun pm trust homelab-tui
-bun add -g homelab-tui   # re-run so the postinstall executes
+bun add -g homelab-tui
 ```
 
-The correct binary for your platform is downloaded automatically. No Bun runtime needed after install.
+### Prebuilt binary
 
-### Download a binary manually
-
-Download the latest binary for your platform from [Releases](https://github.com/ACHRAF-YOUSSEF/homelab-tui/releases):
+Download the latest binary from [GitHub Releases](https://github.com/ACHRAF-YOUSSEF/homelab-tui/releases).
 
 | Platform | File |
 |---|---|
 | Linux x64 | `homelab-tui-linux-x64` |
 | Linux arm64 | `homelab-tui-linux-arm64` |
-| macOS x64 | `homelab-tui-darwin-x64` |
-| macOS arm64 (M-series) | `homelab-tui-darwin-arm64` |
+| macOS Intel | `homelab-tui-darwin-x64` |
+| macOS Apple Silicon | `homelab-tui-darwin-arm64` |
 | Windows x64 | `homelab-tui-windows-x64.exe` |
 
-```sh
-chmod +x homelab-tui-linux-x64
-mv homelab-tui-linux-x64 /usr/local/bin/homelab-tui
-```
-
-### From source (requires Bun)
+### Build from source
 
 ```sh
-git clone https://github.com/ACHRAF-YOUSSEF/homelab-tui
+git clone https://github.com/ACHRAF-YOUSSEF/homelab-tui.git
 cd homelab-tui
 bun install
-bun dev
+bun run dev
 ```
 
-## Requirements
+## Quick start
 
-- SSH access to remote host (password or private key)
-- Docker installed on remote host (for container discovery)
-
-## CLI
-
-```sh
-homelab-tui                                    # launch TUI
-homelab-tui --config /path/to/homelab.config.json  # use a specific config (session only)
-homelab-tui --set-config /path/to/homelab.config.json  # persist config path as default
-homelab-tui --update                           # self-update to latest GitHub release
-homelab-tui --check-update                     # check latest version without installing
-homelab-tui --version                          # print version
-homelab-tui --help                             # print help
-```
-
-On first launch with no config file, a setup screen lets you create one or point to an existing path.
-
-## Config
+Create `homelab.config.json`:
 
 ```json
 {
   "hosts": [
     {
-      "name": "desktop",
-      "host": "192.168.1.20",
+      "name": "server",
+      "host": "192.168.1.10",
       "port": 22,
-      "username": "achraf",
-      "authMethod": "password",
+      "username": "admin",
+      "authMethod": "key",
+      "privateKeyPath": "~/.ssh/id_ed25519",
+      "group": "home",
+      "refreshInterval": 3000,
       "discovery": {
         "docker": true,
-        "nativeServices": false,
+        "nativeServices": true,
         "includeStoppedContainers": true
       }
     }
@@ -136,135 +107,91 @@ On first launch with no config file, a setup screen lets you create one or point
 }
 ```
 
-| Field | Description |
-|---|---|
-| `authMethod` | `"password"` (prompted at launch) or `"key"` (SSH private key, supports agent) |
-| `privateKeyPath` | Required when `authMethod` is `"key"` |
-| `group` | Optional label to group hosts in the selector (filter with `g`) |
-| `refreshInterval` | Polling interval in ms (default `3000`, min `1000`, max `60000`) |
-| `nativeServices` | Discover processes listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers…) |
-| `includeStoppedContainers` | Show stopped Docker containers |
-
-## Screens
-
-### Host selector
-Shown on startup. Lists all configured hosts.
-
-| Key | Action |
-|-----|--------|
-| `↑` / `↓` | Select host |
-| `Enter` | Connect to selected host |
-| `m` | Enter multi-host mode (select multiple hosts) |
-| `Esc` | Back to previous monitor view (only shown when coming from one) |
-| `a` | Add new host |
-| `e` | Edit selected host |
-| `d` | Delete selected host |
-
-**Multi-host mode** — press `m` to enter, `Space` to check/uncheck hosts, `Enter` to open all selected hosts in a split-pane view, `Esc` to cancel.
-
-### Add / Edit host form
-
-| Key | Action |
-|-----|--------|
-| `↑` / `↓` / `Tab` | Navigate fields (wraps) |
-| `Space` | Toggle boolean / auth method |
-| `Enter` | Confirm field / save |
-| `Esc` | Cancel (or quit on first run) |
-
-### Monitor
-
-| Key | Action |
-|-----|--------|
-| `↑` / `↓` | Select service |
-| `r` | Restart selected Docker container |
-| `s` | Stop selected Docker container / kill selected process |
-| `t` | Start selected Docker container |
-| `l` | Toggle live log panel |
-| `↑` / `↓` / `PgUp` / `PgDn` | Scroll log panel (when open) |
-| `a` | Add another host as a new pane (while staying connected) |
-| `x` | Close the focused pane |
-| `<` / `>` | Move focused pane left / right (swap positions, connections stay alive) |
-| `Tab` / `Shift+Tab` | Switch focused pane |
-| `/` | Search by name or image |
-| `f` | Cycle filter: all → docker → processes → running → stopped → failed → restarting |
-| `o` | Cycle sort: name → status → image |
-| `h` | Back to host selector |
-| `q` | Quit |
-
-> The footer hints update based on what is selected: Docker containers show `r restart · s stop · t start`; discovered processes show `r restart · s kill` (`r` uses systemd on Linux).
-> For Docker Compose services, pressing `r` opens a scope picker: **1** restart just this container, **2** restart the entire stack.
-
-### Host selector
-
-| Key | Action |
-|-----|--------|
-| `g` | Cycle group filter (shows only hosts in that group) |
-
-
-## Features
-
-- **Multi-host split-pane** — monitor multiple hosts simultaneously, side-by-side; compact per-pane headers with inline metrics; app bar shows all pane statuses at a glance; `Tab` to switch focus
-- **Host groups** — tag hosts with `"group"` in config; press `g` in the selector to cycle through group filters
-- **Configurable refresh interval** — set `"refreshInterval": 5000` per host; fast hosts get 1 s, slow remote hosts get 10 s+
-- **Service-down alerts** — audible bell + red banner when a running container transitions to stopped/failed
-- **Disk full warnings** — ⚠ badge on disks above 85% in the system panel
-- **Compose stack restart** — pressing `r` on a Compose service asks: restart this container or the entire stack
-- **Config hot-reload** — edit `homelab.config.json` while the TUI is running; changes are picked up automatically within 150 ms (no restart needed)
-- **Service health history** — the details panel shows the last 5 status transitions (with timestamps) for the selected service
-- **OS detection** — auto-detects Linux, macOS, Windows over SSH
-- **Docker discovery** — containers with status, image, ports, health, Compose project
-- **Process discovery** — finds programs listening on TCP ports (Jellyfin, Ollama, LM Studio, game servers, etc.) on Linux, macOS, and Windows
-- **Live logs** — `docker logs -f` streamed over SSH; discovered processes stream via `journalctl -f` (Linux) or `log stream` (macOS); scrollable with auto-follow
-- **System metrics** — CPU %, RAM, disk usage with progress bars
-- **Search / filter / sort** — filter by type (docker/processes) or status, sort by name/status/image
-- **Context-aware controls** — Docker: restart/stop/start; discovered processes: kill + restart via systemd (Linux)
-- **Auto-reconnect** — SSH keepalive detects silent drops (15 s interval, 3 missed → reconnect); exponential backoff (3 → 5 → 10 → 20 → 30 s); attempt counter shown in header (`reconnect 5s (#2)`)
-- **Command timeout** — SSH commands time out after 30 s so a hanging command never blocks the refresh loop
-- **Password & key auth** — password prompted securely; wrong password re-prompts immediately with an error; SSH agent supported for encrypted keys
-- **Self-update** — `homelab-tui --update` checks version first, skips download if already up to date; otherwise downloads and replaces the binary in place with a live progress bar
-- **Update notifications** — checks for a newer release on launch; shows `↑ vX.Y.Z available` badge in the app bar only when the remote version is actually newer
-
-## Enabling OpenSSH on Windows (remote host)
-
-Open PowerShell as Administrator:
-
-```powershell
-Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
-Start-Service sshd
-Set-Service -Name sshd -StartupType Automatic
-
-$authorizedKeysPath = "$env:USERPROFILE\.ssh\authorized_keys"
-New-Item -Force -ItemType Directory (Split-Path $authorizedKeysPath)
-Add-Content $authorizedKeysPath "ssh-ed25519 AAAA... your-public-key"
-```
-
-## Releasing a new version
+Then launch:
 
 ```sh
-bun run release:patch   # 1.0.0 → 1.0.1
-bun run release:minor   # 1.0.0 → 1.1.0
-bun run release:major   # 1.0.0 → 2.0.0
+homelab-tui
 ```
 
-Pushes a git tag → GitHub Actions builds all 5 platform binaries → creates GitHub release → publishes to npm.
+Passwords and private-key passphrases are prompted at launch and are never stored in the configuration file. See the [configuration guide](https://achraf-youssef.github.io/homelab-tui/guide/configuration) for every field and default.
 
-## Header
+## Usage
 
-The top bar always shows the app version (`v1.0.1`). If a newer release is available it shows `↑ v1.0.2 available` in yellow next to the version. Run `homelab-tui --update` to install it.
+| Key | Action |
+|---|---|
+| `↑` / `↓` | Select a host or service |
+| `Enter` | Connect or confirm |
+| `Tab` / `Shift+Tab` | Focus the next or previous host pane |
+| `/` | Search services |
+| `f` | Cycle filters |
+| `o` | Cycle sorting |
+| `r` | Restart the selected service |
+| `s` | Stop a container or kill a native process |
+| `t` | Start a Docker container |
+| `l` | Toggle live logs |
+| `a` / `x` | Add or close a host pane |
+| `h` | Return to the host selector |
+| `q` | Quit |
 
-## Known Limitations
+The footer uses the same key definitions as the input handlers and adapts to the selected service. See the complete [keybinding reference](https://achraf-youssef.github.io/homelab-tui/guide/keybindings).
 
-- Split-pane view is horizontal only; very narrow terminals (< 50 cols/pane) collapse to name+status only
-- Discovered process logs require `journalctl` (Linux) or `log stream` (macOS) to be available
-- Discovered process restart requires systemd (Linux only); Windows/macOS processes can only be killed
-- Discovered processes cannot be started (command-line is unknown)
+## Command line
 
-## Star History
+| Option | Description |
+|---|---|
+| `--config <path>`, `-c <path>` | Use a configuration file for this run |
+| `--set-config <path>` | Save the default configuration path |
+| `--check-update` | Compare the installed and latest versions |
+| `--update` | Download and install the latest release |
+| `--version`, `-v` | Print the installed version |
+| `--help`, `-h` | Print command help |
 
-<a href="https://www.star-history.com/?repos=ACHRAF-YOUSSEF%2Fhomelab-tui&type=timeline&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=ACHRAF-YOUSSEF/homelab-tui&type=timeline&theme=dark&logscale&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=ACHRAF-YOUSSEF/homelab-tui&type=timeline&logscale&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=ACHRAF-YOUSSEF/homelab-tui&type=timeline&logscale&legend=top-left" />
- </picture>
-</a>
+## Supported hosts
+
+| Capability | Linux | macOS | Windows |
+|---|:---:|:---:|:---:|
+| System metrics | ✓ | ✓ | ✓ |
+| Docker containers | ✓ | ✓ | ✓ |
+| Native process discovery | ✓ | ✓ | ✓ |
+| Native log streaming | `journalctl` | `log stream` | — |
+| Native process restart | systemd | — | — |
+
+Remote hosts need an SSH server and standard system utilities. Docker is only required for container discovery and controls. Windows hosts require [OpenSSH Server](https://learn.microsoft.com/windows-server/administration/openssh/openssh_install_firstuse).
+
+## Documentation
+
+- [Installation](https://achraf-youssef.github.io/homelab-tui/guide/install)
+- [Configuration](https://achraf-youssef.github.io/homelab-tui/guide/configuration)
+- [Monitoring](https://achraf-youssef.github.io/homelab-tui/guide/monitoring)
+- [Keybindings](https://achraf-youssef.github.io/homelab-tui/guide/keybindings)
+- [Command line](https://achraf-youssef.github.io/homelab-tui/guide/cli)
+- [Troubleshooting](https://achraf-youssef.github.io/homelab-tui/guide/troubleshooting)
+
+## Built With
+
+- [Bun](https://bun.sh/) — runtime, package manager, test runner, and native binary compiler
+- [TypeScript](https://www.typescriptlang.org/) — strict application code
+- [React](https://react.dev/) — declarative interface components
+- [Ink](https://github.com/vadimdemedes/ink) — React renderer for terminal interfaces
+- [node-ssh](https://github.com/steelbrain/node-ssh) — SSH connections, commands, and log streams
+- [Zod](https://zod.dev/) — configuration validation
+- [VitePress](https://vitepress.dev/) — documentation site
+
+## Development
+
+```sh
+bun install
+bun run dev
+bun test
+bunx tsc --noEmit
+bun run build:linux-x64
+bun run docs:dev
+```
+
+Contributions are welcome. Please open an issue before a large behavioral change and run the relevant checks before submitting a pull request.
+
+## License
+
+homelab-tui is released under the [MIT License](LICENSE).
+
+Copyright © 2026 [Achraf Youssef](https://github.com/ACHRAF-YOUSSEF).
