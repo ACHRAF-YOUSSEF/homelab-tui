@@ -1,7 +1,20 @@
 import React, { act, useState } from "react";
 import { expect, test } from "bun:test";
 import { testRender } from "@opentui/react/test-utils";
-import { TextInput } from "./tui.js";
+import { Text, TextInput } from "./tui.js";
+
+test("inverse text remains readable on the default terminal background", async () => {
+  const setup = await testRender(<Text color="#ffffff" inverse>selected</Text>, { width: 20, height: 1 });
+  try {
+    await act(async () => { await setup.renderOnce(); });
+
+    const selected = setup.captureSpans().lines.flatMap((line) => line.spans).find((span) => span.text === "selected");
+    expect(selected?.fg.toInts().slice(0, 3)).toEqual([0, 0, 0]);
+    expect(selected?.bg.toInts().slice(0, 3)).toEqual([255, 255, 255]);
+  } finally {
+    act(() => { setup.renderer.destroy(); });
+  }
+});
 
 test("masked input never renders the submitted credential", async () => {
   let submitted = "";

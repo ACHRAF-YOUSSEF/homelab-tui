@@ -48,18 +48,20 @@ export function Text({
   ...props
 }: Readonly<TextProps>) {
   const nested = useContext(NestedText);
-  const textAttributes = attributes ?? createTextAttributes({ bold, dim: dimColor, inverse });
+  const foreground = inverse ? backgroundColor ?? "black" : color;
+  const background = inverse ? color ?? "white" : backgroundColor;
+  const textAttributes = attributes ?? createTextAttributes({ bold, dim: dimColor });
   const content = <NestedText.Provider value>{children}</NestedText.Provider>;
 
   if (nested) {
-    return <span fg={color} bg={backgroundColor} attributes={textAttributes}>{content}</span>;
+    return <span fg={foreground} bg={background} attributes={textAttributes}>{content}</span>;
   }
 
   return (
     <text
       {...props}
-      fg={color}
-      bg={backgroundColor}
+      fg={foreground}
+      bg={background}
       attributes={textAttributes}
       wrapMode={wrap === "wrap" ? "word" : "none"}
       truncate={wrap === "truncate"}
