@@ -7,7 +7,7 @@ hero:
   tagline: Inspectez les services, les métriques et les journaux via SSH. Contrôlez les conteneurs Docker et les processus natifs sans quitter le clavier.
   image:
     src: /logs.png
-    alt: homelab-tui affichant la surveillance des services et les journaux en direct
+    alt: homelab-tui affichant plusieurs onglets, la surveillance des services et les journaux en direct
   actions:
     - theme: brand
       text: Installer

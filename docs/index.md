@@ -7,7 +7,7 @@ hero:
   tagline: Inspect services, metrics, and logs over SSH. Control Docker containers and native processes without leaving the keyboard.
   image:
     src: /logs.png
-    alt: homelab-tui showing service monitoring and live logs
+    alt: homelab-tui showing multi-host tabs, service monitoring, and live logs
   actions:
     - theme: brand
       text: Install
