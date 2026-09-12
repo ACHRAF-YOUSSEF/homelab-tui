@@ -30,6 +30,15 @@ export function getTerminalLayout(columns = 80, rows = 24, paneCount = 1, logsOp
   };
 }
 
+export function getShellSize(columns = 80, rows = 24) {
+  const safeColumns = Math.max(MIN_COLUMNS, Math.floor(columns));
+  const safeRows = Math.max(MIN_ROWS, Math.floor(rows));
+  return {
+    columns: Math.max(10, safeColumns - 4),
+    rows: Math.max(2, safeRows - (safeColumns < 60 ? 10 : 9)),
+  };
+}
+
 export function getVisibleTabIndexes(columns = 80, paneCount = 1, focusedPane = 0) {
   const count = Math.max(1, Math.floor(paneCount));
   const focus = Math.min(Math.max(0, Math.floor(focusedPane)), count - 1);

@@ -46,6 +46,7 @@ homelab-tui connects to Linux, macOS, and Windows hosts over SSH, discovers Dock
 - **Native service discovery** — find programs listening on TCP ports across supported operating systems.
 - **System metrics** — monitor CPU, memory, and disk usage without installing a remote agent.
 - **Live logs** — follow Docker logs and supported native-process logs over SSH.
+- **Interactive terminals** — keep multiple SSH shells per host, switch or reorder them, and return without losing their state.
 - **Keyboard-first controls** — search, filter, sort, restart, stop, start, and switch tabs without a mouse.
 - **Resilient connections** — keep healthy hosts usable while another host reconnects or fails.
 - **Secure authentication** — use passwords, private keys, encrypted keys, or an SSH agent.
@@ -143,6 +144,7 @@ Passwords and private-key passphrases are prompted at launch and are never store
 | `s` | Stop a container or kill a native process |
 | `t` | Start a Docker container |
 | `l` | Toggle live logs |
+| `v` | Open an interactive terminal for the active host |
 | `a` / `x` | Add or close a host tab |
 | `h` | Return to the host selector |
 | `q` | Quit |
@@ -188,6 +190,7 @@ Remote hosts need an SSH server and standard system utilities. Docker is only re
 - [React](https://react.dev/) — declarative interface components
 - [OpenTUI](https://opentui.com/) — native terminal renderer with React bindings
 - [node-ssh](https://github.com/steelbrain/node-ssh) — SSH connections, commands, and log streams
+- [xterm.js](https://xtermjs.org/) — headless terminal emulation for interactive SSH shells
 - [Zod](https://zod.dev/) — configuration validation
 - [VitePress](https://vitepress.dev/) — documentation site
 

@@ -19,6 +19,10 @@ Une machine disponible peut afficher l'utilisation CPU, mémoire et disque, les 
 
 À `80×24`, les métriques et détails complets passent en mode compact. Les terminaux plus larges affichent davantage de colonnes. Les longues listes d'onglets restent centrées sur la machine active sans déborder.
 
+## Terminaux
+
+Appuyez sur `v` sur une machine connectée pour remplacer la vue des services par un shell SSH interactif. Le préfixe `Ctrl+B`, affiché dans le pied de page, permet d'ouvrir, sélectionner, déplacer ou fermer des shells, de changer d'onglet de machine et de revenir aux détails. Chaque machine conserve ses propres shells et le shell actif lorsque vous changez d'onglet.
+
 ## Journaux
 
 Appuyez sur `l` pour ouvrir ou fermer les journaux du service sélectionné. Les journaux Docker sont suivis en direct. Sous Linux, les processus natifs utilisent `journalctl`; sous macOS, `log stream`. Cette fonction n'est pas disponible pour les processus natifs Windows.

@@ -34,6 +34,7 @@ In multi-host selection, use `Space` to check hosts, `Enter` to connect to the c
 | `s` | Stop a Docker container or kill a native process. |
 | `t` | Start a Docker container. |
 | `l` | Toggle live logs. |
+| `v` | Open an interactive terminal for the active host. |
 | `/` | Search by service name or image. |
 | `f` | Cycle type and status filters. |
 | `o` | Cycle sorting by name, status, and image. |
@@ -59,6 +60,23 @@ When the focused host is not online, the footer switches to connection recovery 
 | `c` | Reopen the password or passphrase prompt when credentials are required. |
 | `h` | Return to the host selector to edit the host configuration. |
 | `Esc` | Close a credential prompt without hiding the host failure. |
+
+## Terminals
+
+Terminal commands use a tmux-style `Ctrl+B` prefix so ordinary keys, including `Tab` and `Ctrl+C`, reach the remote shell.
+
+| Key | Action |
+|---|---|
+| `Ctrl+B`, then `d` | Return to service details without closing any shell. |
+| `Ctrl+B`, then `c` | Open another shell for the active host. |
+| `Ctrl+B`, then `x` | Close the active shell after confirmation. |
+| `Ctrl+B`, then `n` / `p` | Open the next or previous shell. |
+| `Ctrl+B`, then `<` / `>` | Move the active shell left or right. |
+| `Ctrl+B`, then `1`–`9` | Open a shell directly. |
+| `Ctrl+B`, then `Tab` / `Shift+Tab` | Open the next or previous host tab. |
+| `Ctrl+B`, then `Ctrl+B` | Send a literal `Ctrl+B` to the remote shell. |
+
+Each host tab keeps its own shell list and active shell while the monitor remains open. Closing a host tab or leaving the monitor closes its shells.
 
 ## Logs
 

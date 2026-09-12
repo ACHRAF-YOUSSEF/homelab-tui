@@ -42,6 +42,7 @@ export const monitorKeys = {
   kill: character("s", "kill"),
   start: character("t", "start"),
   logs: character("l", "logs"),
+  terminal: character("v", "terminal"),
   search: character("/", "search"),
   filter: character("f", "filter"),
   sort: character("o", "sort"),

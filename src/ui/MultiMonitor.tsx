@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useTerminalDimensions } from "@opentui/react";
+import { useKeyboard, usePaste, useTerminalDimensions } from "@opentui/react";
+import { Terminal } from "@xterm/headless";
 import { Box, Text, TextInput, useApp, useInput } from "./tui.js";
 import { MonitorPane, canRetryConnection } from "./MonitorPane.js";
 import type { MonitorPaneHandle, PaneConnectionState } from "./MonitorPane.js";
@@ -7,6 +8,7 @@ import { HostForm } from "./HostForm.js";
 import { ServiceDetails } from "./ServiceDetails.js";
 import { LogPanel, splitLogChunk } from "./LogPanel.js";
 import { Footer } from "./Footer.js";
+import { TerminalPanel, moveItem, type TerminalSessionView } from "./TerminalPanel.js";
 import {
   restartDockerService,
   restartDockerStack,
@@ -16,9 +18,9 @@ import {
 import { stopNativeService, restartNativeService } from "../adapters/native-actions.js";
 import { getLatestRelease, isNewerVersion } from "../updater.js";
 import { version as VERSION } from "../../package.json";
-import type { ConnectOptions } from "../transports/ssh.js";
+import type { ConnectOptions, RemoteShell } from "../transports/ssh.js";
 import type { HostConfig, MonitorSnapshot, Service, ServiceStatus, StatusChange } from "../core/types.js";
-import { getTerminalLayout, getVisibleTabIndexes } from "./geometry.js";
+import { getShellSize, getTerminalLayout, getVisibleTabIndexes } from "./geometry.js";
 import { monitorKeys } from "./keys.js";
 import { palette } from "./palette.js";
 
@@ -47,7 +49,17 @@ function mergeHistory(
   }
   return next;
 }
-type Mode = "normal" | "picking" | "creating" | "new-password" | "credential" | "compose-restart";
+type Mode = "normal" | "terminal" | "picking" | "creating" | "new-password" | "credential" | "compose-restart";
+
+type TerminalSession = TerminalSessionView & {
+  shell: RemoteShell | null;
+  pendingInput: string[];
+};
+
+type HostTerminals = {
+  sessions: TerminalSession[];
+  activeIndex: number;
+};
 
 const hostKey = (host: HostConfig) => `${host.host}:${host.port}`;
 
@@ -75,6 +87,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   const { exit } = useApp();
   const { width: columns, height: rows } = useTerminalDimensions();
   const terminalSize = { columns, rows };
+  const shellSize = getShellSize(columns, rows);
 
   // Dynamic pane list — grows/shrinks as user adds/removes panes
   const [hosts, setHosts] = useState<HostConfig[]>(initialHosts);
@@ -86,6 +99,13 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
 
   // Pane refs keyed by "host:port" so indices stay stable across add/remove
   const paneRefsMap = useRef<Map<string, MonitorPaneHandle | null>>(new Map());
+
+  // Interactive shells are keyed by host so switching tabs never unmounts them.
+  const terminalsRef = useRef<Map<string, HostTerminals>>(new Map());
+  const nextTerminalIdRef = useRef(1);
+  const terminalRenderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [, setTerminalRevision] = useState(0);
+  const [terminalPrompt, setTerminalPrompt] = useState<"prefix" | "confirm-close" | null>(null);
 
   // Overlay mode
   const [mode, setMode] = useState<Mode>("normal");
@@ -139,6 +159,129 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     else setActionMessage(msg);
     setTimeout(() => { setActionMessage(null); setActionError(null); }, 3_000);
   };
+
+  const scheduleTerminalRender = useCallback(() => {
+    if (terminalRenderTimerRef.current) return;
+    terminalRenderTimerRef.current = setTimeout(() => {
+      terminalRenderTimerRef.current = null;
+      setTerminalRevision((revision) => revision + 1);
+    }, 16);
+  }, []);
+
+  const disposeHostTerminals = useCallback((key: string) => {
+    const group = terminalsRef.current.get(key);
+    if (!group) return;
+    for (const session of group.sessions) {
+      session.shell?.close();
+      session.terminal.dispose();
+    }
+    terminalsRef.current.delete(key);
+  }, []);
+
+  useEffect(() => () => {
+    if (terminalRenderTimerRef.current) clearTimeout(terminalRenderTimerRef.current);
+    for (const key of terminalsRef.current.keys()) disposeHostTerminals(key);
+  }, [disposeHostTerminals]);
+
+  useEffect(() => {
+    for (const group of terminalsRef.current.values()) {
+      for (const session of group.sessions) {
+        session.terminal.resize(shellSize.columns, shellSize.rows);
+        session.shell?.resize(shellSize);
+      }
+    }
+    scheduleTerminalRender();
+  }, [shellSize.columns, shellSize.rows, scheduleTerminalRender]);
+
+  const openTerminal = useCallback((paneIndex = focusedPane) => {
+    const host = hosts[paneIndex];
+    const pane = host && paneRefsMap.current.get(hostKey(host));
+    if (!host || !pane) return;
+
+    const key = hostKey(host);
+    const group = terminalsRef.current.get(key) ?? { sessions: [], activeIndex: 0 };
+    terminalsRef.current.set(key, group);
+    const id = nextTerminalIdRef.current++;
+    const terminal = new Terminal({
+      allowProposedApi: true,
+      cols: shellSize.columns,
+      rows: shellSize.rows,
+      scrollback: 1_000,
+    });
+    const session: TerminalSession = {
+      id,
+      title: `shell ${id}`,
+      status: "opening",
+      terminal,
+      shell: null,
+      pendingInput: [],
+    };
+    const isOpen = () => terminalsRef.current.get(key)?.sessions.includes(session) === true;
+
+    terminal.onData((data) => {
+      if (session.shell) session.shell.input(data);
+      else session.pendingInput.push(data);
+    });
+    terminal.onTitleChange((title) => {
+      if (!isOpen()) return;
+      const safeTitle = title.replace(/[\u0000-\u001f\u007f]/g, "").trim();
+      if (safeTitle) session.title = safeTitle.slice(0, 80);
+      scheduleTerminalRender();
+    });
+
+    group.sessions.push(session);
+    group.activeIndex = group.sessions.length - 1;
+    setLogsOpen(false);
+    setTerminalPrompt(null);
+    setMode("terminal");
+    scheduleTerminalRender();
+
+    pane.openShell(
+      shellSize,
+      (chunk) => {
+        if (isOpen()) terminal.write(chunk, scheduleTerminalRender);
+      },
+      (error) => {
+        if (!isOpen()) return;
+        session.shell = null;
+        session.status = error ? "error" : "exited";
+        terminal.writeln(`\r\n[terminal ${error ? `failed: ${error.message}` : "closed"}]`, scheduleTerminalRender);
+      },
+    ).then((shell) => {
+      if (!isOpen()) { shell.close(); return; }
+      session.shell = shell;
+      session.status = "live";
+      for (const data of session.pendingInput.splice(0)) shell.input(data);
+      scheduleTerminalRender();
+    }).catch((error: unknown) => {
+      if (!isOpen()) return;
+      session.status = "error";
+      terminal.writeln(`\r\n[terminal failed: ${error instanceof Error ? error.message : String(error)}]`, scheduleTerminalRender);
+    });
+  }, [focusedPane, hosts, shellSize.columns, shellSize.rows, scheduleTerminalRender]);
+
+  const showTerminal = useCallback(() => {
+    const host = hosts[focusedPane];
+    const group = host && terminalsRef.current.get(hostKey(host));
+    if (!group?.sessions.length) { openTerminal(); return; }
+    setLogsOpen(false);
+    setTerminalPrompt(null);
+    setMode("terminal");
+  }, [focusedPane, hosts, openTerminal]);
+
+  const closeActiveTerminal = useCallback(() => {
+    const host = hosts[focusedPane];
+    const group = host && terminalsRef.current.get(hostKey(host));
+    const session = group?.sessions[group.activeIndex];
+    if (!group || !session) return;
+    session.shell?.close();
+    session.terminal.dispose();
+    group.sessions.splice(group.activeIndex, 1);
+    group.activeIndex = Math.min(group.activeIndex, Math.max(0, group.sessions.length - 1));
+    setTerminalPrompt(null);
+    if (group.sessions.length === 0) setMode("normal");
+    scheduleTerminalRender();
+  }, [focusedPane, hosts, scheduleTerminalRender]);
 
   // ── Add / remove panes ────────────────────────────────────────────────────
   const resetAddFlow = () => {
@@ -208,6 +351,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   const openCreateHostForm = () => setTimeout(() => setMode("creating"), 0);
 
   const removePane = useCallback((idx: number) => {
+    disposeHostTerminals(hostKey(hosts[idx]));
     if (hosts.length <= 1) {
       onCloseLastTab();
       return;
@@ -217,7 +361,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     setConnectOpts((prev) => prev.filter((_, i) => i !== idx));
     setPaneStates((prev) => prev.filter((_, i) => i !== idx));
     setFocusedPane((prev) => Math.min(prev, hosts.length - 2));
-  }, [hosts, onCloseLastTab]);
+  }, [disposeHostTerminals, hosts, onCloseLastTab]);
 
   // ── Log streaming ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -265,6 +409,79 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   }, [busy, selectedService]);
 
   // ── Keyboard ──────────────────────────────────────────────────────────────
+  useKeyboard((key) => {
+    if (mode !== "terminal") return;
+    key.preventDefault();
+    key.stopPropagation();
+
+    const host = hosts[focusedPane];
+    const group = host && terminalsRef.current.get(hostKey(host));
+    const active = group?.sessions[group.activeIndex];
+    const input = key.sequence || key.name;
+
+    if (terminalPrompt === "confirm-close") {
+      if (input === "y") closeActiveTerminal();
+      else if (input === "n" || key.name === "escape") setTerminalPrompt(null);
+      return;
+    }
+
+    if (terminalPrompt === "prefix") {
+      setTerminalPrompt(null);
+      if ((key.ctrl && key.name === "b") || input === "\u0002") { active?.terminal.input("\u0002"); return; }
+      if (input === "d") { setMode("normal"); return; }
+      if (input === "c") { openTerminal(); return; }
+      if (input === "x" && active) {
+        if (active.status === "live" || active.status === "opening") setTerminalPrompt("confirm-close");
+        else closeActiveTerminal();
+        return;
+      }
+      if ((input === "n" || input === "p") && group?.sessions.length) {
+        const direction = input === "n" ? 1 : -1;
+        group.activeIndex = (group.activeIndex + direction + group.sessions.length) % group.sessions.length;
+        scheduleTerminalRender();
+        return;
+      }
+      if ((input === "<" || input === ">") && group?.sessions.length) {
+        const nextIndex = Math.min(
+          Math.max(0, group.activeIndex + (input === ">" ? 1 : -1)),
+          group.sessions.length - 1,
+        );
+        group.sessions = moveItem(group.sessions, group.activeIndex, nextIndex);
+        group.activeIndex = nextIndex;
+        scheduleTerminalRender();
+        return;
+      }
+      if (/^[1-9]$/.test(input) && group && Number(input) <= group.sessions.length) {
+        group.activeIndex = Number(input) - 1;
+        scheduleTerminalRender();
+        return;
+      }
+      if (key.name === "tab") {
+        setFocusedPane((current) => (current + (key.shift ? -1 : 1) + hosts.length) % hosts.length);
+        return;
+      }
+      return;
+    }
+
+    if ((key.ctrl && key.name === "b") || input === "\u0002") {
+      setTerminalPrompt("prefix");
+      return;
+    }
+    active?.terminal.input(key.sequence);
+  });
+
+  usePaste((event) => {
+    if (mode !== "terminal") return;
+    event.preventDefault();
+    event.stopPropagation();
+    const host = hosts[focusedPane];
+    const group = host && terminalsRef.current.get(hostKey(host));
+    const active = group?.sessions[group.activeIndex];
+    if (!active) return;
+    const data = new TextDecoder().decode(event.bytes);
+    active.terminal.input(active.terminal.modes.bracketedPasteMode ? `\u001b[200~${data}\u001b[201~` : data);
+  });
+
   useInput((input, key) => {
     // ── Picker mode ──
     if (mode === "picking") {
@@ -349,6 +566,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
       return;
     }
 
+    if (monitorKeys.terminal.matches(input, key)) { showTerminal(); return; }
     if (monitorKeys.logs.matches(input, key)) { setLogsOpen((o) => !o); return; }
 
     if (!selectedService || busy) return;
@@ -372,7 +590,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
       else if (monitorKeys.stop.matches(input, key)) runAction("stop", () => stopDockerService(run, selectedService));
       else if (monitorKeys.start.matches(input, key)) runAction("start", () => startDockerService(run, selectedService));
     }
-  });
+  }, { isActive: mode !== "terminal" });
 
   // ── Credential handler from a pane ────────────────────────────────────────
   const handleCredentialNeeded = useCallback((paneIdx: number, kind: "password" | "passphrase", error?: string) => {
@@ -401,6 +619,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   const failedCount = paneStates.filter((pane) => ["disconnected", "offline", "needs-credential"].includes(pane.connection.status)).length;
   const pendingCount = hosts.length - onlineCount - failedCount;
   const visibleTabIndexes = getVisibleTabIndexes(columns, hosts.length, focusedPane);
+  const activeTerminalGroup = terminalsRef.current.get(hostKey(hosts[focusedPane]));
   const addFlowActive = mode === "picking" || mode === "creating" || mode === "new-password";
   const pickerItemCount = availableHosts.length + 1;
   const pickerVisibleCount = Math.min(pickerItemCount, Math.max(1, rows - 13));
@@ -453,7 +672,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
       {/* Keep every connection alive, but only the active tab takes layout space. */}
       <Box width="100%">
         {hosts.map((host, i) => (
-          <Box key={hostKey(host)} visible={focusedPane === i && !addFlowActive} width="100%">
+          <Box key={hostKey(host)} visible={focusedPane === i && !addFlowActive && mode !== "terminal"} width="100%">
             <MonitorPane
               ref={(el) => { paneRefsMap.current.set(hostKey(host), el); }}
               hostConfig={host}
@@ -481,6 +700,14 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
           </Box>
         ))}
       </Box>
+
+      {mode === "terminal" && (
+        <TerminalPanel
+          sessions={activeTerminalGroup?.sessions ?? []}
+          activeIndex={activeTerminalGroup?.activeIndex ?? 0}
+          width={terminalSize.columns}
+        />
+      )}
 
       {mode === "creating" && (
         <HostForm onSubmit={handleCreatedHost} onCancel={resetAddFlow} />
@@ -601,6 +828,14 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
           connectionStatus={focused.connection.status}
           canRetry={canRetryConnection(focused.connection)}
           overlayActive={mode !== "normal"}
+          terminal={mode === "terminal" ? {
+            active: activeTerminalGroup?.activeIndex ?? 0,
+            count: activeTerminalGroup?.sessions.length ?? 0,
+            hostIndex: focusedPane,
+            hostCount: hosts.length,
+            prompt: terminalPrompt,
+            title: activeTerminalGroup?.sessions[activeTerminalGroup.activeIndex]?.title.slice(0, 30),
+          } : undefined}
         />
       )}
     </Box>

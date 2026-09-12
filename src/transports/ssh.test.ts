@@ -80,6 +80,55 @@ test("stale events and statusless commands cannot hide a disconnect", async () =
   }
 });
 
+test("interactive shells forward output, input, and terminal resizes", async () => {
+  const writes: string[] = [];
+  const resizes: number[][] = [];
+  let requestedSize: unknown;
+  let destroyed = false;
+  const channel = Object.assign(new EventEmitter(), {
+    stderr: new EventEmitter(),
+    write: (data: string) => { writes.push(data); },
+    setWindow: (...size: number[]) => { resizes.push(size); },
+    destroy: () => { destroyed = true; },
+  });
+  const connect = spyOn(NodeSSH.prototype, "connect").mockImplementation(async function (this: NodeSSH) {
+    this.connection = new EventEmitter() as NodeSSH["connection"];
+    return this;
+  });
+  const requestShell = spyOn(NodeSSH.prototype, "requestShell").mockImplementation(async (size) => {
+    requestedSize = size;
+    return channel as never;
+  });
+  const dispose = spyOn(NodeSSH.prototype, "dispose").mockImplementation(function (this: NodeSSH) {
+    this.connection = null;
+  });
+
+  try {
+    const output: Uint8Array[] = [];
+    const transport = new SSHTransport({
+      host: "example.test", port: 22, username: "tester", authMethod: "password",
+    });
+    await transport.connect({ password: "secret" });
+    const shell = await transport.openShell({ columns: 100, rows: 30 }, (chunk) => output.push(chunk));
+
+    channel.emit("data", Buffer.from("ready"));
+    shell.input("pwd\r");
+    shell.resize({ columns: 120, rows: 40 });
+    shell.close();
+
+    expect(requestedSize).toEqual({ term: "xterm-256color", cols: 100, rows: 30 });
+    expect(Buffer.from(output[0]).toString()).toBe("ready");
+    expect(writes).toEqual(["pwd\r"]);
+    expect(resizes).toEqual([[40, 120, 0, 0]]);
+    expect(destroyed).toBe(true);
+    await transport.dispose();
+  } finally {
+    connect.mockRestore();
+    requestShell.mockRestore();
+    dispose.mockRestore();
+  }
+});
+
 test("a refused SSH listener closes an established transport", async () => {
   const server = createServer();
   await new Promise<void>((resolve, reject) => {

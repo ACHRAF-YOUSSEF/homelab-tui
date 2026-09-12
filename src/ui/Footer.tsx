@@ -16,6 +16,14 @@ type Props = {
   connectionStatus?: PaneConnectionState["status"];
   canRetry?: boolean;
   overlayActive?: boolean;
+  terminal?: {
+    active: number;
+    count: number;
+    hostIndex: number;
+    hostCount: number;
+    prompt: "prefix" | "confirm-close" | null;
+    title?: string;
+  };
 };
 
 const SEP = <Text dimColor> · </Text>;
@@ -24,7 +32,16 @@ function Hint({ bindings, label }: Readonly<{ bindings: KeyBinding[]; label?: st
   return <><Text color={palette.structure} bold>{bindings.map((key) => key.display).join("")}</Text><Text dimColor> {label ?? bindings[0].label}</Text></>;
 }
 
-export function Footer({ actionMessage, error, selectedKind, paneCount, focusedPane, canAddPane, canRemovePane, connectionStatus, canRetry, overlayActive }: Readonly<Props>) {
+export function Footer({ actionMessage, error, selectedKind, paneCount, focusedPane, canAddPane, canRemovePane, connectionStatus, canRetry, overlayActive, terminal }: Readonly<Props>) {
+  if (terminal) {
+    const content = terminal.prompt === "confirm-close"
+      ? <Text color={palette.danger}>Close {terminal.title ?? "terminal"}? <Text bold>y</Text> yes · <Text bold>n/Esc</Text> cancel</Text>
+      : terminal.prompt === "prefix"
+      ? <Text wrap="wrap"><Text color={palette.structure} bold>d</Text> details · <Text color={palette.structure} bold>c</Text> new · <Text color={palette.structure} bold>x</Text> close · <Text color={palette.structure} bold>n/p</Text> select · <Text color={palette.structure} bold>&lt;/&gt;</Text> reorder · <Text color={palette.structure} bold>Tab</Text> host</Text>
+      : <Text wrap="wrap"><Text color={palette.structure} bold>Ctrl+B</Text> commands · terminal {terminal.count ? terminal.active + 1 : 0}/{terminal.count} · <Text color={palette.structure} bold>Ctrl+B Tab</Text> host {terminal.hostIndex + 1}/{terminal.hostCount}</Text>;
+    return <Box borderStyle="single" borderColor={palette.inactive} paddingX={1} width="100%">{content}</Box>;
+  }
+
   const isProcess = selectedKind === "system-service";
   const multiPane = (paneCount ?? 1) > 1;
   const primary = isProcess ? monitorKeys.kill : monitorKeys.stop;
@@ -49,6 +66,7 @@ export function Footer({ actionMessage, error, selectedKind, paneCount, focusedP
         { bindings: [primary] },
         ...(!isProcess ? [{ bindings: [monitorKeys.start] }] : []),
         { bindings: [monitorKeys.logs] },
+        { bindings: [monitorKeys.terminal] },
         { bindings: [monitorKeys.search] },
         { bindings: [monitorKeys.filter] },
         { bindings: [monitorKeys.sort] },

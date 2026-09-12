@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { getFooterRows, getServiceColumns, getTerminalLayout, getVisibleTabIndexes } from "./geometry.js";
+import { getFooterRows, getServiceColumns, getShellSize, getTerminalLayout, getVisibleTabIndexes } from "./geometry.js";
 
 describe("terminal geometry", () => {
   test("80x24 uses the compact single-pane layout", () => {
@@ -12,6 +12,11 @@ describe("terminal geometry", () => {
       logRows: 0,
     });
     expect(getServiceColumns(78)).toEqual({ name: 39, status: 12, image: 0, ports: 21 });
+  });
+
+  test("interactive shells fit between the app bar and footer", () => {
+    expect(getShellSize(80, 24)).toEqual({ columns: 76, rows: 15 });
+    expect(getShellSize(200, 50)).toEqual({ columns: 196, rows: 41 });
   });
 
   test("120x35 keeps metrics and details visible", () => {

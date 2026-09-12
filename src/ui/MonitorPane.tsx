@@ -1,7 +1,7 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { Box, Text, TextInput, useInput } from "./tui.js";
 import { Monitor, PassphraseRequiredError } from "../core/monitor.js";
-import { classifySSHError, SSHConnectionError, type ConnectOptions } from "../transports/ssh.js";
+import { classifySSHError, SSHConnectionError, type ConnectOptions, type RemoteShell, type ShellSize } from "../transports/ssh.js";
 import type { HostConfig, MonitorSnapshot, Service, ServiceStatus } from "../core/types.js";
 import { Header } from "./Header.js";
 import { SystemPanel } from "./SystemPanel.js";
@@ -132,6 +132,11 @@ const SORT_CYCLE: SortField[] = ["name", "status", "image"];
 
 export type MonitorPaneHandle = {
   run: (cmd: string) => Promise<string>;
+  openShell: (
+    size: ShellSize,
+    onData: (chunk: Uint8Array) => void,
+    onClose?: (error?: Error) => void,
+  ) => Promise<RemoteShell>;
   streamLogs: (
     service: Service,
     onData: (chunk: string) => void,
@@ -360,6 +365,7 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
 
   useImperativeHandle(ref, () => ({
     run: (cmd) => monitorRef.current!.run(cmd),
+    openShell: (size, onData, onClose) => monitorRef.current!.openShell(size, onData, onClose),
     streamLogs: (service, onData, onClose) => monitorRef.current!.streamLogs(service, onData, onClose),
     retry: () => { if (canRetryConnection(connectionRef.current)) reconnectNow(); },
     requestCredential: () => {

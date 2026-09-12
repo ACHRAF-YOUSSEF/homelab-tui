@@ -16,6 +16,14 @@ export type ConnectOptions = {
   password?: string;
 };
 
+export type ShellSize = { columns: number; rows: number };
+
+export type RemoteShell = {
+  input: (data: string) => void;
+  resize: (size: ShellSize) => void;
+  close: () => void;
+};
+
 export type SSHErrorKind =
   | "authentication"
   | "refused"
@@ -279,6 +287,45 @@ export class SSHTransport {
         resolve(() => channel.destroy());
       });
     });
+  }
+
+  async openShell(
+    size: ShellSize,
+    onData: (chunk: Uint8Array) => void,
+    onClose?: (error?: Error) => void,
+  ): Promise<RemoteShell> {
+    if (!this.connected) throw new SSHConnectionError("disconnected", "SSH not connected", true);
+    const generation = this.connectionGeneration;
+    const channel = await this.ssh.requestShell({
+      term: "xterm-256color",
+      cols: size.columns,
+      rows: size.rows,
+    });
+    if (generation !== this.connectionGeneration || !this.connected) {
+      channel.destroy();
+      throw new SSHConnectionError("disconnected", "Connection lost", true);
+    }
+
+    let closed = false;
+    const finish = (error?: Error) => {
+      if (closed) return;
+      closed = true;
+      onClose?.(error);
+    };
+    channel.on("data", onData);
+    channel.stderr.on("data", onData);
+    channel.once("error", finish);
+    channel.once("close", () => finish());
+
+    return {
+      input: (data) => { if (!closed) channel.write(data); },
+      resize: (next) => { if (!closed) channel.setWindow(next.rows, next.columns, 0, 0); },
+      close: () => {
+        if (closed) return;
+        closed = true;
+        channel.destroy();
+      },
+    };
   }
 
   async run(command: string, timeoutMs = COMMAND_TIMEOUT): Promise<string> {

@@ -27,6 +27,10 @@ For a healthy host, the TUI can show:
 
 At `80×24`, metrics and full details collapse into a compact layout while selection and primary actions remain visible. Wider terminals add service columns. Long tab lists scroll around the active host instead of overflowing.
 
+## Terminals
+
+Press `v` on an online host to replace the service view with an interactive SSH shell. Use the `Ctrl+B` prefix shown in the footer to open, select, reorder, or close shells, switch host tabs, or return to service details. Every host keeps its own shells and active shell when you switch tabs. Shells remain open until you close their host tab or leave the monitor.
+
 ## Logs
 
 Press `l` to open or close logs for the selected service. Docker logs stream with follow mode. Linux native-process logs use `journalctl`; macOS uses `log stream`. Native log streaming is not available on Windows.

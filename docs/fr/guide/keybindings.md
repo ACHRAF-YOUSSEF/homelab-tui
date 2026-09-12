@@ -24,12 +24,12 @@ En sélection multiple, utilisez `Espace` pour cocher les machines, `Entrée` po
 | `s` | Arrêter un conteneur ou terminer un processus natif. |
 | `t` | Démarrer un conteneur Docker. |
 | `l` | Afficher ou masquer les journaux. |
+| `v` | Ouvrir un terminal interactif pour la machine active. |
 | `/` | Rechercher par nom ou image. |
 | `f` | Parcourir les filtres de type et d'état. |
 | `o` | Trier par nom, état ou image. |
 | `a` | Ajouter un onglet. |
 | `x` | Fermer l'onglet actif. |
-| `<` / `>` | Déplacer l'onglet actif. |
 | `Tab` / `Maj+Tab` | Ouvrir l'onglet suivant ou précédent. |
 | `1`–`9` | Ouvrir directement un onglet de machine. |
 | `h` | Revenir au sélecteur de machines. |
@@ -46,6 +46,23 @@ Lorsque la machine active n'est pas connectée, le pied de page affiche les acti
 | `c` | Rouvrir l'invite de mot de passe ou de phrase secrète. |
 | `h` | Revenir au sélecteur pour modifier la configuration. |
 | `Échap` | Fermer l'invite sans masquer l'erreur de la machine. |
+
+## Terminaux
+
+Les commandes utilisent un préfixe de type tmux, `Ctrl+B`, afin que les touches ordinaires atteignent le shell distant.
+
+| Touche | Action |
+|---|---|
+| `Ctrl+B`, puis `d` | Revenir aux détails sans fermer les shells. |
+| `Ctrl+B`, puis `c` | Ouvrir un autre shell pour la machine active. |
+| `Ctrl+B`, puis `x` | Fermer le shell actif après confirmation. |
+| `Ctrl+B`, puis `n` / `p` | Ouvrir le shell suivant ou précédent. |
+| `Ctrl+B`, puis `<` / `>` | Déplacer le shell actif vers la gauche ou la droite. |
+| `Ctrl+B`, puis `1`–`9` | Ouvrir directement un shell. |
+| `Ctrl+B`, puis `Tab` / `Maj+Tab` | Ouvrir l'onglet de machine suivant ou précédent. |
+| `Ctrl+B`, puis `Ctrl+B` | Envoyer un `Ctrl+B` littéral au shell distant. |
+
+Chaque onglet conserve ses shells et le shell actif tant que la surveillance reste ouverte. Fermer l'onglet ou quitter la surveillance ferme ses shells.
 
 ## Journaux
 

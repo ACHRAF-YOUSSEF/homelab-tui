@@ -74,10 +74,28 @@ test("wrapped footer keeps every keyboard hint visible", async () => {
     const lines = frame.trimEnd().split("\n");
     expect(lines).toHaveLength(4);
     expect(lines.at(-1)).toStartWith("└");
-    for (const hint of ["filter", "sort", "add tab", "close tab", "hosts", "tab 2/2", "quit"]) {
+    for (const hint of ["terminal", "filter", "sort", "add tab", "close tab", "hosts", "tab 2/2", "quit"]) {
       expect(frame).toContain(hint);
     }
     expect(frame).not.toContain("move tab");
+  } finally {
+    act(() => { setup.renderer.destroy(); });
+  }
+});
+
+test("terminal footer exposes the prefix without stealing shell keys", async () => {
+  const setup = await testRender(
+    <Footer
+      actionMessage={null}
+      error={null}
+      terminal={{ active: 1, count: 3, hostIndex: 0, hostCount: 2, prompt: "prefix" }}
+    />,
+    { width: 80, height: 3 },
+  );
+  try {
+    await act(async () => { await setup.renderOnce(); });
+    const frame = setup.captureCharFrame();
+    for (const hint of ["details", "new", "close", "select", "reorder", "host"]) expect(frame).toContain(hint);
   } finally {
     act(() => { setup.renderer.destroy(); });
   }

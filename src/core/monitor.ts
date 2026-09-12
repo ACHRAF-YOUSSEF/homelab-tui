@@ -1,5 +1,5 @@
 import { SSHConnectionError, SSHTransport } from "../transports/ssh.js";
-import type { ConnectOptions } from "../transports/ssh.js";
+import type { ConnectOptions, RemoteShell, ShellSize } from "../transports/ssh.js";
 import { detectRemoteOS } from "./os-detect.js";
 import { getDockerServices, streamDockerLogs } from "../adapters/docker.js";
 import { nativeLogCommand, nativeLogSnapshot } from "../adapters/native-actions.js";
@@ -91,6 +91,14 @@ export class Monitor {
 
   run(cmd: string): Promise<string> {
     return this.transport.run(cmd);
+  }
+
+  openShell(
+    size: ShellSize,
+    onData: (chunk: Uint8Array) => void,
+    onClose?: (error?: Error) => void,
+  ): Promise<RemoteShell> {
+    return this.transport.openShell(size, onData, onClose);
   }
 
   async dispose(): Promise<void> {
