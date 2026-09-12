@@ -104,7 +104,7 @@ test("device metadata uses stable columns without a leading empty slot", async (
     const positions = ["host laptop", "os linux", "device laptop-2", "updated"].map((text) => line.indexOf(text));
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
-    expect(positions[0]).toBeLessThan(20);
+    expect(positions[0]).toBe(2);
   } finally {
     act(() => { setup.renderer.destroy(); });
   }
@@ -131,6 +131,7 @@ test("compact device metadata keeps the remote hostname visible", async () => {
     const frame = setup.captureCharFrame();
     expect(frame).toContain("device actual-device");
     expect(frame).not.toContain("friendly-alias");
+    expect(frame.split("\n")[1]).toStartWith("│ device actual-device");
   } finally {
     act(() => { setup.renderer.destroy(); });
   }

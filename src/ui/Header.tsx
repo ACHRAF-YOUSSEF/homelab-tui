@@ -32,7 +32,7 @@ export function Header({ snapshot, connecting, lastUpdated, reconnectCountdown, 
 
         {snapshot ? (
           <Box flexGrow={1} overflow="hidden">
-            <Box flexGrow={1} flexBasis={0} justifyContent="center" overflow="hidden">
+            <Box flexGrow={1} flexBasis={0} justifyContent="flex-start" overflow="hidden">
               <Text wrap="truncate"><Text dimColor>{compact ? "device " : "host "}</Text><Text color={palette.selected}>{compact ? snapshot.system.hostname : snapshot.hostName}</Text></Text>
             </Box>
             {!compact && (
