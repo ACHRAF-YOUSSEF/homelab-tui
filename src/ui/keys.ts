@@ -47,8 +47,6 @@ export const monitorKeys = {
   sort: character("o", "sort"),
   addPane: character("a", "add tab"),
   closePane: character("x", "close tab"),
-  swapLeft: character("<", "move tab"),
-  swapRight: character(">", "move tab"),
   nextPane: special("Tab", "next tab", (input, key) => Boolean(key.tab && !isShiftTab(input, key))),
   previousPane: special("Shift+Tab", "previous tab", isShiftTab),
   hosts: character("h", "hosts"),

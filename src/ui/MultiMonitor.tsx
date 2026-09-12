@@ -215,19 +215,6 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     setFocusedPane((prev) => Math.min(prev, hosts.length - 2));
   }, [hosts]);
 
-  const swapPane = useCallback((fromIdx: number, toIdx: number) => {
-    if (toIdx < 0 || toIdx >= hosts.length) return;
-    const swap = <T,>(arr: T[]): T[] => {
-      const next = [...arr];
-      [next[fromIdx], next[toIdx]] = [next[toIdx], next[fromIdx]];
-      return next;
-    };
-    setHosts(swap);
-    setConnectOpts(swap);
-    setPaneStates(swap);
-    setFocusedPane(toIdx); // focus follows the moved pane
-  }, [hosts.length]);
-
   // ── Log streaming ─────────────────────────────────────────────────────────
   useEffect(() => {
     logCancelRef.current?.();
@@ -346,8 +333,6 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
       return;
     }
     if (monitorKeys.closePane.matches(input, key) && hosts.length > 1) { removePane(focusedPane); return; }
-    if (monitorKeys.swapLeft.matches(input, key) && hosts.length > 1) { swapPane(focusedPane, focusedPane - 1); return; }
-    if (monitorKeys.swapRight.matches(input, key) && hosts.length > 1) { swapPane(focusedPane, focusedPane + 1); return; }
 
     if (focused.connection.status !== "online") {
       const pane = paneRefsMap.current.get(hostKey(hosts[focusedPane]));

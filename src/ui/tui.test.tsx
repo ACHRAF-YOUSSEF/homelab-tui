@@ -3,6 +3,8 @@ import { expect, test } from "bun:test";
 import { testRender } from "@opentui/react/test-utils";
 import { Text, TextInput } from "./tui.js";
 import { Footer } from "./Footer.js";
+import { ServiceDetails } from "./ServiceDetails.js";
+import { SystemPanel } from "./SystemPanel.js";
 import { getPickedHosts } from "./MultiMonitor.js";
 import type { HostConfig } from "../core/types.js";
 
@@ -71,9 +73,62 @@ test("wrapped footer keeps every keyboard hint visible", async () => {
     const lines = frame.trimEnd().split("\n");
     expect(lines).toHaveLength(4);
     expect(lines.at(-1)).toStartWith("└");
-    for (const hint of ["filter", "sort", "add tab", "close tab", "move tab", "hosts", "tab 2/2", "quit"]) {
+    for (const hint of ["filter", "sort", "add tab", "close tab", "hosts", "tab 2/2", "quit"]) {
       expect(frame).toContain(hint);
     }
+    expect(frame).not.toContain("move tab");
+  } finally {
+    act(() => { setup.renderer.destroy(); });
+  }
+});
+
+test("compact metrics keep long mount names inside one row", async () => {
+  const setup = await testRender(
+    <SystemPanel
+      compact
+      system={{
+        hostname: "host",
+        os: "linux",
+        cpuUsagePercent: 12,
+        ram: { usedBytes: 8_000_000_000, totalBytes: 32_000_000_000 },
+        disks: [{ name: "/tmp/.mount_AnExtremelyLongApplicationMountPoint", freeBytes: 1_000_000, totalBytes: 142_000_000 }],
+      }}
+    />,
+    { width: 80, height: 3 },
+  );
+  try {
+    await act(async () => { await setup.renderOnce(); });
+    const lines = setup.captureCharFrame().trimEnd().split("\n");
+    expect(lines).toHaveLength(3);
+    expect(lines[1]).toContain("CPU 12%");
+    expect(lines[1]).toContain("RAM 7.5G/29.8G");
+    expect(lines.at(-1)).toStartWith("└");
+  } finally {
+    act(() => { setup.renderer.destroy(); });
+  }
+});
+
+test("details truncate long process values without breaking the border", async () => {
+  const setup = await testRender(
+    <ServiceDetails
+      containerWidth={80}
+      paneLabel="[12] a-host-name-that-is-far-too-long-for-this-panel"
+      service={{
+        id: "proc:12345",
+        name: "a-process-name-that-is-far-too-long-for-this-panel",
+        kind: "system-service",
+        status: "running",
+        ports: "0.0.0.0:3000->3000/tcp, :::8853->8853/udp",
+      }}
+    />,
+    { width: 80, height: 7 },
+  );
+  try {
+    await act(async () => { await setup.renderOnce(); });
+    const lines = setup.captureCharFrame().trimEnd().split("\n");
+    expect(lines).toHaveLength(7);
+    expect(lines.at(-1)).toStartWith("└");
+    expect(lines.every((line) => [...line].length <= 80)).toBe(true);
   } finally {
     act(() => { setup.renderer.destroy(); });
   }

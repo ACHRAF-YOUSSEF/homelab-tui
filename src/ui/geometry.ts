@@ -5,7 +5,7 @@ export type TerminalLayout = ReturnType<typeof getTerminalLayout>;
 
 export function getFooterRows(columns = 80, paneCount = 1) {
   const innerWidth = Math.max(1, Math.max(MIN_COLUMNS, Math.floor(columns)) - 4);
-  const hintWidth = Math.max(1, Math.floor(paneCount)) > 1 ? 152 : 112;
+  const hintWidth = Math.max(1, Math.floor(paneCount)) > 1 ? 139 : 112;
   return Math.ceil(hintWidth / innerWidth) + 2;
 }
 

@@ -20,11 +20,11 @@ function clr(pct: number) {
 
 type DiskEntry = { name: string; totalBytes: number; freeBytes: number };
 
-function Metric({ label, children }: Readonly<{ label: string; children: React.ReactNode }>) {
+function Metric({ label, children, truncateLabel = false }: Readonly<{ label: string; children: React.ReactNode; truncateLabel?: boolean }>) {
   return (
-    <Box gap={1}>
-      <Text dimColor>{label}</Text>
-      {children}
+    <Box gap={1} flexShrink={truncateLabel ? 1 : 0} overflow="hidden">
+      <Box flexShrink={truncateLabel ? 1 : 0} overflow="hidden"><Text dimColor wrap="truncate">{label}</Text></Box>
+      <Box flexShrink={0} overflow="hidden">{children}</Box>
     </Box>
   );
 }
@@ -33,7 +33,7 @@ function DiskBar({ d, compact }: Readonly<{ d: DiskEntry; compact?: boolean }>) 
   const used = d.totalBytes - d.freeBytes;
   const pct = Math.round((used / d.totalBytes) * 100);
   return (
-    <Metric label={d.name}>
+    <Metric label={d.name} truncateLabel>
       <Text color={clr(pct)}>
         {pct >= 85 ? "⚠ " : ""}{compact ? `${fmtBytes(used)}/${fmtBytes(d.totalBytes)} ${pct}%` : `${bar(pct)} ${fmtBytes(used)}/${fmtBytes(d.totalBytes)} (${pct}%)`}
       </Text>
@@ -51,8 +51,8 @@ export function SystemPanel({ system, compact }: Readonly<Props>) {
   const disks = system.disks ?? [];
 
   return (
-    <Box borderStyle="single" borderColor={palette.metrics} paddingX={1} width="100%" flexDirection="column">
-      <Box justifyContent={compact ? undefined : "space-between"} gap={compact ? 2 : undefined} flexWrap={compact ? "wrap" : undefined}>
+    <Box borderStyle="single" borderColor={palette.metrics} paddingX={1} width="100%" flexDirection="column" flexShrink={0}>
+      <Box justifyContent="space-between" gap={compact ? 2 : undefined} overflow="hidden">
         {/* CPU */}
         {system.cpuUsagePercent !== undefined && (
           <Metric label="CPU">

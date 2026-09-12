@@ -18,7 +18,7 @@ type Props = {
 export function ServiceDetails({ service, history, paneLabel, containerWidth = 80, compact = false }: Readonly<Props>) {
   if (!service) {
     return (
-      <Box borderStyle="single" borderColor={palette.inactive} paddingX={1} width="100%">
+      <Box borderStyle="single" borderColor={palette.inactive} paddingX={1} width="100%" flexShrink={0}>
         <Text dimColor>No service selected.</Text>
       </Box>
     );
@@ -51,7 +51,7 @@ export function ServiceDetails({ service, history, paneLabel, containerWidth = 8
 
   if (compact) {
     return (
-      <Box borderStyle="single" borderColor={palette.inactive} paddingX={1} width="100%">
+      <Box borderStyle="single" borderColor={palette.inactive} paddingX={1} width="100%" flexShrink={0}>
         <Text bold color={palette.inactive}>Details  </Text>
         <Box flexGrow={1}>
           <Text wrap="truncate">{service.name} · {service.status} · {kindLabel} · {service.ports ?? service.image ?? "—"}</Text>
@@ -62,20 +62,20 @@ export function ServiceDetails({ service, history, paneLabel, containerWidth = 8
 
   const stacked = containerWidth < 72;
   const innerWidth = Math.max(20, containerWidth - 4);
-  const columnWidth = stacked ? innerWidth : Math.floor(innerWidth / 2);
+  const columnWidth = stacked ? innerWidth : Math.floor((innerWidth - 2) / 2);
   const columns = stacked ? [rows] : [left, right];
 
   return (
-    <Box borderStyle="single" borderColor={palette.inactive} paddingX={1} width="100%" flexDirection="column">
-      <Box>
+    <Box borderStyle="single" borderColor={palette.inactive} paddingX={1} width="100%" flexDirection="column" flexShrink={0} overflow="hidden">
+      <Box overflow="hidden">
         <Text bold color={palette.inactive}>Details</Text>
-        {paneLabel && <Text dimColor>  ({paneLabel})</Text>}
+        {paneLabel && <Text dimColor wrap="truncate">  ({paneLabel})</Text>}
       </Box>
-      <Box flexDirection={stacked ? "column" : "row"}>
+      <Box flexDirection={stacked ? "column" : "row"} gap={stacked ? undefined : 2}>
         {columns.map((column, columnIndex) => (
-          <Box key={columnIndex} flexDirection="column" width={columnWidth}>
+          <Box key={columnIndex} flexDirection="column" width={columnWidth} overflow="hidden">
             {column.map(([label, value]) => (
-              <Box key={label} width={columnWidth}>
+              <Box key={label} width={columnWidth} overflow="hidden">
                 <Box width={16}><Text dimColor wrap="truncate">{label}</Text></Box>
                 <Box width={Math.max(1, columnWidth - 16)}><Text wrap="truncate">{value}</Text></Box>
               </Box>
@@ -85,7 +85,7 @@ export function ServiceDetails({ service, history, paneLabel, containerWidth = 8
       </Box>
 
       {changes.length > 0 && (
-        <Box gap={1} flexWrap="wrap">
+        <Box gap={1} overflow="hidden">
           <Text dimColor bold>history</Text>
           {[...changes].reverse().map((c, i) => (
             <Text key={i} color={statusColor[c.status]}>

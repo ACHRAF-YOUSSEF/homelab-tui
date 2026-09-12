@@ -31,7 +31,6 @@ export function Footer({ actionMessage, error, selectedKind, paneCount, focusedP
   const navigationHints: { bindings: KeyBinding[]; label?: string }[] = [
     ...(canAddPane ? [{ bindings: [monitorKeys.addPane] }] : []),
     ...(canRemovePane ? [{ bindings: [monitorKeys.closePane] }] : []),
-    ...(multiPane ? [{ bindings: [monitorKeys.swapLeft, monitorKeys.swapRight] }] : []),
     { bindings: [monitorKeys.hosts] },
     ...(multiPane ? [{ bindings: [monitorKeys.nextPane], label: `tab ${(focusedPane ?? 0) + 1}/${paneCount}` }] : []),
     { bindings: [monitorKeys.quit] },

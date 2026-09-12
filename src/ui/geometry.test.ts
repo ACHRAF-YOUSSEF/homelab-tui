@@ -52,6 +52,7 @@ describe("terminal geometry", () => {
     expect(getFooterRows(80, 2)).toBe(4);
     expect(getFooterRows(140, 1)).toBe(3);
     expect(getFooterRows(140, 2)).toBe(4);
+    expect(getFooterRows(150, 2)).toBe(3);
     expect(getTerminalLayout(80, 24, 1, true)).toMatchObject({ serviceRows: 1, logRows: 3 });
     expect(getTerminalLayout(140, 40, 1, true)).toMatchObject({ serviceRows: 8, logRows: 13 });
   });

@@ -39,7 +39,6 @@ In multi-host selection, use `Space` to check hosts, `Enter` to connect to the c
 | `o` | Cycle sorting by name, status, and image. |
 | `a` | Add another host tab. |
 | `x` | Close the active tab. |
-| `<` / `>` | Move the active tab left or right. |
 | `Tab` / `Shift+Tab` | Open the next or previous tab. |
 | `1`–`9` | Open a host tab directly. |
 | `h` | Return to the host selector. |
