@@ -41,7 +41,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lockb') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
           restore-keys: ${{ runner.os }}-bun-
 
       - name: Install dependencies
@@ -113,7 +113,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lockb') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
           restore-keys: ${{ runner.os }}-bun-
 
       - name: Install dependencies
@@ -128,14 +128,7 @@ jobs:
           jq ".version = \"$VERSION\"" package.json > tmp.json && mv tmp.json package.json
 
       - name: Build all targets
-        run: |
-          mkdir -p dist
-          bun build --compile --target=bun-linux-x64    src/cli.tsx --outfile dist/homelab-tui-linux-x64
-          bun build --compile --target=bun-linux-arm64  src/cli.tsx --outfile dist/homelab-tui-linux-arm64
-          bun build --compile --target=bun-darwin-x64   src/cli.tsx --outfile dist/homelab-tui-darwin-x64
-          bun build --compile --target=bun-darwin-arm64 src/cli.tsx --outfile dist/homelab-tui-darwin-arm64
-          bun build --compile --target=bun-windows-x64  src/cli.tsx --outfile dist/homelab-tui-windows-x64.exe
-          ls -lh dist/
+        run: bun run build
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
