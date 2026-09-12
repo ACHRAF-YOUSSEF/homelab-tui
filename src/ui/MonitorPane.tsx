@@ -392,7 +392,7 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
         compact={(containerWidth ?? 80) < 120}
       />
       {!compact && connection.status === "online" && snapshot?.system && (
-        <SystemPanel system={snapshot.system} compact={(containerWidth ?? 80) < 120} />
+        <SystemPanel system={snapshot.system} compact={(containerWidth ?? 80) < 160} containerWidth={containerWidth} />
       )}
       {downAlert && (
         <Box paddingX={1}>

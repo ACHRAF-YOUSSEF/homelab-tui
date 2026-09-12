@@ -320,7 +320,7 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
         version={VERSION}
         updateTag={updateTag}
       />
-      {!layout.compact && !logsOpen && snapshot?.system && <SystemPanel system={snapshot.system} compact={layout.narrow} />}
+      {!layout.compact && !logsOpen && snapshot?.system && <SystemPanel system={snapshot.system} compact={!layout.wide} containerWidth={width} />}
       <ServiceList
         services={filteredServices}
         allCount={allServices.length}

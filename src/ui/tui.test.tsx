@@ -3,6 +3,7 @@ import { expect, test } from "bun:test";
 import { testRender } from "@opentui/react/test-utils";
 import { Text, TextInput } from "./tui.js";
 import { Footer } from "./Footer.js";
+import { Header } from "./Header.js";
 import { ServiceDetails } from "./ServiceDetails.js";
 import { SystemPanel } from "./SystemPanel.js";
 import { getPickedHosts } from "./MultiMonitor.js";
@@ -82,16 +83,73 @@ test("wrapped footer keeps every keyboard hint visible", async () => {
   }
 });
 
+test("device metadata uses stable columns without a leading empty slot", async () => {
+  const setup = await testRender(
+    <Header
+      snapshot={{
+        hostName: "laptop",
+        remoteOS: "linux",
+        system: { hostname: "laptop-2", os: "linux" },
+        services: [],
+      }}
+      connecting={false}
+      lastUpdated={new Date("2026-09-12T15:09:19")}
+      reconnectCountdown={null}
+    />,
+    { width: 120, height: 3 },
+  );
+  try {
+    await act(async () => { await setup.renderOnce(); });
+    const line = setup.captureCharFrame().split("\n")[1];
+    const positions = ["host laptop", "os linux", "device laptop-2", "updated"].map((text) => line.indexOf(text));
+    expect(positions.every((position) => position >= 0)).toBe(true);
+    expect(positions).toEqual([...positions].sort((a, b) => a - b));
+    expect(positions[0]).toBeLessThan(20);
+  } finally {
+    act(() => { setup.renderer.destroy(); });
+  }
+});
+
+test("compact device metadata keeps the remote hostname visible", async () => {
+  const setup = await testRender(
+    <Header
+      snapshot={{
+        hostName: "friendly-alias",
+        remoteOS: "linux",
+        system: { hostname: "actual-device", os: "linux" },
+        services: [],
+      }}
+      connecting={false}
+      lastUpdated={new Date("2026-09-12T15:09:19")}
+      reconnectCountdown={null}
+      compact
+    />,
+    { width: 80, height: 3 },
+  );
+  try {
+    await act(async () => { await setup.renderOnce(); });
+    const frame = setup.captureCharFrame();
+    expect(frame).toContain("device actual-device");
+    expect(frame).not.toContain("friendly-alias");
+  } finally {
+    act(() => { setup.renderer.destroy(); });
+  }
+});
+
 test("compact metrics keep long mount names inside one row", async () => {
   const setup = await testRender(
     <SystemPanel
       compact
+      containerWidth={80}
       system={{
         hostname: "host",
         os: "linux",
         cpuUsagePercent: 12,
         ram: { usedBytes: 8_000_000_000, totalBytes: 32_000_000_000 },
-        disks: [{ name: "/tmp/.mount_AnExtremelyLongApplicationMountPoint", freeBytes: 1_000_000, totalBytes: 142_000_000 }],
+        disks: [
+          { name: "/", freeBytes: 200_000_000_000, totalBytes: 700_000_000_000 },
+          { name: "/tmp/.mount_AnExtremelyLongApplicationMountPoint", freeBytes: 1_000_000, totalBytes: 142_000_000 },
+        ],
       }}
     />,
     { width: 80, height: 3 },
@@ -102,6 +160,7 @@ test("compact metrics keep long mount names inside one row", async () => {
     expect(lines).toHaveLength(3);
     expect(lines[1]).toContain("CPU 12%");
     expect(lines[1]).toContain("RAM 7.5G/29.8G");
+    expect(lines[1]).toContain("+1 disk");
     expect(lines.at(-1)).toStartWith("└");
   } finally {
     act(() => { setup.renderer.destroy(); });

@@ -41,14 +41,17 @@ function DiskBar({ d, compact }: Readonly<{ d: DiskEntry; compact?: boolean }>) 
   );
 }
 
-type Props = { system: SystemInfo; compact?: boolean };
+type Props = { system: SystemInfo; compact?: boolean; containerWidth?: number };
 
-export function SystemPanel({ system, compact }: Readonly<Props>) {
+export function SystemPanel({ system, compact, containerWidth = 80 }: Readonly<Props>) {
   const ramPct = system.ram
     ? Math.round((system.ram.usedBytes / system.ram.totalBytes) * 100)
     : null;
 
   const disks = system.disks ?? [];
+  const maxDisks = Math.max(0, Math.floor((containerWidth - (compact ? 50 : 65)) / (compact ? 28 : 45)));
+  const visibleDisks = disks.slice(0, maxDisks);
+  const hiddenDisks = disks.length - visibleDisks.length;
 
   return (
     <Box borderStyle="single" borderColor={palette.metrics} paddingX={1} width="100%" flexDirection="column" flexShrink={0}>
@@ -72,7 +75,8 @@ export function SystemPanel({ system, compact }: Readonly<Props>) {
         )}
 
         {/* Disks inline — wrap if too many */}
-        {disks.map((d) => <DiskBar key={d.name} d={d} compact={compact} />)}
+        {visibleDisks.map((d) => <DiskBar key={d.name} d={d} compact={compact} />)}
+        {hiddenDisks > 0 && <Text dimColor>+{hiddenDisks} disk{hiddenDisks === 1 ? "" : "s"}</Text>}
       </Box>
     </Box>
   );

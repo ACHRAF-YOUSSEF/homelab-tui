@@ -7,7 +7,7 @@ export async function getSystemInfo(
   prevCpuStat?: number[]
 ): Promise<LinuxSystemInfo> {
   let hostname = "unknown";
-  try { hostname = await run("hostname"); } catch {}
+  try { hostname = await run("cat /proc/sys/kernel/hostname 2>/dev/null || hostname 2>/dev/null || uname -n"); } catch {}
 
   let cpuUsagePercent: number | undefined;
   let cpuStat: number[] | undefined;

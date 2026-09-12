@@ -20,34 +20,45 @@ export function Header({ snapshot, connecting, lastUpdated, reconnectCountdown, 
 
   return (
     <Box borderStyle="single" borderColor={palette.structure} paddingX={1} width="100%">
-      <Box flexGrow={1} justifyContent="space-between">
+      <Box flexGrow={1} overflow="hidden">
         {/* Brand — only when version is provided (not duplicated from app bar) */}
-        {version ? (
-          <Box gap={1}>
+        {version && (
+          <Box gap={1} flexShrink={0} marginRight={2}>
             <Text bold color={palette.brand}>homelab-tui</Text>
             <Text dimColor>v{version}</Text>
             {updateTag && <Text color={palette.warning} bold>↑ {updateTag} available</Text>}
           </Box>
-        ) : (
-          <Box />
         )}
 
         {snapshot ? (
-          <>
-            <Text><Text dimColor>host </Text><Text color={palette.selected}>{snapshot.hostName}</Text></Text>
-            {!compact && <Text><Text dimColor>os </Text><Text color={palette.selected}>{snapshot.remoteOS}</Text></Text>}
-            {!compact && <Text><Text dimColor>node </Text><Text color={palette.selected}>{snapshot.system.hostname}</Text></Text>}
-          </>
+          <Box flexGrow={1} overflow="hidden">
+            <Box flexGrow={1} flexBasis={0} justifyContent="center" overflow="hidden">
+              <Text wrap="truncate"><Text dimColor>{compact ? "device " : "host "}</Text><Text color={palette.selected}>{compact ? snapshot.system.hostname : snapshot.hostName}</Text></Text>
+            </Box>
+            {!compact && (
+              <Box flexGrow={1} flexBasis={0} justifyContent="center" overflow="hidden">
+                <Text wrap="truncate"><Text dimColor>os </Text><Text color={palette.selected}>{snapshot.remoteOS}</Text></Text>
+              </Box>
+            )}
+            {!compact && (
+              <Box flexGrow={1} flexBasis={0} justifyContent="center" overflow="hidden">
+                <Text wrap="truncate"><Text dimColor>device </Text><Text color={palette.selected}>{snapshot.system.hostname}</Text></Text>
+              </Box>
+            )}
+            <Box flexGrow={1} flexBasis={0} justifyContent="flex-end" overflow="hidden">
+              {reconnectCountdown === null ? (
+                <Text dimColor wrap="truncate">updated {time}</Text>
+              ) : (
+                <Text color={palette.warning} wrap="truncate">reconnecting in {reconnectCountdown}s… (#{reconnectAttempt ?? 1})</Text>
+              )}
+            </Box>
+          </Box>
         ) : (
-          <Text color={connecting ? palette.warning : palette.inactive}>
-            {connecting ? "connecting…" : "—"}
-          </Text>
-        )}
-
-        {reconnectCountdown === null ? (
-          <Text dimColor>updated {time}</Text>
-        ) : (
-          <Text color={palette.warning}>reconnecting in {reconnectCountdown}s… (#{reconnectAttempt ?? 1})</Text>
+          <Box flexGrow={1} justifyContent="flex-end">
+            <Text color={connecting ? palette.warning : palette.inactive}>
+              {connecting ? "connecting…" : "—"}
+            </Text>
+          </Box>
         )}
       </Box>
     </Box>
