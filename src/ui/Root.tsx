@@ -119,11 +119,15 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
   }, [config, persistConfig]);
 
   // ── HostForm ──────────────────────────────────────────────────────────────
-  const handleFormSubmit = useCallback((host: HostConfig) => {
+  const persistNewHost = useCallback((host: HostConfig) => {
     const next = { hosts: [...config.hosts, host] };
     persistConfig(next);
+  }, [config, persistConfig]);
+
+  const handleFormSubmit = useCallback((host: HostConfig) => {
+    persistNewHost(host);
     handleSelectHost(host);
-  }, [config, persistConfig, handleSelectHost]);
+  }, [persistNewHost, handleSelectHost]);
 
   const handleFormCancel = useCallback(() => setScreen({ kind: "selector" }), []);
 
@@ -242,6 +246,7 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
         initialHosts={screen.hosts}
         initialConnectOptions={screen.connectOptions}
         allHosts={config.hosts}
+        onCreateHost={persistNewHost}
         onSwitchHost={handleSwitchHost}
       />
     );
@@ -253,6 +258,7 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
       initialHosts={[screen.host]}
       initialConnectOptions={[screen.connectOptions]}
       allHosts={config.hosts}
+      onCreateHost={persistNewHost}
       onSwitchHost={handleSwitchHost}
     />
   );

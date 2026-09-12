@@ -45,6 +45,10 @@ In multi-host selection, use `Space` to check hosts, `Enter` to connect to the c
 | `h` | Return to the host selector. |
 | `q` | Quit. |
 
+The add-tab picker starts in multi-select mode. Use `Space` to check or uncheck configured hosts, `Enter` to add every checked host (or the focused host when none are checked), and `n` or the final list item to create a host. A newly created host is saved and checked without clearing the current selection. `Esc` cancels the whole add operation; selection is otherwise cleared only after the checked hosts are added.
+
+Tabs are not capped at nine. Number keys open tabs `1`–`9` directly; `Tab` and `Shift+Tab` reach every tab, and long tab lists scroll around the active host.
+
 The footer uses the same central key definitions as the handlers, so its visible shortcuts follow the active service type. Compact terminals show the primary subset.
 
 When the focused host is not online, the footer switches to connection recovery actions:

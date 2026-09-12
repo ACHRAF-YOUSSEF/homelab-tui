@@ -42,6 +42,8 @@ describe("terminal geometry", () => {
     expect(getVisibleTabIndexes(80, 6, 0)).toEqual([0, 1]);
     expect(getVisibleTabIndexes(80, 6, 3)).toEqual([2, 3]);
     expect(getVisibleTabIndexes(80, 6, 5)).toEqual([4, 5]);
+    expect(getVisibleTabIndexes(80, 12, 10)).toEqual([9, 10]);
+    expect(getVisibleTabIndexes(80, 12, 11)).toEqual([10, 11]);
     expect(getVisibleTabIndexes(200, 6, 5)).toEqual([0, 1, 2, 3, 4, 5]);
   });
 

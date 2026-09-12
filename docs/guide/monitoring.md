@@ -4,12 +4,14 @@
 
 Select one host and press `Enter`, or press `m` to choose several hosts before connecting. Each selected host gets its own tab and SSH connection.
 
+From the monitor, press `a` to add tabs. The picker can add one or several configured hosts, or create and save a new host without losing hosts already checked in that add operation. Press `Esc` to cancel the operation, or `Enter` to add the checked hosts.
+
 The top bar summarizes the whole session:
 
 - Healthy hosts remain usable when another host fails.
 - Connecting and reconnecting hosts show their current state.
 - Failed tabs show a specific SSH error and recovery action without replacing healthy hosts.
-- `Tab` and `Shift+Tab` cycle tabs; number keys `1`–`9` open one directly.
+- `Tab` and `Shift+Tab` cycle every tab; number keys `1`–`9` open the first nine directly. There is no nine-tab limit.
 
 ## Read a tab
 

@@ -3,6 +3,7 @@ import { useTerminalDimensions } from "@opentui/react";
 import { Box, Text, TextInput, useApp, useInput } from "./tui.js";
 import { MonitorPane, canRetryConnection } from "./MonitorPane.js";
 import type { MonitorPaneHandle, PaneConnectionState } from "./MonitorPane.js";
+import { HostForm } from "./HostForm.js";
 import { ServiceDetails } from "./ServiceDetails.js";
 import { LogPanel, splitLogChunk } from "./LogPanel.js";
 import { Footer } from "./Footer.js";
@@ -46,16 +47,30 @@ function mergeHistory(
   }
   return next;
 }
-type Mode = "normal" | "picking" | "new-password" | "credential" | "compose-restart";
+type Mode = "normal" | "picking" | "creating" | "new-password" | "credential" | "compose-restart";
+
+const hostKey = (host: HostConfig) => `${host.host}:${host.port}`;
+
+export function getPickedHosts(
+  availableHosts: HostConfig[],
+  pickedHostKeys: ReadonlySet<string>,
+  focusedIndex: number,
+) {
+  const picked = availableHosts.filter((host) => pickedHostKeys.has(hostKey(host)));
+  if (picked.length > 0) return picked;
+  const focused = availableHosts[focusedIndex];
+  return focused ? [focused] : [];
+}
 
 type Props = {
   initialHosts: HostConfig[];
   initialConnectOptions: (ConnectOptions | undefined)[];
   allHosts: HostConfig[];       // all configured hosts (for the add-host picker)
+  onCreateHost: (host: HostConfig) => void;
   onSwitchHost: () => void;
 };
 
-export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, onSwitchHost }: Readonly<Props>) {
+export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, onCreateHost, onSwitchHost }: Readonly<Props>) {
   const { exit } = useApp();
   const { width: columns, height: rows } = useTerminalDimensions();
   const terminalSize = { columns, rows };
@@ -70,13 +85,15 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
 
   // Pane refs keyed by "host:port" so indices stay stable across add/remove
   const paneRefsMap = useRef<Map<string, MonitorPaneHandle | null>>(new Map());
-  const paneKey = (h: HostConfig) => `${h.host}:${h.port}`;
 
   // Overlay mode
   const [mode, setMode] = useState<Mode>("normal");
   const [pickerIdx, setPickerIdx] = useState(0);
+  const [pickedHostKeys, setPickedHostKeys] = useState<Set<string>>(new Set());
   const [credentialValue, setCredentialValue] = useState("");
-  const [pendingHost, setPendingHost] = useState<HostConfig | null>(null);
+  const [pendingHosts, setPendingHosts] = useState<HostConfig[]>([]);
+  const [pendingConnectOpts, setPendingConnectOpts] = useState<(ConnectOptions | undefined)[]>([]);
+  const [pendingPasswordIdx, setPendingPasswordIdx] = useState(-1);
   const [credentialPane, setCredentialPane] = useState(-1);
   const [credentialKind, setCredentialKind] = useState<"password" | "passphrase">("password");
   const [credentialError, setCredentialError] = useState<string | undefined>();
@@ -113,6 +130,8 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   const availableHosts = allHosts.filter(
     (h) => !hosts.some((ah) => ah.host === h.host && ah.port === h.port)
   );
+  const activePickerIdx = Math.min(pickerIdx, availableHosts.length);
+  const pendingHost = pendingHosts[pendingPasswordIdx] ?? null;
 
   const flash = (msg: string, isError = false) => {
     if (isError) setActionError(msg);
@@ -121,19 +140,75 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   };
 
   // ── Add / remove panes ────────────────────────────────────────────────────
-  const addPane = useCallback((host: HostConfig, opts?: ConnectOptions) => {
-    setHosts((prev) => [...prev, host]);
-    setConnectOpts((prev) => [...prev, opts]);
-    setPaneStates((prev) => [...prev, { service: null, snapshot: null, connection: { status: "connecting" }, history: new Map() }]);
-    setFocusedPane((prev) => prev + 1); // focus the new pane (it will be last)
+  const resetAddFlow = () => {
     setMode("normal");
+    setPickedHostKeys(new Set());
     setCredentialValue("");
-    setPendingHost(null);
-  }, []);
+    setPendingHosts([]);
+    setPendingConnectOpts([]);
+    setPendingPasswordIdx(-1);
+  };
+
+  const addPanes = (nextHosts: HostConfig[], nextOptions: (ConnectOptions | undefined)[]) => {
+    setHosts((prev) => [...prev, ...nextHosts]);
+    setConnectOpts((prev) => [...prev, ...nextOptions]);
+    setPaneStates((prev) => [
+      ...prev,
+      ...nextHosts.map(() => ({
+        service: null,
+        snapshot: null,
+        connection: { status: "connecting" } as PaneConnectionState,
+        history: new Map<string, StatusChange[]>(),
+      })),
+    ]);
+    setFocusedPane(hosts.length + nextHosts.length - 1);
+    resetAddFlow();
+  };
+
+  const beginAddingPickedHosts = () => {
+    const nextHosts = getPickedHosts(availableHosts, pickedHostKeys, activePickerIdx);
+    if (nextHosts.length === 0) return;
+    const nextOptions = new Array<ConnectOptions | undefined>(nextHosts.length).fill(undefined);
+    const firstPasswordIdx = nextHosts.findIndex((host) => host.authMethod === "password");
+    if (firstPasswordIdx === -1) {
+      addPanes(nextHosts, nextOptions);
+      return;
+    }
+    setPendingHosts(nextHosts);
+    setPendingConnectOpts(nextOptions);
+    setPendingPasswordIdx(firstPasswordIdx);
+    setCredentialValue("");
+    setMode("new-password");
+  };
+
+  const handleNewPasswordSubmit = (value: string) => {
+    if (!pendingHost || !value.trim()) return;
+    const updated = [...pendingConnectOpts];
+    updated[pendingPasswordIdx] = { password: value };
+    const nextPasswordIdx = pendingHosts.findIndex(
+      (host, index) => index > pendingPasswordIdx && host.authMethod === "password",
+    );
+    if (nextPasswordIdx === -1) {
+      addPanes(pendingHosts, updated);
+      return;
+    }
+    setPendingConnectOpts(updated);
+    setPendingPasswordIdx(nextPasswordIdx);
+    setCredentialValue("");
+  };
+
+  const handleCreatedHost = (host: HostConfig) => {
+    onCreateHost(host);
+    setPickedHostKeys((prev) => new Set(prev).add(hostKey(host)));
+    setPickerIdx(availableHosts.length);
+    setMode("picking");
+  };
+
+  const openCreateHostForm = () => setTimeout(() => setMode("creating"), 0);
 
   const removePane = useCallback((idx: number) => {
     if (hosts.length <= 1) return;
-    paneRefsMap.current.delete(paneKey(hosts[idx]));
+    paneRefsMap.current.delete(hostKey(hosts[idx]));
     setHosts((prev) => prev.filter((_, i) => i !== idx));
     setConnectOpts((prev) => prev.filter((_, i) => i !== idx));
     setPaneStates((prev) => prev.filter((_, i) => i !== idx));
@@ -163,7 +238,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     setLogsLoading(true);
     let buf: string[] = [];
     let remainder = "";
-    const pane = paneRefsMap.current.get(paneKey(hosts[focusedPane]));
+    const pane = paneRefsMap.current.get(hostKey(hosts[focusedPane]));
     if (!pane) return;
 
     pane.streamLogs(
@@ -203,26 +278,34 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     // ── Picker mode ──
     if (mode === "picking") {
       if (monitorKeys.up.matches(input, key))   { setPickerIdx((i) => Math.max(0, i - 1)); return; }
-      if (monitorKeys.down.matches(input, key)) { setPickerIdx((i) => Math.min(availableHosts.length - 1, i + 1)); return; }
-      if (monitorKeys.cancel.matches(input, key)) { setMode("normal"); return; }
-      if (monitorKeys.confirm.matches(input, key) && availableHosts.length > 0) {
-        const host = availableHosts[pickerIdx];
-        if (host.authMethod === "password") {
-          setPendingHost(host);
-          setCredentialValue("");
-          setMode("new-password");
-        } else {
-          addPane(host);
-        }
+      if (monitorKeys.down.matches(input, key)) { setPickerIdx((i) => Math.min(availableHosts.length, i + 1)); return; }
+      if (monitorKeys.cancel.matches(input, key)) { resetAddFlow(); return; }
+      if (input === "n") { openCreateHostForm(); return; }
+      if (input === " " && activePickerIdx < availableHosts.length) {
+        const selectedKey = hostKey(availableHosts[activePickerIdx]);
+        setPickedHostKeys((prev) => {
+          const next = new Set(prev);
+          next.has(selectedKey) ? next.delete(selectedKey) : next.add(selectedKey);
+          return next;
+        });
+        return;
+      }
+      if (monitorKeys.confirm.matches(input, key)) {
+        if (activePickerIdx === availableHosts.length) openCreateHostForm();
+        else beginAddingPickedHosts();
       }
       return;
     }
 
+    if (mode === "creating") return;
+
     // ── Credential modes ──
     if (mode === "new-password" || mode === "credential") {
       if (monitorKeys.cancel.matches(input, key)) {
-        setMode(mode === "new-password" ? "picking" : "normal");
-        if (mode === "credential") {
+        if (mode === "new-password") {
+          resetAddFlow();
+        } else {
+          setMode("normal");
           setCredentialPane(-1);
           setCredentialError(undefined);
         }
@@ -234,7 +317,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     // ── Compose restart picker ──
     if (mode === "compose-restart") {
       if (monitorKeys.cancel.matches(input, key)) { setMode("normal"); return; }
-      const run = (cmd: string) => paneRefsMap.current.get(paneKey(hosts[focusedPane]))!.run(cmd);
+      const run = (cmd: string) => paneRefsMap.current.get(hostKey(hosts[focusedPane]))!.run(cmd);
       if (input === "1" || monitorKeys.confirm.matches(input, key)) {
         setMode("normal");
         if (selectedService) runAction("restart", () => restartDockerService(run, selectedService));
@@ -256,7 +339,8 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     if (monitorKeys.quit.matches(input, key)) { exit(); return; }
     if (monitorKeys.hosts.matches(input, key)) { onSwitchHost(); return; }
 
-    if (monitorKeys.addPane.matches(input, key) && availableHosts.length > 0) {
+    if (monitorKeys.addPane.matches(input, key)) {
+      setPickedHostKeys(new Set());
       setPickerIdx(0);
       setMode("picking");
       return;
@@ -266,7 +350,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     if (monitorKeys.swapRight.matches(input, key) && hosts.length > 1) { swapPane(focusedPane, focusedPane + 1); return; }
 
     if (focused.connection.status !== "online") {
-      const pane = paneRefsMap.current.get(paneKey(hosts[focusedPane]));
+      const pane = paneRefsMap.current.get(hostKey(hosts[focusedPane]));
       if (monitorKeys.retry.matches(input, key) && canRetryConnection(focused.connection)) pane?.retry();
       else if (monitorKeys.credentials.matches(input, key) && focused.connection.status === "needs-credential") pane?.requestCredential();
       return;
@@ -276,7 +360,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
 
     if (!selectedService || busy) return;
 
-    const run = (cmd: string) => paneRefsMap.current.get(paneKey(hosts[focusedPane]))!.run(cmd);
+    const run = (cmd: string) => paneRefsMap.current.get(hostKey(hosts[focusedPane]))!.run(cmd);
     const isNative = selectedService.kind === "system-service";
 
     if (isNative) {
@@ -324,6 +408,21 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   const failedCount = paneStates.filter((pane) => pane.connection.status === "offline" || pane.connection.status === "needs-credential").length;
   const pendingCount = hosts.length - onlineCount - failedCount;
   const visibleTabIndexes = getVisibleTabIndexes(columns, hosts.length, focusedPane);
+  const addFlowActive = mode === "picking" || mode === "creating" || mode === "new-password";
+  const pickerItemCount = availableHosts.length + 1;
+  const pickerVisibleCount = Math.min(pickerItemCount, Math.max(1, rows - 13));
+  const pickerStart = Math.min(
+    Math.max(0, activePickerIdx - Math.floor(pickerVisibleCount / 2)),
+    pickerItemCount - pickerVisibleCount,
+  );
+  const visiblePickerIndexes = Array.from(
+    { length: pickerVisibleCount },
+    (_, index) => pickerStart + index,
+  );
+  const passwordTotal = pendingHosts.filter((host) => host.authMethod === "password").length;
+  const passwordNumber = pendingHosts
+    .slice(0, pendingPasswordIdx + 1)
+    .filter((host) => host.authMethod === "password").length;
 
   return (
     <Box flexDirection="column" width="100%" height="100%">
@@ -361,9 +460,9 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
       {/* Keep every connection alive, but only the active tab takes layout space. */}
       <Box width="100%">
         {hosts.map((host, i) => (
-          <Box key={paneKey(host)} visible={focusedPane === i} width="100%">
+          <Box key={hostKey(host)} visible={focusedPane === i && !addFlowActive} width="100%">
             <MonitorPane
-              ref={(el) => { paneRefsMap.current.set(paneKey(host), el); }}
+              ref={(el) => { paneRefsMap.current.set(hostKey(host), el); }}
               hostConfig={host}
               connectOptions={connectOpts[i]}
               isActive={focusedPane === i && mode === "normal" && !logsOpen}
@@ -390,45 +489,67 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
         ))}
       </Box>
 
+      {mode === "creating" && (
+        <HostForm onSubmit={handleCreatedHost} onCancel={resetAddFlow} />
+      )}
+
       {/* Overlay: host picker */}
       {mode === "picking" && (
-        <Box borderStyle="single" borderColor={palette.structure} paddingX={1} flexDirection="column">
-          <Box gap={2}>
-            <Text bold color={palette.structure}>Add host</Text>
-            <Text dimColor>{monitorKeys.up.display}{monitorKeys.down.display} navigate · {monitorKeys.confirm.display} connect · {monitorKeys.cancel.display} cancel</Text>
+        <Box borderStyle="single" borderColor={palette.structure} paddingX={1} flexDirection="column" flexGrow={1}>
+          <Box flexDirection="column">
+            <Text bold color={palette.structure}>Add hosts ({pickedHostKeys.size} selected)</Text>
+            <Text dimColor wrap="wrap">{monitorKeys.up.display}{monitorKeys.down.display} navigate · Space select · {monitorKeys.confirm.display} add · n new · {monitorKeys.cancel.display} cancel</Text>
           </Box>
-          {availableHosts.length === 0 ? (
-            <Text dimColor>All configured hosts are already open.</Text>
-          ) : (
-            availableHosts.map((h, i) => (
-              <Box key={paneKey(h)} gap={1}>
-                <Text color={i === pickerIdx ? palette.selected : palette.inactive}>{i === pickerIdx ? ">" : " "}</Text>
-                <Text color={i === pickerIdx ? palette.selected : palette.inactive} inverse={i === pickerIdx}>
-                  {h.name.padEnd(20)}
-                </Text>
-                <Text dimColor>{h.username}@{h.host}:{h.port}</Text>
+          {pickerStart > 0 && <Text dimColor>  … {pickerStart} more above</Text>}
+          {visiblePickerIndexes.map((i) => {
+            const focused = i === activePickerIdx;
+            if (i === availableHosts.length) {
+              return (
+                <Box key="create-host" gap={1}>
+                  <Text color={focused ? palette.selected : palette.inactive}>{focused ? ">" : " "}</Text>
+                  <Text bold={focused} inverse={focused} color={focused ? palette.selected : palette.inactive}>
+                    [+] Create new host
+                  </Text>
+                </Box>
+              );
+            }
+            const host = availableHosts[i];
+            const checked = pickedHostKeys.has(hostKey(host));
+            return (
+              <Box key={hostKey(host)} gap={1} width="100%">
+                <Text color={focused ? palette.selected : palette.inactive}>{focused ? ">" : " "}</Text>
+                <Text color={checked ? palette.focus : palette.inactive}>{checked ? "[✓]" : "[ ]"}</Text>
+                <Box width={layout.narrow ? 18 : 24} overflow="hidden">
+                  <Text bold={focused} inverse={focused} color={focused ? palette.selected : palette.inactive} wrap="truncate">
+                    {host.name}
+                  </Text>
+                </Box>
+                <Box flexGrow={1} overflow="hidden">
+                  <Text dimColor wrap="truncate">{host.username}@{host.host}:{host.port}</Text>
+                </Box>
               </Box>
-            ))
+            );
+          })}
+          {pickerStart + pickerVisibleCount < pickerItemCount && (
+            <Text dimColor>  … {pickerItemCount - pickerStart - pickerVisibleCount} more below</Text>
           )}
         </Box>
       )}
 
       {/* New panes need a password before their pane exists. Re-prompts render inside the affected pane. */}
       {mode === "new-password" && pendingHost && (
-        <Box borderStyle="single" borderColor={palette.warning} paddingX={1} flexDirection="column">
+        <Box borderStyle="single" borderColor={palette.warning} paddingX={1} flexDirection="column" flexGrow={1}>
           <Box>
-            <Text color={palette.warning}>Password for {pendingHost.name}: </Text>
+            <Text color={palette.warning}>Password for {pendingHost.name} ({passwordNumber}/{passwordTotal}): </Text>
             <TextInput
+              key={pendingPasswordIdx}
               value={credentialValue}
               onChange={setCredentialValue}
-              onSubmit={(val) => {
-                if (!val.trim()) return;
-                addPane(pendingHost, { password: val });
-              }}
+              onSubmit={handleNewPasswordSubmit}
               mask="*"
               focus
             />
-            <Text dimColor>  {monitorKeys.cancel.display} cancel</Text>
+            <Text dimColor>  {monitorKeys.cancel.display} cancel add</Text>
           </Box>
         </Box>
       )}
@@ -475,18 +596,20 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
         visible={logsVisible}
         viewHeight={layout.logRows}
       />
-      <Footer
-        actionMessage={actionMessage}
-        error={actionError}
-        selectedKind={selectedService?.kind}
-        paneCount={hosts.length}
-        focusedPane={focusedPane}
-        canAddPane={availableHosts.length > 0}
-        canRemovePane={multi}
-        connectionStatus={focused.connection.status}
-        canRetry={canRetryConnection(focused.connection)}
-        overlayActive={mode !== "normal"}
-      />
+      {mode !== "creating" && (
+        <Footer
+          actionMessage={actionMessage}
+          error={actionError}
+          selectedKind={selectedService?.kind}
+          paneCount={hosts.length}
+          focusedPane={focusedPane}
+          canAddPane
+          canRemovePane={multi}
+          connectionStatus={focused.connection.status}
+          canRetry={canRetryConnection(focused.connection)}
+          overlayActive={mode !== "normal"}
+        />
+      )}
     </Box>
   );
 }

@@ -25,6 +25,13 @@ export type PaneCredentialPrompt = {
   onSubmit: (value: string) => void;
 };
 
+type InputHandler = Parameters<typeof useInput>[0];
+
+function ActiveInput({ onInput }: Readonly<{ onInput: InputHandler }>) {
+  useInput(onInput);
+  return null;
+}
+
 export function canRetryConnection(connection: PaneConnectionState): boolean {
   return connection.status === "retrying"
     || (connection.status === "offline" && !["host-key", "key-file"].includes(connection.issue.kind));
@@ -337,7 +344,7 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
     },
   }), [reconnectNow]);
 
-  useInput((input, key) => {
+  const handleInput: InputHandler = (input, key) => {
     if (connection.status !== "online") return;
     if (searchMode) {
       if (monitorKeys.cancel.matches(input, key)) { setSearchMode(false); setSearchQuery(""); setSelectedIndex(0); return; }
@@ -356,7 +363,7 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
       setSortBy((cur) => SORT_CYCLE[(SORT_CYCLE.indexOf(cur) + 1) % SORT_CYCLE.length]);
       setSelectedIndex(0);
     }
-  }, { isActive });
+  };
 
   const serviceList = (
     <ServiceList
@@ -377,6 +384,7 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
 
   return (
     <Box flexDirection="column" flexGrow={1}>
+      {isActive && <ActiveInput onInput={handleInput} />}
       <Header
         snapshot={snapshot} connecting={connection.status === "connecting"} lastUpdated={lastUpdated}
         reconnectCountdown={connection.status === "retrying" ? connection.countdown : null}

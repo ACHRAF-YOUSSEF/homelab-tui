@@ -3,6 +3,24 @@ import { expect, test } from "bun:test";
 import { testRender } from "@opentui/react/test-utils";
 import { Text, TextInput } from "./tui.js";
 import { Footer } from "./Footer.js";
+import { getPickedHosts } from "./MultiMonitor.js";
+import type { HostConfig } from "../core/types.js";
+
+const host = (name: string, address: string): HostConfig => ({
+  name,
+  host: address,
+  port: 22,
+  username: "root",
+  authMethod: "key",
+  privateKeyPath: "~/.ssh/id_ed25519",
+  discovery: { docker: true, nativeServices: false, includeStoppedContainers: true },
+});
+
+test("add-tab selection resolves every checked host and falls back to the focused host", () => {
+  const hosts = [host("one", "10.0.0.1"), host("two", "10.0.0.2"), host("three", "10.0.0.3")];
+  expect(getPickedHosts(hosts, new Set(["10.0.0.1:22", "10.0.0.3:22"]), 1)).toEqual([hosts[0], hosts[2]]);
+  expect(getPickedHosts(hosts, new Set(), 1)).toEqual([hosts[1]]);
+});
 
 test("selected text remains readable without a solid background", async () => {
   const setup = await testRender(<Text color="#ffffff" inverse>selected</Text>, { width: 20, height: 1 });
