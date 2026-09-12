@@ -2,51 +2,13 @@ import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo
 import { Box, Text, TextInput, useInput } from "./tui.js";
 import { Monitor, PassphraseRequiredError } from "../core/monitor.js";
 import { classifySSHError, SSHConnectionError, type ConnectOptions } from "../transports/ssh.js";
-import type { HostConfig, MonitorSnapshot, Service, ServiceStatus, SystemInfo } from "../core/types.js";
+import type { HostConfig, MonitorSnapshot, Service, ServiceStatus } from "../core/types.js";
 import { Header } from "./Header.js";
 import { SystemPanel } from "./SystemPanel.js";
 import { ServiceList } from "./ServiceList.js";
 import type { SortField, StatusFilter } from "./App.js";
 import { monitorKeys } from "./keys.js";
 import { palette } from "./palette.js";
-
-// ── Compact metrics (used in multi-pane mode, no border) ────────────────────
-function fmtBytes(b: number) {
-  if (b >= 1_073_741_824) return `${(b / 1_073_741_824).toFixed(1)}G`;
-  if (b >= 1_048_576) return `${(b / 1_048_576).toFixed(0)}M`;
-  return `${b}B`;
-}
-function clr(pct: number) { return pct > 80 ? palette.danger : pct > 50 ? palette.warning : palette.healthy; }
-
-function CompactMetrics({ system }: Readonly<{ system: SystemInfo }>) {
-  const ramPct = system.ram
-    ? Math.round((system.ram.usedBytes / system.ram.totalBytes) * 100) : null;
-  return (
-    <Box paddingX={1} gap={2} flexWrap="wrap">
-      {system.cpuUsagePercent !== undefined && (
-        <Box gap={1}>
-          <Text dimColor>CPU</Text>
-          <Text color={clr(system.cpuUsagePercent)}>{system.cpuUsagePercent}%</Text>
-        </Box>
-      )}
-      {system.ram && ramPct !== null && (
-        <Box gap={1}>
-          <Text dimColor>RAM</Text>
-          <Text color={clr(ramPct)}>{fmtBytes(system.ram.usedBytes)}/{fmtBytes(system.ram.totalBytes)}</Text>
-        </Box>
-      )}
-      {(system.disks ?? []).slice(0, 3).map((d) => {
-        const pct = Math.round(((d.totalBytes - d.freeBytes) / d.totalBytes) * 100);
-        return (
-          <Box key={d.name} gap={1}>
-            <Text dimColor>{d.name}</Text>
-            <Text color={clr(pct)}>{fmtBytes(d.totalBytes - d.freeBytes)}/{fmtBytes(d.totalBytes)}</Text>
-          </Box>
-        );
-      })}
-    </Box>
-  );
-}
 
 export type PaneConnectionState =
   | { status: "connecting" }
@@ -174,11 +136,7 @@ type Props = {
   hostConfig: HostConfig;
   connectOptions?: ConnectOptions;
   isActive: boolean;
-  focused: boolean;
-  paneIndex?: number;   // undefined → single-pane (full Header)
   paneCount?: number;
-  version: string;
-  updateTag?: string | null;
   containerWidth?: number;
   viewHeight?: number;
   compact?: boolean;
@@ -188,7 +146,7 @@ type Props = {
 };
 
 export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function MonitorPane(props, ref) {
-  const { hostConfig, connectOptions, isActive, focused, paneIndex, paneCount,
+  const { hostConfig, connectOptions, isActive, paneCount,
     containerWidth, viewHeight, compact, credentialPrompt, onCredentialNeeded, onStateChange } = props;
   const multiPane = (paneCount ?? 1) > 1;
 
@@ -417,63 +375,17 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
     ? serviceList
     : <ConnectionPanel host={hostConfig} snapshot={snapshot} lastUpdated={lastUpdated} connection={connection} compact={compact} />;
 
-  // ── Multi-pane compact layout ────────────────────────────────────────────
-  if (multiPane) {
-    const time = lastUpdated
-      ? lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-      : "—";
-    const borderColor = focused ? palette.focus : palette.inactive;
-
-    return (
-      <Box flexDirection="column" flexGrow={1}
-        borderStyle={focused ? "double" : "single"}
-        borderColor={borderColor}>
-
-        {/* Compact pane header — no nested border */}
-        <Box paddingX={1} gap={1} flexWrap="nowrap">
-          <Text bold color={focused ? palette.focus : palette.inactive}>[{(paneIndex ?? 0) + 1}]</Text>
-          <Text bold color={focused ? palette.selected : palette.inactive}>{hostConfig.name}</Text>
-          {connection.status === "online" && snapshot ? (
-            <>
-              <Text color={palette.healthy}>●</Text>
-              <Text dimColor>{snapshot.remoteOS}</Text>
-              <Text dimColor>{snapshot.system.hostname}</Text>
-            </>
-          ) : connection.status === "offline" || connection.status === "needs-credential" ? (
-            <Text color={palette.danger}>✗ {connection.status === "needs-credential" ? "credentials" : "unavailable"}</Text>
-          ) : (
-            <Text color={palette.warning}>○ {connection.status === "retrying" ? "reconnecting…" : "connecting…"}</Text>
-          )}
-          <Box flexGrow={1} />
-          {connection.status === "retrying"
-            ? <Text color={palette.warning}>retry {connection.countdown}s (#{connection.attempt})</Text>
-            : <Text dimColor>{time}</Text>}
-        </Box>
-
-        {downAlert && (
-          <Box paddingX={1}>
-            <Text color={palette.danger} bold>⚠ {downAlert}</Text>
-          </Box>
-        )}
-
-        {/* Compact inline metrics — no border */}
-        {!compact && connection.status === "online" && snapshot?.system && <CompactMetrics system={snapshot.system} />}
-
-        {content}
-        {credentialPrompt && <CredentialEditor host={hostConfig} prompt={credentialPrompt} />}
-      </Box>
-    );
-  }
-
-  // ── Single-pane full layout ──────────────────────────────────────────────
   return (
     <Box flexDirection="column" flexGrow={1}>
       <Header
         snapshot={snapshot} connecting={connection.status === "connecting"} lastUpdated={lastUpdated}
         reconnectCountdown={connection.status === "retrying" ? connection.countdown : null}
         reconnectAttempt={connection.status === "retrying" ? connection.attempt : undefined}
+        compact={(containerWidth ?? 80) < 120}
       />
-      {!compact && connection.status === "online" && snapshot?.system && <SystemPanel system={snapshot.system} />}
+      {!compact && connection.status === "online" && snapshot?.system && (
+        <SystemPanel system={snapshot.system} compact={(containerWidth ?? 80) < 120} />
+      )}
       {downAlert && (
         <Box paddingX={1}>
           <Text color={palette.danger} bold>⚠ {downAlert}</Text>

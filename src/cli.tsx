@@ -100,9 +100,9 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const renderer = await createCliRenderer({ backgroundColor: "black" });
+  const renderer = await createCliRenderer();
   createRoot(renderer).render(
-    <Box width="100%" height="100%" backgroundColor="black" flexDirection="column">
+    <Box width="100%" height="100%" flexDirection="column">
       <Root
         initialConfig={config}
         configPath={configPath}

@@ -29,21 +29,21 @@ function Metric({ label, children }: Readonly<{ label: string; children: React.R
   );
 }
 
-function DiskBar({ d }: Readonly<{ d: DiskEntry }>) {
+function DiskBar({ d, compact }: Readonly<{ d: DiskEntry; compact?: boolean }>) {
   const used = d.totalBytes - d.freeBytes;
   const pct = Math.round((used / d.totalBytes) * 100);
   return (
     <Metric label={d.name}>
       <Text color={clr(pct)}>
-        {pct >= 85 ? "⚠ " : ""}{bar(pct)} {fmtBytes(used)}/{fmtBytes(d.totalBytes)} ({pct}%)
+        {pct >= 85 ? "⚠ " : ""}{compact ? `${fmtBytes(used)}/${fmtBytes(d.totalBytes)} ${pct}%` : `${bar(pct)} ${fmtBytes(used)}/${fmtBytes(d.totalBytes)} (${pct}%)`}
       </Text>
     </Metric>
   );
 }
 
-type Props = { system: SystemInfo };
+type Props = { system: SystemInfo; compact?: boolean };
 
-export function SystemPanel({ system }: Readonly<Props>) {
+export function SystemPanel({ system, compact }: Readonly<Props>) {
   const ramPct = system.ram
     ? Math.round((system.ram.usedBytes / system.ram.totalBytes) * 100)
     : null;
@@ -52,12 +52,12 @@ export function SystemPanel({ system }: Readonly<Props>) {
 
   return (
     <Box borderStyle="single" borderColor={palette.metrics} paddingX={1} width="100%" flexDirection="column">
-      <Box justifyContent="space-between">
+      <Box justifyContent={compact ? undefined : "space-between"} gap={compact ? 2 : undefined} flexWrap={compact ? "wrap" : undefined}>
         {/* CPU */}
         {system.cpuUsagePercent !== undefined && (
           <Metric label="CPU">
             <Text color={clr(system.cpuUsagePercent)}>
-              {bar(system.cpuUsagePercent)} {system.cpuUsagePercent}%
+              {compact ? `${system.cpuUsagePercent}%` : `${bar(system.cpuUsagePercent)} ${system.cpuUsagePercent}%`}
             </Text>
           </Metric>
         )}
@@ -66,13 +66,13 @@ export function SystemPanel({ system }: Readonly<Props>) {
         {ramPct !== null && system.ram && (
           <Metric label="RAM">
             <Text color={clr(ramPct)}>
-              {bar(ramPct)} {fmtBytes(system.ram.usedBytes)}/{fmtBytes(system.ram.totalBytes)}
+              {compact ? `${fmtBytes(system.ram.usedBytes)}/${fmtBytes(system.ram.totalBytes)}` : `${bar(ramPct)} ${fmtBytes(system.ram.usedBytes)}/${fmtBytes(system.ram.totalBytes)}`}
             </Text>
           </Metric>
         )}
 
         {/* Disks inline — wrap if too many */}
-        {disks.map((d) => <DiskBar key={d.name} d={d} />)}
+        {disks.map((d) => <DiskBar key={d.name} d={d} compact={compact} />)}
       </Box>
     </Box>
   );

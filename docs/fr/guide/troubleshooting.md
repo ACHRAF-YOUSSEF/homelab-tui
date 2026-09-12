@@ -14,14 +14,14 @@ homelab-tui --config /chemin/absolu/homelab.config.json
 - Vérifiez le chemin et les permissions de la clé privée.
 - Ajoutez la clé à votre agent SSH si nécessaire.
 - Les clés chiffrées et les machines utilisant un mot de passe déclenchent une invite au lancement.
-- Un mot de passe refusé suspend les nouvelles tentatives sans conserver la valeur. Avec un seul panneau, une nouvelle invite s'ouvre immédiatement; avec plusieurs machines, activez le panneau en échec puis appuyez sur `c` afin de laisser les autres utilisables. `Échap` ferme l'invite sans masquer l'erreur.
+- Un mot de passe refusé suspend les nouvelles tentatives sans conserver la valeur. Avec un seul onglet, une nouvelle invite s'ouvre immédiatement; avec plusieurs machines, ouvrez l'onglet en échec puis appuyez sur `c` afin de laisser les autres utilisables. `Échap` ferme l'invite sans masquer l'erreur.
 - Une clé refusée n'ouvre jamais d'invite de mot de passe. Vérifiez plutôt la clé publique dans le fichier `authorized_keys` du compte distant.
 
 ## Une machine reste en reconnexion
 
 Les erreurs réseau temporaires déclenchent des tentatives après `3`, `5`, `10`, `20`, puis `30` secondes. Appuyez sur `r` pour réessayer immédiatement. Les erreurs d'authentification, de clé privée, de DNS et de clé d'hôte suspendent les tentatives automatiques.
 
-Le panneau explique l'erreur détectée sans bloquer les autres machines. Après une connexion réussie, l'heure et le nombre de services de la dernière mise à jour restent affichés comme données périmées; les actions sur les services sont désactivées jusqu'au rétablissement.
+L'onglet explique l'erreur détectée sans bloquer les autres machines. Après une connexion réussie, l'heure et le nombre de services de la dernière mise à jour restent affichés comme données périmées; les actions sur les services sont désactivées jusqu'au rétablissement.
 
 ## La connexion SSH est refusée
 
@@ -45,4 +45,4 @@ Activez `discovery.nativeServices`. La détection liste les programmes à l'éco
 
 ## La disposition est trop dense
 
-Utilisez au moins un terminal `80×24`. Le mode compact s'active sous 30 lignes; un terminal plus large affiche davantage de colonnes et facilite la lecture de plusieurs panneaux.
+Utilisez au moins un terminal `80×24`. Le mode compact s'active sous 30 lignes; un terminal plus large affiche davantage de colonnes, et chaque onglet conserve toute la largeur disponible.

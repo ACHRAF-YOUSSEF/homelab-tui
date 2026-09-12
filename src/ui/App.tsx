@@ -316,10 +316,11 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
         connecting={connecting}
         lastUpdated={lastUpdated}
         reconnectCountdown={reconnectCountdown}
+        compact={layout.narrow}
         version={VERSION}
         updateTag={updateTag}
       />
-      {!layout.compact && !logsOpen && snapshot?.system && <SystemPanel system={snapshot.system} />}
+      {!layout.compact && !logsOpen && snapshot?.system && <SystemPanel system={snapshot.system} compact={layout.narrow} />}
       <ServiceList
         services={filteredServices}
         allCount={allServices.length}

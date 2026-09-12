@@ -16,14 +16,14 @@ homelab-tui --config /absolute/path/to/homelab.config.json
 - For key auth, check the private-key path and file permissions.
 - Add the key to your SSH agent if it is agent-managed.
 - Encrypted keys prompt for a passphrase; password hosts prompt on launch.
-- A rejected password pauses automatic retries without storing the failed value. A single pane opens a fresh prompt immediately; in a multi-host view, focus the failed pane and press `c` so healthy panes remain usable. Press `Esc` to close the prompt without hiding the failure.
+- A rejected password pauses automatic retries without storing the failed value. A single tab opens a fresh prompt immediately; in a multi-host view, open the failed tab and press `c` so healthy hosts remain usable. Press `Esc` to close the prompt without hiding the failure.
 - A rejected key never opens a password prompt. Check the public key in the remote account's `authorized_keys` file instead.
 
 ## A host keeps reconnecting
 
 Transient connection errors trigger retries after `3`, `5`, `10`, `20`, then `30` seconds. Press `r` to retry immediately. Authentication, private-key, DNS, and host-key failures pause instead of retrying forever.
 
-The pane explains the detected failure and keeps other hosts usable. If it had connected before, it also shows the time and service count from the last good update as stale; service actions stay disabled until the connection recovers.
+The tab explains the detected failure and keeps other hosts usable. If it had connected before, it also shows the time and service count from the last good update as stale; service actions stay disabled until the connection recovers.
 
 ## SSH connection is refused
 
@@ -71,4 +71,4 @@ Add-Content $authorizedKeysPath "ssh-ed25519 AAAA... your-public-key"
 
 ## The layout is too dense
 
-Use at least an `80×24` terminal. The TUI switches to a compact layout below 30 rows; wider terminals reveal more service columns and make multi-host panes easier to scan.
+Use at least an `80×24` terminal. The TUI switches to a compact layout below 30 rows; wider terminals reveal more service columns while every host tab keeps the full content width.

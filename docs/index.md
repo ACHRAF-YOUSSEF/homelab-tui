@@ -26,7 +26,7 @@ features:
       width: 24
       height: 24
     title: Multi-host by default
-    details: Open several SSH hosts side by side, switch focus with Tab, and see partial failures without losing healthy panes.
+    details: Keep several SSH hosts connected in full-width tabs, switch with Tab, and see partial failures without losing healthy hosts.
     link: /guide/monitoring
     linkText: Learn more
   - icon:

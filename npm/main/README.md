@@ -41,12 +41,12 @@ homelab-tui connects to Linux, macOS, and Windows hosts over SSH, discovers Dock
 
 ## Features
 
-- **Multi-host monitoring** — open several independent SSH connections in responsive panes.
+- **Multi-host monitoring** — keep several independent SSH connections open in full-width host tabs.
 - **Docker and Compose discovery** — inspect status, image, ports, health, and Compose projects.
 - **Native service discovery** — find programs listening on TCP ports across supported operating systems.
 - **System metrics** — monitor CPU, memory, and disk usage without installing a remote agent.
 - **Live logs** — follow Docker logs and supported native-process logs over SSH.
-- **Keyboard-first controls** — search, filter, sort, restart, stop, start, and switch panes without a mouse.
+- **Keyboard-first controls** — search, filter, sort, restart, stop, start, and switch tabs without a mouse.
 - **Resilient connections** — keep healthy hosts usable while another host reconnects or fails.
 - **Secure authentication** — use passwords, private keys, encrypted keys, or an SSH agent.
 - **Self-update support** — check for and install new GitHub releases from the CLI.
@@ -133,7 +133,8 @@ Passwords and private-key passphrases are prompted at launch and are never store
 |---|---|
 | `↑` / `↓` | Select a host or service |
 | `Enter` | Connect or confirm |
-| `Tab` / `Shift+Tab` | Focus the next or previous host pane |
+| `Tab` / `Shift+Tab` | Open the next or previous host tab |
+| `1`–`9` | Open a host tab directly |
 | `/` | Search services |
 | `f` | Cycle filters |
 | `o` | Cycle sorting |
@@ -142,7 +143,7 @@ Passwords and private-key passphrases are prompted at launch and are never store
 | `s` | Stop a container or kill a native process |
 | `t` | Start a Docker container |
 | `l` | Toggle live logs |
-| `a` / `x` | Add or close a host pane |
+| `a` / `x` | Add or close a host tab |
 | `h` | Return to the host selector |
 | `q` | Quit |
 

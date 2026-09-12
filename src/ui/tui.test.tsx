@@ -53,7 +53,7 @@ test("wrapped footer keeps every keyboard hint visible", async () => {
     const lines = frame.trimEnd().split("\n");
     expect(lines).toHaveLength(4);
     expect(lines.at(-1)).toStartWith("└");
-    for (const hint of ["filter", "sort", "add pane", "close pane", "swap pane", "hosts", "pane 2/2", "quit"]) {
+    for (const hint of ["filter", "sort", "add tab", "close tab", "move tab", "hosts", "tab 2/2", "quit"]) {
       expect(frame).toContain(hint);
     }
   } finally {

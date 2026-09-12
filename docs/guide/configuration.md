@@ -40,7 +40,7 @@ homelab-tui reads a JSON file containing one or more SSH hosts. The default path
 
 | Field | Required | Default | Description |
 |---|---:|---:|---|
-| `name` | Yes | — | Label shown in the host selector and pane header. |
+| `name` | Yes | — | Label shown in the host selector and host tab. |
 | `host` | Yes | — | Hostname or IP address accepted by SSH. |
 | `port` | No | `22` | SSH port from `1` to `65535`. |
 | `username` | Yes | — | Remote SSH user. |
@@ -72,4 +72,4 @@ homelab-tui --set-config /path/to/homelab.config.json
 
 The saved setting lives at `~/.config/homelab-tui/settings.json` on Linux and macOS, or `%APPDATA%\homelab-tui\settings.json` on Windows. An explicit `--config` path always wins.
 
-Configuration changes are reloaded while the host selector or monitor is open. Existing connections stay alive until their pane is removed or the view changes.
+Configuration changes are reloaded while the host selector or monitor is open. Existing connections stay alive until their tab is removed or the view changes.

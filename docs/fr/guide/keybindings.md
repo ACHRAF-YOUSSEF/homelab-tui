@@ -27,10 +27,11 @@ En sélection multiple, utilisez `Espace` pour cocher les machines, `Entrée` po
 | `/` | Rechercher par nom ou image. |
 | `f` | Parcourir les filtres de type et d'état. |
 | `o` | Trier par nom, état ou image. |
-| `a` | Ajouter un panneau. |
-| `x` | Fermer le panneau actif. |
-| `<` / `>` | Déplacer le panneau actif. |
-| `Tab` / `Maj+Tab` | Activer le panneau suivant ou précédent. |
+| `a` | Ajouter un onglet. |
+| `x` | Fermer l'onglet actif. |
+| `<` / `>` | Déplacer l'onglet actif. |
+| `Tab` / `Maj+Tab` | Ouvrir l'onglet suivant ou précédent. |
+| `1`–`9` | Ouvrir directement un onglet de machine. |
 | `h` | Revenir au sélecteur de machines. |
 | `q` | Quitter. |
 

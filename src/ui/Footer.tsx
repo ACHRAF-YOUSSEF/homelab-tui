@@ -33,7 +33,7 @@ export function Footer({ actionMessage, error, selectedKind, paneCount, focusedP
     ...(canRemovePane ? [{ bindings: [monitorKeys.closePane] }] : []),
     ...(multiPane ? [{ bindings: [monitorKeys.swapLeft, monitorKeys.swapRight] }] : []),
     { bindings: [monitorKeys.hosts] },
-    ...(multiPane ? [{ bindings: [monitorKeys.nextPane], label: `pane ${(focusedPane ?? 0) + 1}/${paneCount}` }] : []),
+    ...(multiPane ? [{ bindings: [monitorKeys.nextPane], label: `tab ${(focusedPane ?? 0) + 1}/${paneCount}` }] : []),
     { bindings: [monitorKeys.quit] },
   ];
   const hints: { bindings: KeyBinding[]; label?: string }[] = overlayActive

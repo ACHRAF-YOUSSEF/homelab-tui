@@ -26,7 +26,7 @@ features:
       width: 24
       height: 24
     title: Plusieurs machines par défaut
-    details: Ouvrez plusieurs connexions SSH côte à côte, changez de focus avec Tab et conservez les machines disponibles en cas de panne partielle.
+    details: Gardez plusieurs connexions SSH ouvertes dans des onglets pleine largeur, changez avec Tab et conservez les machines disponibles en cas de panne partielle.
     link: /fr/guide/monitoring
     linkText: En savoir plus
   - icon:

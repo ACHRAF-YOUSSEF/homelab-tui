@@ -17,7 +17,7 @@ import { getLatestRelease, isNewerVersion } from "../updater.js";
 import { version as VERSION } from "../../package.json";
 import type { ConnectOptions } from "../transports/ssh.js";
 import type { HostConfig, MonitorSnapshot, Service, ServiceStatus, StatusChange } from "../core/types.js";
-import { getTerminalLayout } from "./geometry.js";
+import { getTerminalLayout, getVisibleTabIndexes } from "./geometry.js";
 import { monitorKeys } from "./keys.js";
 import { palette } from "./palette.js";
 
@@ -251,6 +251,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     // ── Normal mode ──
     if (monitorKeys.nextPane.matches(input, key)) { setFocusedPane((p) => (p + 1) % hosts.length); return; }
     if (monitorKeys.previousPane.matches(input, key)) { setFocusedPane((p) => (p - 1 + hosts.length) % hosts.length); return; }
+    if (/^[1-9]$/.test(input) && Number(input) <= hosts.length) { setFocusedPane(Number(input) - 1); return; }
 
     if (monitorKeys.quit.matches(input, key)) { exit(); return; }
     if (monitorKeys.hosts.matches(input, key)) { onSwitchHost(); return; }
@@ -322,9 +323,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   const onlineCount = paneStates.filter((pane) => pane.connection.status === "online").length;
   const failedCount = paneStates.filter((pane) => pane.connection.status === "offline" || pane.connection.status === "needs-credential").length;
   const pendingCount = hosts.length - onlineCount - failedCount;
-  const hostOverview = (layout.narrow
-    ? hosts.map((host, index) => ({ host, index })).filter(({ index }) => index === focusedPane)
-    : hosts.map((host, index) => ({ host, index })));
+  const visibleTabIndexes = getVisibleTabIndexes(columns, hosts.length, focusedPane);
 
   return (
     <Box flexDirection="column" width="100%" height="100%">
@@ -333,62 +332,61 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
       <Box borderStyle="single" borderColor={palette.structure} paddingX={1} width="100%">
         <Box gap={1} flexGrow={1}>
           <Text bold color={palette.brand}>homelab-tui</Text>
-          <Text dimColor>v{VERSION}</Text>
+          {!layout.narrow && <Text dimColor>v{VERSION}</Text>}
           {updateTag && !layout.narrow && <Text color={palette.warning} bold>↑ {updateTag} available</Text>}
-          {multi && <Text dimColor>{onlineCount}/{hosts.length} online</Text>}
-          {failedCount > 0 && <Text color={palette.danger}>{failedCount} failed</Text>}
-          {pendingCount > 0 && <Text color={palette.warning}>{pendingCount} connecting</Text>}
+          {multi && !layout.narrow && <Text dimColor>{onlineCount}/{hosts.length} online</Text>}
+          {failedCount > 0 && !layout.narrow && <Text color={palette.danger}>{failedCount} failed</Text>}
+          {pendingCount > 0 && !layout.narrow && <Text color={palette.warning}>{pendingCount} connecting</Text>}
         </Box>
-        <Box gap={2}>
-          {hostOverview.map(({ host: h, index: i }) => {
+        <Box gap={1} overflow="hidden">
+          {multi && <><Text bold color={palette.structure}>[{monitorKeys.nextPane.display}]</Text>{!layout.narrow && <Text dimColor> cycle</Text>}</>}
+          {visibleTabIndexes[0] > 0 && <Text dimColor>…</Text>}
+          {visibleTabIndexes.map((i) => {
+            const h = hosts[i];
             const paneConnection = paneStates[i]?.connection ?? { status: "connecting" };
             const isFocused = i === focusedPane;
             const failed = paneConnection.status === "offline" || paneConnection.status === "needs-credential";
             const status = failed ? palette.danger : paneConnection.status === "online" ? palette.healthy : palette.warning;
             return (
-              <Box key={i} gap={1}>
-                <Text color={isFocused ? palette.focus : palette.inactive}>{isFocused ? "▶" : " "}</Text>
-                <Text bold={isFocused} color={isFocused ? palette.focus : palette.inactive}>[{i + 1}] {h.name}</Text>
+              <Box key={i} gap={1} maxWidth={layout.narrow ? 12 : 18}>
+                <Text bold={isFocused} inverse={isFocused} color={isFocused ? palette.focus : palette.inactive} wrap="truncate">[{i + 1}] {h.name}</Text>
                 <Text color={status}>{failed ? "✗" : paneConnection.status === "online" ? "●" : "○"}</Text>
               </Box>
             );
           })}
+          {visibleTabIndexes.at(-1)! < hosts.length - 1 && <Text dimColor>…</Text>}
         </Box>
-        {multi && !layout.narrow && <Text dimColor>  {monitorKeys.nextPane.display}: switch</Text>}
       </Box>
 
-      {/* Panes */}
-      <Box flexDirection="row" width="100%">
+      {/* Keep every connection alive, but only the active tab takes layout space. */}
+      <Box width="100%">
         {hosts.map((host, i) => (
-          <MonitorPane
-            key={paneKey(host)}
-            ref={(el) => { paneRefsMap.current.set(paneKey(host), el); }}
-            hostConfig={host}
-            connectOptions={connectOpts[i]}
-            isActive={focusedPane === i && mode === "normal" && !logsOpen}
-            focused={focusedPane === i}
-            paneIndex={i}
-            paneCount={hosts.length}
-            version={VERSION}
-            updateTag={updateTag}
-            containerWidth={paneWidth}
-            viewHeight={layout.serviceRows}
-            compact={layout.compact || logsVisible}
-            credentialPrompt={mode === "credential" && credentialPane === i ? {
-              mode: credentialKind,
-              value: credentialValue,
-              error: credentialError,
-              onChange: setCredentialValue,
-              onSubmit: handleCredentialSubmit,
-            } : undefined}
-            onCredentialNeeded={(kind, error) => handleCredentialNeeded(i, kind, error)}
-            onStateChange={(svc, snap, connection) =>
-              setPaneStates((prev) => prev.map((s, j) => {
-                if (j !== i) return s;
-                return { service: svc, snapshot: snap, connection, history: mergeHistory(s.history, s.snapshot, snap) };
-              }))
-            }
-          />
+          <Box key={paneKey(host)} visible={focusedPane === i} width="100%">
+            <MonitorPane
+              ref={(el) => { paneRefsMap.current.set(paneKey(host), el); }}
+              hostConfig={host}
+              connectOptions={connectOpts[i]}
+              isActive={focusedPane === i && mode === "normal" && !logsOpen}
+              paneCount={hosts.length}
+              containerWidth={paneWidth}
+              viewHeight={layout.serviceRows}
+              compact={layout.compact || logsVisible}
+              credentialPrompt={mode === "credential" && credentialPane === i ? {
+                mode: credentialKind,
+                value: credentialValue,
+                error: credentialError,
+                onChange: setCredentialValue,
+                onSubmit: handleCredentialSubmit,
+              } : undefined}
+              onCredentialNeeded={(kind, error) => handleCredentialNeeded(i, kind, error)}
+              onStateChange={(svc, snap, connection) =>
+                setPaneStates((prev) => prev.map((s, j) => {
+                  if (j !== i) return s;
+                  return { service: svc, snapshot: snap, connection, history: mergeHistory(s.history, s.snapshot, snap) };
+                }))
+              }
+            />
+          </Box>
         ))}
       </Box>
 

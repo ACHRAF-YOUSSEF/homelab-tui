@@ -24,10 +24,18 @@ export function getTerminalLayout(columns = 80, rows = 24, paneCount = 1, logsOp
     compact,
     narrow: safeColumns < 100,
     wide: safeColumns >= 160,
-    paneWidth: Math.max(20, Math.floor(safeColumns / safePaneCount) - 2),
+    paneWidth: Math.max(20, safeColumns - 2),
     serviceRows,
     logRows: logsOpen ? Math.max(1, Math.min(15, sharedRows - serviceRows)) : 0,
   };
+}
+
+export function getVisibleTabIndexes(columns = 80, paneCount = 1, focusedPane = 0) {
+  const count = Math.max(1, Math.floor(paneCount));
+  const focus = Math.min(Math.max(0, Math.floor(focusedPane)), count - 1);
+  const visibleCount = Math.min(count, Math.max(1, Math.floor((Math.max(MIN_COLUMNS, columns) - 42) / 18)));
+  const start = Math.min(Math.max(0, focus - Math.floor(visibleCount / 2)), count - visibleCount);
+  return Array.from({ length: visibleCount }, (_, index) => start + index);
 }
 
 export type ServiceColumns = { name: number; status: number; image: number; ports: number };

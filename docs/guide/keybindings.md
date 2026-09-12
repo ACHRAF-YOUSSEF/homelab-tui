@@ -37,10 +37,11 @@ In multi-host selection, use `Space` to check hosts, `Enter` to connect to the c
 | `/` | Search by service name or image. |
 | `f` | Cycle type and status filters. |
 | `o` | Cycle sorting by name, status, and image. |
-| `a` | Add another host pane. |
-| `x` | Close the focused pane. |
-| `<` / `>` | Move the focused pane left or right. |
-| `Tab` / `Shift+Tab` | Focus the next or previous pane. |
+| `a` | Add another host tab. |
+| `x` | Close the active tab. |
+| `<` / `>` | Move the active tab left or right. |
+| `Tab` / `Shift+Tab` | Open the next or previous tab. |
+| `1`–`9` | Open a host tab directly. |
 | `h` | Return to the host selector. |
 | `q` | Quit. |
 

@@ -28,7 +28,7 @@ homelab-tui lit un fichier JSON contenant une ou plusieurs machines SSH. Le chem
 
 | Champ | Requis | Défaut | Description |
 |---|---:|---:|---|
-| `name` | Oui | — | Libellé affiché dans le sélecteur et l'en-tête du panneau. |
+| `name` | Oui | — | Libellé affiché dans le sélecteur et l'onglet de la machine. |
 | `host` | Oui | — | Nom d'hôte ou adresse IP accepté par SSH. |
 | `port` | Non | `22` | Port SSH entre `1` et `65535`. |
 | `username` | Oui | — | Utilisateur SSH distant. |

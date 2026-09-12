@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { getFooterRows, getServiceColumns, getTerminalLayout } from "./geometry.js";
+import { getFooterRows, getServiceColumns, getTerminalLayout, getVisibleTabIndexes } from "./geometry.js";
 
 describe("terminal geometry", () => {
   test("80x24 uses the compact single-pane layout", () => {
@@ -26,16 +26,23 @@ describe("terminal geometry", () => {
     expect(getServiceColumns(118)).toEqual({ name: 31, status: 13, image: 39, ports: 29 });
   });
 
-  test("wide terminals divide into stable panes", () => {
+  test("host tabs keep the active pane at full width", () => {
     expect(getTerminalLayout(200, 50, 2)).toEqual({
       compact: false,
       narrow: false,
       wide: true,
-      paneWidth: 98,
+      paneWidth: 198,
       serviceRows: 12,
       logRows: 0,
     });
-    expect(getServiceColumns(98)).toEqual({ name: 25, status: 11, image: 32, ports: 24 });
+    expect(getServiceColumns(198)).toEqual({ name: 53, status: 23, image: 67, ports: 49 });
+  });
+
+  test("tab window always includes the focused host", () => {
+    expect(getVisibleTabIndexes(80, 6, 0)).toEqual([0, 1]);
+    expect(getVisibleTabIndexes(80, 6, 3)).toEqual([2, 3]);
+    expect(getVisibleTabIndexes(80, 6, 5)).toEqual([4, 5]);
+    expect(getVisibleTabIndexes(200, 6, 5)).toEqual([0, 1, 2, 3, 4, 5]);
   });
 
   test("logs share the available height without overflowing", () => {

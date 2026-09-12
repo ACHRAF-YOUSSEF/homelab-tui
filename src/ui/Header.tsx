@@ -9,12 +9,13 @@ type Props = {
   lastUpdated: Date | null;
   reconnectCountdown: number | null;
   reconnectAttempt?: number;
+  compact?: boolean;
   // Omit these when rendering inside MultiMonitor's app bar (which already shows them)
   version?: string;
   updateTag?: string | null;
 };
 
-export function Header({ snapshot, connecting, lastUpdated, reconnectCountdown, reconnectAttempt, version, updateTag }: Readonly<Props>) {
+export function Header({ snapshot, connecting, lastUpdated, reconnectCountdown, reconnectAttempt, compact, version, updateTag }: Readonly<Props>) {
   const time = lastUpdated ? lastUpdated.toLocaleTimeString() : "—";
 
   return (
@@ -34,8 +35,8 @@ export function Header({ snapshot, connecting, lastUpdated, reconnectCountdown, 
         {snapshot ? (
           <>
             <Text><Text dimColor>host </Text><Text color={palette.selected}>{snapshot.hostName}</Text></Text>
-            <Text><Text dimColor>os </Text><Text color={palette.selected}>{snapshot.remoteOS}</Text></Text>
-            <Text><Text dimColor>node </Text><Text color={palette.selected}>{snapshot.system.hostname}</Text></Text>
+            {!compact && <Text><Text dimColor>os </Text><Text color={palette.selected}>{snapshot.remoteOS}</Text></Text>}
+            {!compact && <Text><Text dimColor>node </Text><Text color={palette.selected}>{snapshot.system.hostname}</Text></Text>}
           </>
         ) : (
           <Text color={connecting ? palette.warning : palette.inactive}>
