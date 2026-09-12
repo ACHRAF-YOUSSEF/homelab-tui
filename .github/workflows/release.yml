@@ -93,6 +93,9 @@ jobs:
     needs: security
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
 
     steps:
       - name: Checkout
@@ -106,7 +109,7 @@ jobs:
       - name: Setup Node (for npm publish)
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
       - name: Cache node_modules
@@ -142,11 +145,10 @@ jobs:
             dist/homelab-tui-windows-x64.exe
 
       - name: Publish to npm
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           jq --arg v "$VERSION" '.version = $v' npm/main/package.json > tmp.json
           mv tmp.json npm/main/package.json
+          cp README.md npm/main/README.md
           echo "Publishing homelab-tui@$VERSION"
           PUBLISHED=$(npm view homelab-tui@$VERSION version 2>/dev/null || echo "")
           if [ "$PUBLISHED" = "$VERSION" ]; then
