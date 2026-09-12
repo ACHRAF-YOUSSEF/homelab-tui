@@ -68,9 +68,10 @@ type Props = {
   allHosts: HostConfig[];       // all configured hosts (for the add-host picker)
   onCreateHost: (host: HostConfig) => void;
   onSwitchHost: () => void;
+  onCloseLastTab: () => void;
 };
 
-export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, onCreateHost, onSwitchHost }: Readonly<Props>) {
+export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, onCreateHost, onSwitchHost, onCloseLastTab }: Readonly<Props>) {
   const { exit } = useApp();
   const { width: columns, height: rows } = useTerminalDimensions();
   const terminalSize = { columns, rows };
@@ -207,13 +208,16 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   const openCreateHostForm = () => setTimeout(() => setMode("creating"), 0);
 
   const removePane = useCallback((idx: number) => {
-    if (hosts.length <= 1) return;
+    if (hosts.length <= 1) {
+      onCloseLastTab();
+      return;
+    }
     paneRefsMap.current.delete(hostKey(hosts[idx]));
     setHosts((prev) => prev.filter((_, i) => i !== idx));
     setConnectOpts((prev) => prev.filter((_, i) => i !== idx));
     setPaneStates((prev) => prev.filter((_, i) => i !== idx));
     setFocusedPane((prev) => Math.min(prev, hosts.length - 2));
-  }, [hosts]);
+  }, [hosts, onCloseLastTab]);
 
   // ── Log streaming ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -332,7 +336,11 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
       setMode("picking");
       return;
     }
-    if (monitorKeys.closePane.matches(input, key) && hosts.length > 1) { removePane(focusedPane); return; }
+    if (monitorKeys.closePane.matches(input, key)
+      && (hosts.length > 1 || focused.connection.status === "disconnected")) {
+      removePane(focusedPane);
+      return;
+    }
 
     if (focused.connection.status !== "online") {
       const pane = paneRefsMap.current.get(hostKey(hosts[focusedPane]));
@@ -385,12 +393,12 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     setCredentialError(undefined);
   }, [credentialPane, credentialKind]);
 
-  const logsVisible = logsOpen && mode === "normal";
+  const logsVisible = logsOpen && mode === "normal" && focused.connection.status === "online";
   const layout = getTerminalLayout(terminalSize.columns, terminalSize.rows, hosts.length, logsVisible);
   const paneWidth = layout.paneWidth;
   const multi = hosts.length > 1;
   const onlineCount = paneStates.filter((pane) => pane.connection.status === "online").length;
-  const failedCount = paneStates.filter((pane) => pane.connection.status === "offline" || pane.connection.status === "needs-credential").length;
+  const failedCount = paneStates.filter((pane) => ["disconnected", "offline", "needs-credential"].includes(pane.connection.status)).length;
   const pendingCount = hosts.length - onlineCount - failedCount;
   const visibleTabIndexes = getVisibleTabIndexes(columns, hosts.length, focusedPane);
   const addFlowActive = mode === "picking" || mode === "creating" || mode === "new-password";
@@ -429,7 +437,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
             const h = hosts[i];
             const paneConnection = paneStates[i]?.connection ?? { status: "connecting" };
             const isFocused = i === focusedPane;
-            const failed = paneConnection.status === "offline" || paneConnection.status === "needs-credential";
+            const failed = ["disconnected", "offline", "needs-credential"].includes(paneConnection.status);
             const status = failed ? palette.danger : paneConnection.status === "online" ? palette.healthy : palette.warning;
             return (
               <Box key={i} gap={1} maxWidth={layout.narrow ? 12 : 18}>
@@ -589,7 +597,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
           paneCount={hosts.length}
           focusedPane={focusedPane}
           canAddPane
-          canRemovePane={multi}
+          canRemovePane={multi || focused.connection.status === "disconnected"}
           connectionStatus={focused.connection.status}
           canRetry={canRetryConnection(focused.connection)}
           overlayActive={mode !== "normal"}

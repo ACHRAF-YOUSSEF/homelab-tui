@@ -36,7 +36,7 @@ export const monitorKeys = {
   pageUp: special("PgUp", "page up", (_input, key) => Boolean(key.pageUp)),
   pageDown: special("PgDn", "page down", (_input, key) => Boolean(key.pageDown)),
   restart: character("r", "restart"),
-  retry: character("r", "retry"),
+  retry: character("r", "reconnect"),
   credentials: character("c", "credentials"),
   stop: character("s", "stop"),
   kill: character("s", "kill"),

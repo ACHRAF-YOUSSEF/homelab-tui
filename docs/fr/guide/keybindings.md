@@ -41,7 +41,8 @@ Lorsque la machine active n'est pas connectée, le pied de page affiche les acti
 
 | Touche | Action |
 |---|---|
-| `r` | Réessayer immédiatement pendant une reconnexion ou hors ligne. |
+| `r` | Reconnecter immédiatement pendant une reconnexion, après une coupure ou hors ligne. |
+| `x` | Déconnecter et fermer l'onglet d'une machine coupée. |
 | `c` | Rouvrir l'invite de mot de passe ou de phrase secrète. |
 | `h` | Revenir au sélecteur pour modifier la configuration. |
 | `Échap` | Fermer l'invite sans masquer l'erreur de la machine. |

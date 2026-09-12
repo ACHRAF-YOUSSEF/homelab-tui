@@ -1,6 +1,7 @@
 import { NodeSSH } from "node-ssh";
 import { homedir } from "node:os";
 import { readFileSync } from "node:fs";
+import { createConnection } from "node:net";
 
 export type SSHConfig = {
   host: string;
@@ -97,9 +98,31 @@ function isPassphraseError(err: unknown): boolean {
 }
 
 const READY_TIMEOUT = 15_000;
-const KEEPALIVE_INTERVAL = 15_000;
-const KEEPALIVE_COUNT_MAX = 3;
+const KEEPALIVE_INTERVAL = 5_000;
+const KEEPALIVE_COUNT_MAX = 2;
 const COMMAND_TIMEOUT = 30_000;
+const LISTENER_PROBE_INTERVAL = 3_000;
+const LISTENER_PROBE_TIMEOUT = 2_000;
+
+function probeListener(host: string, port: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const socket = createConnection({ host, port });
+    let settled = false;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      if (error) reject(error);
+      else resolve();
+    };
+
+    socket.once("connect", () => finish());
+    socket.once("error", finish);
+    socket.setTimeout(LISTENER_PROBE_TIMEOUT, () => {
+      finish(Object.assign(new Error("SSH listener probe timed out"), { code: "ETIMEDOUT" }));
+    });
+  });
+}
 
 export class SSHTransport {
   private ssh = new NodeSSH();
@@ -107,14 +130,62 @@ export class SSHTransport {
   private readonly onDisconnect?: () => void;
   private connected = false;
   private disposing = false;
+  private connectionGeneration = 0;
+  private listenerProbeTimer?: ReturnType<typeof setInterval>;
+  private listenerProbeInFlight = false;
+  private listenerProbeFailures = 0;
 
   constructor(cfg: SSHConfig, onDisconnect?: () => void) {
     this.cfg = cfg;
     this.onDisconnect = onDisconnect;
   }
 
+  private markDisconnected(generation: number): void {
+    if (generation !== this.connectionGeneration || !this.connected || this.disposing) return;
+    this.connected = false;
+    this.stopListenerProbe();
+    try { this.ssh.dispose(); } catch {}
+    this.onDisconnect?.();
+  }
+
+  private stopListenerProbe(): void {
+    if (this.listenerProbeTimer) clearInterval(this.listenerProbeTimer);
+    this.listenerProbeTimer = undefined;
+    this.listenerProbeFailures = 0;
+  }
+
+  private startListenerProbe(): void {
+    this.stopListenerProbe();
+    const generation = this.connectionGeneration;
+    this.listenerProbeTimer = setInterval(async () => {
+      if (this.listenerProbeInFlight || generation !== this.connectionGeneration || !this.connected) return;
+      this.listenerProbeInFlight = true;
+      try {
+        await probeListener(this.cfg.host, this.cfg.port);
+        if (generation === this.connectionGeneration) this.listenerProbeFailures = 0;
+      } catch (err: unknown) {
+        if (generation !== this.connectionGeneration || !this.connected) return;
+        this.listenerProbeFailures++;
+        if (classifySSHError(err).kind === "refused" || this.listenerProbeFailures >= 2) {
+          this.markDisconnected(generation);
+        }
+      } finally {
+        this.listenerProbeInFlight = false;
+      }
+    }, LISTENER_PROBE_INTERVAL);
+    this.listenerProbeTimer.unref?.();
+  }
+
+  private markConnected(): void {
+    this.connected = true;
+    this.wireDisconnect();
+    this.startListenerProbe();
+  }
+
   async reconnect(opts: ConnectOptions = {}): Promise<void> {
     this.disposing = true;
+    this.connectionGeneration++;
+    this.stopListenerProbe();
     try { this.ssh.dispose(); } catch {}
     this.ssh = new NodeSSH();
     this.connected = false;
@@ -126,14 +197,11 @@ export class SSHTransport {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const conn = this.ssh.connection as any;
     if (!conn) return;
-    const fire = () => {
-      if (this.connected && !this.disposing) {
-        this.connected = false;
-        this.onDisconnect?.();
-      }
-    };
-    conn.on("close", fire);
-    conn.on("error", fire);
+    const generation = this.connectionGeneration;
+    const fire = () => this.markDisconnected(generation);
+    conn.once("error", fire);
+    conn.once("end", fire);
+    conn.once("close", fire);
   }
 
   async connect(opts: ConnectOptions = {}): Promise<void> {
@@ -154,8 +222,7 @@ export class SSHTransport {
       } catch (err: unknown) {
         throw classifySSHError(err);
       }
-      this.connected = true;
-      this.wireDisconnect();
+      this.markConnected();
       return;
     }
 
@@ -164,8 +231,7 @@ export class SSHTransport {
     if (agentSocket && !opts.passphrase) {
       try {
         await this.ssh.connect({ ...base, agent: agentSocket });
-        this.connected = true;
-        this.wireDisconnect();
+        this.markConnected();
         return;
       } catch (err: unknown) {
         const failure = classifySSHError(err);
@@ -185,8 +251,7 @@ export class SSHTransport {
 
     try {
       await this.ssh.connect({ ...base, privateKey, passphrase: opts.passphrase });
-      this.connected = true;
-      this.wireDisconnect();
+      this.markConnected();
     } catch (err: unknown) {
       if (isPassphraseError(err)) throw new PassphraseRequiredError(Boolean(opts.passphrase));
       throw classifySSHError(err);
@@ -216,22 +281,43 @@ export class SSHTransport {
     });
   }
 
-  async run(command: string): Promise<string> {
-    if (!this.connected) throw new Error("SSH not connected");
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`Command timed out after ${COMMAND_TIMEOUT / 1000}s`)), COMMAND_TIMEOUT)
-    );
-    const result = await Promise.race([
-      this.ssh.execCommand(command, { execOptions: { pty: false } }),
-      timeout,
-    ]);
-    if (result.stderr && !result.stdout) throw new Error(result.stderr.trim());
-    return result.stdout.trim();
+  async run(command: string, timeoutMs = COMMAND_TIMEOUT): Promise<string> {
+    if (!this.connected) throw new SSHConnectionError("disconnected", "SSH not connected", true);
+    const generation = this.connectionGeneration;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timeoutId = setTimeout(
+        () => {
+          this.markDisconnected(generation);
+          reject(new SSHConnectionError("disconnected", `SSH command timed out after ${timeoutMs / 1000}s`, true));
+        },
+        timeoutMs,
+      );
+    });
+    try {
+      const result = await Promise.race([
+        this.ssh.execCommand(command, { execOptions: { pty: false } }),
+        timeout,
+      ]);
+      if (generation !== this.connectionGeneration || !this.connected) {
+        throw new SSHConnectionError("disconnected", "Connection lost", true);
+      }
+      if (result.code === null && result.signal === null) {
+        this.markDisconnected(generation);
+        throw new SSHConnectionError("disconnected", "SSH command ended without an exit status", true);
+      }
+      if (result.stderr && !result.stdout) throw new Error(result.stderr.trim());
+      return result.stdout.trim();
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
   }
 
   async dispose(): Promise<void> {
     this.disposing = true;
+    this.connectionGeneration++;
     this.connected = false;
+    this.stopListenerProbe();
     try { this.ssh.dispose(); } catch {}
   }
 }

@@ -33,6 +33,6 @@ Appuyez sur `l` pour ouvrir ou fermer les journaux du service sélectionné. Les
 
 ## Reconnexion
 
-Les keepalives SSH détectent une coupure et relancent la connexion après `3`, `5`, `10`, `20`, puis `30` secondes. Le nombre de tentatives et le compte à rebours restent visibles; `r` relance immédiatement la tentative.
+Le TUI sonde le point de terminaison SSH configuré toutes les 3 secondes. Une connexion refusée, notamment lorsque l'écoute SSH est arrêtée, fait immédiatement échouer l'onglet ; les erreurs réseau ambiguës exigent deux échecs consécutifs. Les contrôles de commande et les keepalives SSH couvrent les sessions établies qui se bloquent. L'onglet conserve le dernier instantané comme périmé et attend `r` pour se reconnecter ou `x` pour se déconnecter et fermer l'onglet.
 
-Seules les erreurs réseau temporaires déclenchent des tentatives automatiques. Les erreurs d'identifiants et de configuration suspendent la connexion avec les actions contextuelles `c credentials` ou `h hosts`. Un onglet déconnecté signale sa dernière mise à jour comme périmée et désactive les actions jusqu'au rétablissement.
+Les erreurs temporaires de la connexion initiale déclenchent des tentatives après `3`, `5`, `10`, `20`, puis `30` secondes. Les erreurs d'identifiants et de configuration suspendent la connexion avec les actions contextuelles `c credentials` ou `h hosts`. Un instantané réussi efface automatiquement l'état de reconnexion.

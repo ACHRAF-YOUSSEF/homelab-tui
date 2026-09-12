@@ -21,7 +21,7 @@ homelab-tui --config /absolute/path/to/homelab.config.json
 
 ## A host keeps reconnecting
 
-Transient connection errors trigger retries after `3`, `5`, `10`, `20`, then `30` seconds. Press `r` to retry immediately. Authentication, private-key, DNS, and host-key failures pause instead of retrying forever.
+Transient errors during the initial connection trigger retries after `3`, `5`, `10`, `20`, then `30` seconds. After a connected host drops, press `r` to reconnect or `x` to disconnect and close its tab. Authentication, private-key, DNS, and host-key failures pause instead of retrying forever.
 
 The tab explains the detected failure and keeps other hosts usable. If it had connected before, it also shows the time and service count from the last good update as stale; service actions stay disabled until the connection recovers.
 

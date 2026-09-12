@@ -209,3 +209,25 @@ test("credential failures replace service actions with recovery hints", async ()
     act(() => { setup.renderer.destroy(); });
   }
 });
+
+test("disconnected tabs offer reconnect or close", async () => {
+  const setup = await testRender(
+    <Footer
+      actionMessage={null}
+      error={null}
+      connectionStatus="disconnected"
+      canRetry
+      canRemovePane
+    />,
+    { width: 80, height: 3 },
+  );
+  try {
+    await act(async () => { await setup.renderOnce(); });
+    const frame = setup.captureCharFrame();
+    expect(frame).toContain("r reconnect");
+    expect(frame).toContain("x close tab");
+    expect(frame).not.toContain("restart");
+  } finally {
+    act(() => { setup.renderer.destroy(); });
+  }
+});

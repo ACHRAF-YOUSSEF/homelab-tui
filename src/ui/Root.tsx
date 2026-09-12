@@ -139,6 +139,11 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
     setScreen({ kind: "selector" });
   }, [screen]);
 
+  const handleCloseLastTab = useCallback(() => {
+    setPreviousMonitorScreen(null);
+    setScreen({ kind: "selector" });
+  }, []);
+
   const handleBackToMonitor = useCallback(() => {
     if (previousMonitorScreen) {
       setScreen(previousMonitorScreen);
@@ -248,6 +253,7 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
         allHosts={config.hosts}
         onCreateHost={persistNewHost}
         onSwitchHost={handleSwitchHost}
+        onCloseLastTab={handleCloseLastTab}
       />
     );
   }
@@ -260,6 +266,7 @@ export function Root({ initialConfig, configPath, configMissing = false }: Reado
       allHosts={config.hosts}
       onCreateHost={persistNewHost}
       onSwitchHost={handleSwitchHost}
+      onCloseLastTab={handleCloseLastTab}
     />
   );
 }

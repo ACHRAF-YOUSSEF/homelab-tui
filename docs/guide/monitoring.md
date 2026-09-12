@@ -45,6 +45,6 @@ When restarting a Compose service, choose `1` or `Enter` for only the selected c
 
 ## Reconnecting
 
-SSH keepalives detect a dropped connection and retry after `3`, `5`, `10`, `20`, then `30` seconds. The retry count and countdown remain visible, and `r` retries immediately. A successful snapshot clears the reconnect state automatically.
+The TUI probes the configured SSH endpoint every 3 seconds. A refused connection, including a stopped SSH listener, fails the tab immediately; ambiguous network failures require two consecutive probes. Command health checks and SSH keepalives cover established sessions that hang. The tab keeps its last snapshot as stale and waits for `r` to reconnect or `x` to disconnect and close the tab.
 
-Only transient network failures retry automatically. Credential and configuration failures pause with contextual `c credentials` or `h hosts` actions. A disconnected tab labels its last successful update as stale and disables service actions until it recovers.
+Transient failures during the initial connection retry after `3`, `5`, `10`, `20`, then `30` seconds. Credential and configuration failures pause with contextual `c credentials` or `h hosts` actions. A successful snapshot clears the reconnect state automatically.

@@ -13,6 +13,7 @@ import { palette } from "./palette.js";
 export type PaneConnectionState =
   | { status: "connecting" }
   | { status: "online" }
+  | { status: "disconnected"; issue: SSHConnectionError }
   | { status: "retrying"; issue: SSHConnectionError; attempt: number; countdown: number }
   | { status: "needs-credential"; issue: SSHConnectionError; credential: "password" | "passphrase"; promptError?: string }
   | { status: "offline"; issue: SSHConnectionError };
@@ -33,7 +34,8 @@ function ActiveInput({ onInput }: Readonly<{ onInput: InputHandler }>) {
 }
 
 export function canRetryConnection(connection: PaneConnectionState): boolean {
-  return connection.status === "retrying"
+  return connection.status === "disconnected"
+    || connection.status === "retrying"
     || (connection.status === "offline" && !["host-key", "key-file"].includes(connection.issue.kind));
 }
 
@@ -64,7 +66,7 @@ function describeIssue(host: HostConfig, issue: SSHConnectionError) {
     case "key-file":
       return { title: "Private key unavailable", detail: issue.message, help: "Return to Hosts and correct the private-key path or permissions." };
     case "disconnected":
-      return { title: "Connection lost", detail: `${host.name} stopped responding.`, help: "Monitoring will resume after SSH reconnects." };
+      return { title: "Connection lost", detail: `${host.name} stopped responding.`, help: "r reconnect · x disconnect and close tab" };
     default:
       return { title: "SSH connection failed", detail: issue.message, help: "Check the host settings, then retry." };
   }
@@ -165,6 +167,8 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
 
   const reconnectTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reconnectAttemptsRef = useRef(0);
+  const refreshGenerationRef = useRef(0);
+  const refreshInFlightRef = useRef<number | null>(null);
 
   const [downAlert, setDownAlert] = useState<string | null>(null);
   const downAlertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -227,6 +231,7 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
     const mon = monitorRef.current;
     if (!mon) return;
     clearReconnectTimer();
+    refreshGenerationRef.current++;
     setConnection({ status: "connecting" });
     mon.reconnect(connectOptionsRef.current ?? {})
       .then(() => doRefreshRef.current(true))
@@ -262,12 +267,21 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
       const promptError = "Credentials rejected. Re-enter the SSH password.";
       setConnection({ status: "needs-credential", issue, credential: "password", promptError });
       if (!multiPane) onCredentialNeededRef.current?.("password", promptError);
+    } else if (!allowCredentialPrompt && connectionRef.current.status === "online" && issue.retryable) {
+      clearReconnectTimer();
+      refreshGenerationRef.current++;
+      setConnection({
+        status: "disconnected",
+        issue: issue.kind === "disconnected"
+          ? issue
+          : new SSHConnectionError("disconnected", issue.message, true),
+      });
     } else if (issue.retryable) {
       scheduleReconnect(issue);
     } else {
       setConnection({ status: "offline", issue });
     }
-  }, [scheduleReconnect, multiPane]);
+  }, [clearReconnectTimer, scheduleReconnect, multiPane]);
   handleFailureRef.current = handleFailure;
 
   // Service-down alerts: detect running → stopped/failed transitions
@@ -293,8 +307,12 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
   const doRefresh = useCallback(async (force = false) => {
     const mon = monitorRef.current;
     if (!mon || (!force && connectionRef.current.status !== "online")) return;
+    const generation = refreshGenerationRef.current;
+    if (refreshInFlightRef.current === generation) return;
+    refreshInFlightRef.current = generation;
     try {
       const snap = await mon.refresh();
+      if (generation !== refreshGenerationRef.current || mon !== monitorRef.current) return;
       if (snap.error) {
         handleFailureRef.current(snap.error);
         return;
@@ -305,13 +323,19 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
       setLastUpdated(new Date());
       setConnection({ status: "online" });
     } catch (err: unknown) {
-      handleFailureRef.current(err);
+      if (generation === refreshGenerationRef.current && mon === monitorRef.current) {
+        handleFailureRef.current(err);
+      }
+    } finally {
+      if (refreshInFlightRef.current === generation) refreshInFlightRef.current = null;
     }
   }, [clearReconnectTimer]);
   doRefreshRef.current = doRefresh;
 
   useEffect(() => {
     let active = true;
+    refreshGenerationRef.current++;
+    refreshInFlightRef.current = null;
     const mon = new Monitor(hostConfig, () => {
       if (active) handleFailureRef.current(new SSHConnectionError("disconnected", "Connection lost", true));
     });
@@ -326,6 +350,8 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
     const interval = setInterval(doRefresh, refreshMs);
     return () => {
       active = false;
+      refreshGenerationRef.current++;
+      refreshInFlightRef.current = null;
       clearInterval(interval);
       mon.dispose();
       clearReconnectTimer();

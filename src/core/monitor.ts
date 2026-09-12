@@ -1,4 +1,4 @@
-import { SSHTransport } from "../transports/ssh.js";
+import { SSHConnectionError, SSHTransport } from "../transports/ssh.js";
 import type { ConnectOptions } from "../transports/ssh.js";
 import { detectRemoteOS } from "./os-detect.js";
 import { getDockerServices, streamDockerLogs } from "../adapters/docker.js";
@@ -6,6 +6,18 @@ import { nativeLogCommand, nativeLogSnapshot } from "../adapters/native-actions.
 import type { HostConfig, MonitorSnapshot, SystemInfo, RemoteOS, Service } from "./types.js";
 
 export { PassphraseRequiredError } from "../transports/ssh.js";
+
+const REFRESH_COMMAND_TIMEOUT = 5_000;
+const HEALTH_TOKEN = "__homelab_tui_alive__";
+
+async function verifyConnection(run: (cmd: string) => Promise<string>, os: RemoteOS): Promise<void> {
+  const command = os === "windows"
+    ? `powershell -NoProfile -Command "Write-Output '${HEALTH_TOKEN}'"`
+    : `printf '${HEALTH_TOKEN}'`;
+  if (await run(command) !== HEALTH_TOKEN) {
+    throw new SSHConnectionError("disconnected", "Connection lost: remote health check failed", true);
+  }
+}
 
 async function getSystemInfo(
   run: (cmd: string) => Promise<string>,
@@ -72,6 +84,7 @@ export class Monitor {
   }
 
   async reconnect(opts: ConnectOptions = {}): Promise<void> {
+    this.lastOS = "unknown";
     this.linuxCpuStat = undefined;
     await this.transport.reconnect(opts);
   }
@@ -85,16 +98,24 @@ export class Monitor {
   }
 
   async refresh(): Promise<MonitorSnapshot> {
-    const run = (cmd: string) => this.transport.run(cmd);
+    const run = (cmd: string) => this.transport.run(cmd, REFRESH_COMMAND_TIMEOUT);
     try {
-      const remoteOS = await detectRemoteOS(run);
-      this.lastOS = remoteOS;
+      const remoteOS = this.lastOS === "unknown" ? await detectRemoteOS(run) : this.lastOS;
+      if (remoteOS === "unknown") {
+        throw new SSHConnectionError("disconnected", "Connection lost: remote host did not answer the OS probe", true);
+      }
+      await verifyConnection(run, remoteOS);
 
       const [systemResult, dockerServices, nativeSvcs] = await Promise.all([
         getSystemInfo(run, remoteOS, this.linuxCpuStat),
         this.cfg.discovery.docker ? getDockerServices(run) : Promise.resolve([]),
         this.cfg.discovery.nativeServices ? getNativeServices(run, remoteOS) : Promise.resolve([]),
       ]);
+      if (!systemResult.hostname || systemResult.hostname === "unknown") {
+        throw new SSHConnectionError("disconnected", "Connection lost: remote hostname probe failed", true);
+      }
+      await verifyConnection(run, remoteOS);
+      this.lastOS = remoteOS;
       if (systemResult.cpuStat) this.linuxCpuStat = systemResult.cpuStat;
       const system: SystemInfo = systemResult;
 

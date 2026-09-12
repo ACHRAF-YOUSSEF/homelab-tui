@@ -19,7 +19,7 @@ homelab-tui --config /chemin/absolu/homelab.config.json
 
 ## Une machine reste en reconnexion
 
-Les erreurs réseau temporaires déclenchent des tentatives après `3`, `5`, `10`, `20`, puis `30` secondes. Appuyez sur `r` pour réessayer immédiatement. Les erreurs d'authentification, de clé privée, de DNS et de clé d'hôte suspendent les tentatives automatiques.
+Les erreurs temporaires de la connexion initiale déclenchent des tentatives après `3`, `5`, `10`, `20`, puis `30` secondes. Après la coupure d'une machine connectée, appuyez sur `r` pour la reconnecter ou sur `x` pour la déconnecter et fermer son onglet. Les erreurs d'authentification, de clé privée, de DNS et de clé d'hôte suspendent les tentatives automatiques.
 
 L'onglet explique l'erreur détectée sans bloquer les autres machines. Après une connexion réussie, l'heure et le nombre de services de la dernière mise à jour restent affichés comme données périmées; les actions sur les services sont désactivées jusqu'au rétablissement.
 

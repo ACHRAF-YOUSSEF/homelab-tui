@@ -54,7 +54,8 @@ When the focused host is not online, the footer switches to connection recovery 
 
 | Key | Action |
 |---|---|
-| `r` | Retry immediately when retrying or offline. |
+| `r` | Reconnect immediately when retrying, disconnected, or offline. |
+| `x` | Disconnect and close a dropped host tab. |
 | `c` | Reopen the password or passphrase prompt when credentials are required. |
 | `h` | Return to the host selector to edit the host configuration. |
 | `Esc` | Close a credential prompt without hiding the host failure. |
