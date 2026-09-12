@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useTerminalDimensions } from "@opentui/react";
 import { Box, useApp, useInput } from "./tui.js";
 import { Monitor, PassphraseRequiredError } from "../core/monitor.js";
-import type { ConnectOptions } from "../transports/ssh.js";
+import { classifySSHError, type ConnectOptions } from "../transports/ssh.js";
 import { getLatestRelease } from "../updater.js";
 import { version as VERSION } from "../../package.json";
 import {
@@ -30,10 +30,6 @@ export type StatusFilter = ServiceStatus | "all" | "docker" | "native";
 
 const STATUS_FILTER_CYCLE: StatusFilter[] = ["all", "docker", "native", "running", "stopped", "failed", "restarting"];
 const SORT_CYCLE: SortField[] = ["name", "status", "image"];
-
-function isConnectionError(msg: string): boolean {
-  return /not connected|ssh not|econnreset|socket|connection (lost|closed|refused)|timed?\s?out/i.test(msg);
-}
 
 type Props = {
   hostConfig: HostConfig;
@@ -136,7 +132,7 @@ export function App({ hostConfig, connectOptions, onSwitchHost, onNeedPassphrase
 
   // Watch for connection errors in snapshot
   useEffect(() => {
-    if (snapshot?.error && isConnectionError(snapshot.error)) {
+    if (snapshot?.error && classifySSHError(snapshot.error).retryable) {
       triggerReconnect();
     }
   }, [snapshot?.error, triggerReconnect]);

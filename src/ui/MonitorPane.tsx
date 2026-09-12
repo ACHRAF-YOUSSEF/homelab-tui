@@ -1,7 +1,7 @@
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
-import { Box, Text, useInput } from "./tui.js";
+import { Box, Text, TextInput, useInput } from "./tui.js";
 import { Monitor, PassphraseRequiredError } from "../core/monitor.js";
-import type { ConnectOptions } from "../transports/ssh.js";
+import { classifySSHError, SSHConnectionError, type ConnectOptions } from "../transports/ssh.js";
 import type { HostConfig, MonitorSnapshot, Service, ServiceStatus, SystemInfo } from "../core/types.js";
 import { Header } from "./Header.js";
 import { SystemPanel } from "./SystemPanel.js";
@@ -48,25 +48,108 @@ function CompactMetrics({ system }: Readonly<{ system: SystemInfo }>) {
   );
 }
 
-function ConnectionPanel({ host, snapshot, reconnectCountdown, reconnectAttempt, compact }: Readonly<{
+export type PaneConnectionState =
+  | { status: "connecting" }
+  | { status: "online" }
+  | { status: "retrying"; issue: SSHConnectionError; attempt: number; countdown: number }
+  | { status: "needs-credential"; issue: SSHConnectionError; credential: "password" | "passphrase"; promptError?: string }
+  | { status: "offline"; issue: SSHConnectionError };
+
+export type PaneCredentialPrompt = {
+  mode: "password" | "passphrase";
+  value: string;
+  error?: string;
+  onChange: (value: string) => void;
+  onSubmit: (value: string) => void;
+};
+
+export function canRetryConnection(connection: PaneConnectionState): boolean {
+  return connection.status === "retrying"
+    || (connection.status === "offline" && !["host-key", "key-file"].includes(connection.issue.kind));
+}
+
+function describeIssue(host: HostConfig, issue: SSHConnectionError) {
+  switch (issue.kind) {
+    case "authentication":
+      return {
+        title: "Authentication failed",
+        detail: `Credentials rejected for ${host.username}@${host.name}.`,
+        help: host.authMethod === "password"
+          ? "Re-enter the SSH password."
+          : "Check the private key and the remote authorized_keys file.",
+      };
+    case "refused":
+      return {
+        title: "SSH connection refused",
+        detail: `${host.host}:${host.port} refused the connection.`,
+        help: "SSH may be stopped or disabled, the port may be wrong, or a firewall may be rejecting it.",
+      };
+    case "timeout":
+      return { title: "Connection timed out", detail: `Could not reach ${host.host}:${host.port}.`, help: "Check that the host is online and reachable." };
+    case "host-not-found":
+      return { title: "Host not found", detail: `Could not resolve ${host.host}.`, help: "Check the configured hostname or DNS." };
+    case "unreachable":
+      return { title: "Host unreachable", detail: `No route to ${host.host}:${host.port}.`, help: "Check the network, VPN, and firewall rules." };
+    case "host-key":
+      return { title: "Host identity rejected", detail: "The SSH host key could not be verified.", help: "Verify the host identity before changing any trusted key." };
+    case "key-file":
+      return { title: "Private key unavailable", detail: issue.message, help: "Return to Hosts and correct the private-key path or permissions." };
+    case "disconnected":
+      return { title: "Connection lost", detail: `${host.name} stopped responding.`, help: "Monitoring will resume after SSH reconnects." };
+    default:
+      return { title: "SSH connection failed", detail: issue.message, help: "Check the host settings, then retry." };
+  }
+}
+
+function ConnectionPanel({ host, snapshot, lastUpdated, connection, compact }: Readonly<{
   host: HostConfig;
   snapshot: MonitorSnapshot | null;
-  reconnectCountdown: number | null;
-  reconnectAttempt: number;
+  lastUpdated: Date | null;
+  connection: PaneConnectionState;
   compact?: boolean;
 }>) {
-  const reconnecting = reconnectCountdown !== null;
-  const title = reconnecting ? "Connection lost" : snapshot?.error ? "Host unavailable" : "Connecting";
-  const color = snapshot?.error && !reconnecting ? palette.danger : palette.warning;
-  const detail = reconnecting
-    ? `retry #${reconnectAttempt} in ${reconnectCountdown}s`
-    : snapshot?.error ?? `${host.username}@${host.host}:${host.port}`;
+  if (connection.status === "connecting" || connection.status === "online") {
+    return (
+      <Box borderStyle="single" borderColor={palette.warning} paddingX={1} width="100%" flexDirection="column">
+        <Text bold color={palette.warning}>○ Connecting</Text>
+        <Text dimColor>{host.username}@{host.host}:{host.port}</Text>
+      </Box>
+    );
+  }
+
+  const { title, detail, help } = connection.status === "needs-credential" && connection.credential === "passphrase"
+    ? {
+        title: connection.promptError ? "Passphrase rejected" : "Passphrase required",
+        detail: `Unlock the private key for ${host.username}@${host.name}.`,
+        help: "Enter the key passphrase; it is used only for this session.",
+      }
+    : describeIssue(host, connection.issue);
+  const retrying = connection.status === "retrying";
+  const color = retrying ? palette.warning : palette.danger;
 
   return (
     <Box borderStyle="single" borderColor={color} paddingX={1} width="100%" flexDirection="column">
-      <Text bold color={color}>{reconnecting ? "↻" : snapshot?.error ? "✗" : "○"} {title}</Text>
+      <Text bold color={color}>{retrying ? "↻" : "✗"} {title}</Text>
+      {retrying && <Text color={palette.warning}>Retry #{connection.attempt} in {connection.countdown}s</Text>}
       <Text dimColor wrap="truncate">{detail}</Text>
-      {!compact && reconnecting && snapshot?.error && <Text color={palette.danger} wrap="truncate">{snapshot.error}</Text>}
+      {!compact && <Text dimColor wrap="truncate">{help}</Text>}
+      {snapshot && lastUpdated && (
+        <Text dimColor>Last good update {lastUpdated.toLocaleTimeString()} · {snapshot.services.length} services (stale)</Text>
+      )}
+    </Box>
+  );
+}
+
+function CredentialEditor({ host, prompt }: Readonly<{ host: HostConfig; prompt: PaneCredentialPrompt }>) {
+  const label = prompt.mode === "password" ? "Password" : "Passphrase";
+  return (
+    <Box borderStyle="single" borderColor={prompt.error ? palette.danger : palette.warning} paddingX={1} flexDirection="column">
+      {prompt.error && <Text color={palette.danger} wrap="truncate">{prompt.error}</Text>}
+      <Box>
+        <Text color={prompt.error ? palette.danger : palette.warning}>{label} for {host.name}: </Text>
+        <TextInput value={prompt.value} onChange={prompt.onChange} onSubmit={prompt.onSubmit} mask="*" focus />
+      </Box>
+      <Text dimColor><Text color={palette.structure}>Enter</Text> connect · <Text color={palette.structure}>Esc</Text> cancel</Text>
     </Box>
   );
 }
@@ -76,13 +159,6 @@ const RECONNECT_DELAYS = [3, 5, 10, 20, 30];
 const STATUS_FILTER_CYCLE: StatusFilter[] = ["all", "docker", "native", "running", "stopped", "failed", "restarting"];
 const SORT_CYCLE: SortField[] = ["name", "status", "image"];
 
-function isConnectionError(msg: string): boolean {
-  return /not connected|ssh not|econnreset|socket|connection (lost|closed|refused)|timed?\s?out/i.test(msg);
-}
-function isAuthError(msg: string): boolean {
-  return /all configured authentication methods failed|authentication failed|auth.*failed|permission denied|bad packet|incorrect passphrase|verification failed/i.test(msg);
-}
-
 export type MonitorPaneHandle = {
   run: (cmd: string) => Promise<string>;
   streamLogs: (
@@ -90,6 +166,8 @@ export type MonitorPaneHandle = {
     onData: (chunk: string) => void,
     onClose?: (code: number | null) => void
   ) => Promise<() => void>;
+  retry: () => void;
+  requestCredential: () => void;
 };
 
 type Props = {
@@ -104,24 +182,22 @@ type Props = {
   containerWidth?: number;
   viewHeight?: number;
   compact?: boolean;
-  onNeedPassphrase?: () => void;
-  onAuthFailed?: (msg: string) => void;
-  onStateChange: (service: Service | null, snapshot: MonitorSnapshot | null) => void;
+  credentialPrompt?: PaneCredentialPrompt;
+  onCredentialNeeded?: (mode: "password" | "passphrase", error?: string) => void;
+  onStateChange: (service: Service | null, snapshot: MonitorSnapshot | null, connection: PaneConnectionState) => void;
 };
 
 export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function MonitorPane(props, ref) {
   const { hostConfig, connectOptions, isActive, focused, paneIndex, paneCount,
-    containerWidth, viewHeight, compact, onNeedPassphrase, onAuthFailed, onStateChange } = props;
+    containerWidth, viewHeight, compact, credentialPrompt, onCredentialNeeded, onStateChange } = props;
   const multiPane = (paneCount ?? 1) > 1;
 
   const monitorRef = useRef<Monitor | null>(null);
   const [snapshot, setSnapshot] = useState<MonitorSnapshot | null>(null);
-  const [connecting, setConnecting] = useState(true);
+  const [connection, setConnection] = useState<PaneConnectionState>({ status: "connecting" });
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const [reconnectCountdown, setReconnectCountdown] = useState<number | null>(null);
-  const [reconnectAttempt, setReconnectAttempt] = useState(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const reconnectAttemptsRef = useRef(0);
 
@@ -134,6 +210,8 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
   connectOptionsRef.current = connectOptions;
   const hostConfigRef = useRef(hostConfig);
   hostConfigRef.current = hostConfig;
+  const connectionRef = useRef(connection);
+  connectionRef.current = connection;
 
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMode, setSearchMode] = useState(false);
@@ -165,58 +243,67 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
   const onStateChangeRef = useRef(onStateChange);
   onStateChangeRef.current = onStateChange;
   useEffect(() => {
-    onStateChangeRef.current(selectedService, snapshot);
-  }, [selectedService, snapshot]);
+    onStateChangeRef.current(connection.status === "online" ? selectedService : null, snapshot, connection);
+  }, [selectedService, snapshot, connection]);
 
-  const doRefreshRef = useRef<() => Promise<void>>(() => Promise.resolve());
+  const doRefreshRef = useRef<(force?: boolean) => Promise<void>>(() => Promise.resolve());
+  const handleFailureRef = useRef<(err: unknown, allowCredentialPrompt?: boolean) => void>(() => {});
 
-  // Reuse Monitor instance — no React teardown, just reconnect transport
-  const triggerReconnect = useCallback(() => {
-    if (reconnectTimerRef.current) return;
-    const attempt = reconnectAttemptsRef.current;
-    const delay = RECONNECT_DELAYS[Math.min(attempt, RECONNECT_DELAYS.length - 1)];
-    reconnectAttemptsRef.current++;
-    setReconnectAttempt(reconnectAttemptsRef.current);
-    let count = delay;
-    setReconnectCountdown(count);
-    setConnecting(true);
-    reconnectTimerRef.current = setInterval(() => {
-      count--;
-      if (count <= 0) {
-        clearInterval(reconnectTimerRef.current!);
-        reconnectTimerRef.current = null;
-        setReconnectCountdown(null);
-        monitorRef.current?.reconnect(connectOptionsRef.current ?? {})
-          .then(() => doRefreshRef.current())
-          .catch((err: unknown) => {
-            const msg = err instanceof Error ? err.message : String(err);
-            const cfg = hostConfigRef.current;
-            setSnapshot({
-              hostName: cfg.name, remoteOS: "unknown",
-              system: { hostname: cfg.host, os: "unknown" },
-              services: [], error: msg,
-            });
-            setConnecting(false);
-          });
-      } else setReconnectCountdown(count);
-    }, 1000);
+  const onCredentialNeededRef = useRef(onCredentialNeeded);
+  onCredentialNeededRef.current = onCredentialNeeded;
+
+  const clearReconnectTimer = useCallback(() => {
+    if (!reconnectTimerRef.current) return;
+    clearInterval(reconnectTimerRef.current);
+    reconnectTimerRef.current = null;
   }, []);
 
-  useEffect(() => {
-    if (snapshot?.error && isConnectionError(snapshot.error)) triggerReconnect();
-  }, [snapshot?.error, triggerReconnect]);
+  const reconnectNow = useCallback(() => {
+    const mon = monitorRef.current;
+    if (!mon) return;
+    clearReconnectTimer();
+    setConnection({ status: "connecting" });
+    mon.reconnect(connectOptionsRef.current ?? {})
+      .then(() => doRefreshRef.current(true))
+      .catch((err: unknown) => handleFailureRef.current(err, true));
+  }, [clearReconnectTimer]);
 
-  useEffect(() => {
-    if (snapshot && !snapshot.error) {
-      reconnectAttemptsRef.current = 0;
-      setReconnectAttempt(0);
-      if (reconnectTimerRef.current) {
-        clearInterval(reconnectTimerRef.current);
-        reconnectTimerRef.current = null;
-        setReconnectCountdown(null);
-      }
+  const scheduleReconnect = useCallback((issue: SSHConnectionError) => {
+    if (reconnectTimerRef.current) return;
+    const attempt = ++reconnectAttemptsRef.current;
+    let countdown = RECONNECT_DELAYS[Math.min(attempt - 1, RECONNECT_DELAYS.length - 1)];
+    setConnection({ status: "retrying", issue, attempt, countdown });
+    reconnectTimerRef.current = setInterval(() => {
+      countdown--;
+      if (countdown <= 0) reconnectNow();
+      else setConnection({ status: "retrying", issue, attempt, countdown });
+    }, 1000);
+  }, [reconnectNow]);
+
+  const handleFailure = useCallback((err: unknown, allowCredentialPrompt = false) => {
+    if (allowCredentialPrompt && err instanceof PassphraseRequiredError) {
+      const issue = new SSHConnectionError("authentication", err.message, false);
+      const promptError = connectOptionsRef.current?.passphrase ? err.message : undefined;
+      setConnection({ status: "needs-credential", issue, credential: "passphrase", promptError });
+      if (!multiPane) onCredentialNeededRef.current?.("passphrase", promptError);
+      return;
     }
-  }, [snapshot]);
+
+    let issue = classifySSHError(err);
+    if (!allowCredentialPrompt && issue.kind === "authentication") {
+      issue = new SSHConnectionError("unknown", issue.message, false);
+    }
+    if (allowCredentialPrompt && issue.kind === "authentication" && hostConfigRef.current.authMethod === "password") {
+      const promptError = "Credentials rejected. Re-enter the SSH password.";
+      setConnection({ status: "needs-credential", issue, credential: "password", promptError });
+      if (!multiPane) onCredentialNeededRef.current?.("password", promptError);
+    } else if (issue.retryable) {
+      scheduleReconnect(issue);
+    } else {
+      setConnection({ status: "offline", issue });
+    }
+  }, [scheduleReconnect, multiPane]);
+  handleFailureRef.current = handleFailure;
 
   // Service-down alerts: detect running → stopped/failed transitions
   useEffect(() => {
@@ -238,62 +325,62 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
     downAlertTimerRef.current = setTimeout(() => setDownAlert(null), 10_000);
   }, [snapshot]);
 
-  // Stable ref so onNeedPassphrase never enters the connection useEffect dep array
-  const onNeedPassphraseRef = useRef(onNeedPassphrase);
-  onNeedPassphraseRef.current = onNeedPassphrase;
-  const onAuthFailedRef = useRef(onAuthFailed);
-  onAuthFailedRef.current = onAuthFailed;
-
-  const doRefresh = useCallback(async () => {
+  const doRefresh = useCallback(async (force = false) => {
     const mon = monitorRef.current;
-    if (!mon) return;
+    if (!mon || (!force && connectionRef.current.status !== "online")) return;
     try {
       const snap = await mon.refresh();
+      if (snap.error) {
+        handleFailureRef.current(snap.error);
+        return;
+      }
+      clearReconnectTimer();
+      reconnectAttemptsRef.current = 0;
       setSnapshot(snap);
       setLastUpdated(new Date());
-      setConnecting(false);
-    } catch { setConnecting(false); }
-  }, []);
+      setConnection({ status: "online" });
+    } catch (err: unknown) {
+      handleFailureRef.current(err);
+    }
+  }, [clearReconnectTimer]);
   doRefreshRef.current = doRefresh;
 
   useEffect(() => {
-    const mon = new Monitor(hostConfig, triggerReconnect);
+    let active = true;
+    const mon = new Monitor(hostConfig, () => {
+      if (active) handleFailureRef.current(new SSHConnectionError("disconnected", "Connection lost", true));
+    });
     monitorRef.current = mon;
-    setConnecting(true);
-    setSnapshot(null);
+    setConnection({ status: "connecting" });
 
     mon.connect(connectOptions)
-      .then(() => doRefresh())
-      .catch((err: unknown) => {
-        if (err instanceof PassphraseRequiredError) { onNeedPassphraseRef.current?.(); return; }
-        const msg = err instanceof Error ? err.message : String(err);
-        if (isAuthError(msg) && onAuthFailedRef.current) {
-          onAuthFailedRef.current(msg);
-          return;
-        }
-        setSnapshot({
-          hostName: hostConfig.name, remoteOS: "unknown",
-          system: { hostname: hostConfig.host, os: "unknown" },
-          services: [], error: `SSH connect failed: ${msg}`,
-        });
-        setConnecting(false);
-      });
+      .then(() => { if (active) return doRefresh(true); })
+      .catch((err: unknown) => { if (active) handleFailureRef.current(err, true); });
 
     const refreshMs = hostConfig.refreshInterval ?? REFRESH_MS;
     const interval = setInterval(doRefresh, refreshMs);
     return () => {
+      active = false;
       clearInterval(interval);
       mon.dispose();
-      if (reconnectTimerRef.current) { clearInterval(reconnectTimerRef.current); reconnectTimerRef.current = null; }
+      clearReconnectTimer();
     };
-  }, [hostConfig, connectOptions, doRefresh]); // onNeedPassphrase/retryKey intentionally excluded (refs above)
+  }, [hostConfig, connectOptions, doRefresh, clearReconnectTimer]);
 
   useImperativeHandle(ref, () => ({
     run: (cmd) => monitorRef.current!.run(cmd),
     streamLogs: (service, onData, onClose) => monitorRef.current!.streamLogs(service, onData, onClose),
-  }), []);
+    retry: () => { if (canRetryConnection(connectionRef.current)) reconnectNow(); },
+    requestCredential: () => {
+      const current = connectionRef.current;
+      if (current.status === "needs-credential") {
+        onCredentialNeededRef.current?.(current.credential, current.promptError);
+      }
+    },
+  }), [reconnectNow]);
 
   useInput((input, key) => {
+    if (connection.status !== "online") return;
     if (searchMode) {
       if (monitorKeys.cancel.matches(input, key)) { setSearchMode(false); setSearchQuery(""); setSelectedIndex(0); return; }
       if (monitorKeys.up.matches(input, key)) { setSelectedIndex((i) => Math.max(0, i - 1)); return; }
@@ -326,9 +413,9 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
       emptyMessage={allServices.length === 0 ? "No services discovered on this host." : "No services match the current filter."}
     />
   );
-  const content = snapshot && !snapshot.error
+  const content = connection.status === "online" && snapshot
     ? serviceList
-    : <ConnectionPanel host={hostConfig} snapshot={snapshot} reconnectCountdown={reconnectCountdown} reconnectAttempt={reconnectAttempt} compact={compact} />;
+    : <ConnectionPanel host={hostConfig} snapshot={snapshot} lastUpdated={lastUpdated} connection={connection} compact={compact} />;
 
   // ── Multi-pane compact layout ────────────────────────────────────────────
   if (multiPane) {
@@ -346,21 +433,21 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
         <Box paddingX={1} gap={1} flexWrap="nowrap">
           <Text bold color={focused ? palette.focus : palette.inactive}>[{(paneIndex ?? 0) + 1}]</Text>
           <Text bold color={focused ? palette.selected : palette.inactive}>{hostConfig.name}</Text>
-          {snapshot && !snapshot.error && !connecting ? (
+          {connection.status === "online" && snapshot ? (
             <>
               <Text color={palette.healthy}>●</Text>
               <Text dimColor>{snapshot.remoteOS}</Text>
               <Text dimColor>{snapshot.system.hostname}</Text>
             </>
-          ) : snapshot?.error && reconnectCountdown === null ? (
-            <Text color={palette.danger}>✗ unavailable</Text>
+          ) : connection.status === "offline" || connection.status === "needs-credential" ? (
+            <Text color={palette.danger}>✗ {connection.status === "needs-credential" ? "credentials" : "unavailable"}</Text>
           ) : (
-            <Text color={palette.warning}>○ {reconnectCountdown !== null ? "reconnecting…" : connecting ? "connecting…" : "—"}</Text>
+            <Text color={palette.warning}>○ {connection.status === "retrying" ? "reconnecting…" : "connecting…"}</Text>
           )}
           <Box flexGrow={1} />
-          {reconnectCountdown === null
-            ? <Text dimColor>{time}</Text>
-            : <Text color={palette.warning}>retry {reconnectCountdown}s (#{reconnectAttempt})</Text>}
+          {connection.status === "retrying"
+            ? <Text color={palette.warning}>retry {connection.countdown}s (#{connection.attempt})</Text>
+            : <Text dimColor>{time}</Text>}
         </Box>
 
         {downAlert && (
@@ -370,9 +457,10 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
         )}
 
         {/* Compact inline metrics — no border */}
-        {!compact && snapshot?.system && <CompactMetrics system={snapshot.system} />}
+        {!compact && connection.status === "online" && snapshot?.system && <CompactMetrics system={snapshot.system} />}
 
         {content}
+        {credentialPrompt && <CredentialEditor host={hostConfig} prompt={credentialPrompt} />}
       </Box>
     );
   }
@@ -381,16 +469,18 @@ export const MonitorPane = forwardRef<MonitorPaneHandle, Props>(function Monitor
   return (
     <Box flexDirection="column" flexGrow={1}>
       <Header
-        snapshot={snapshot} connecting={connecting} lastUpdated={lastUpdated}
-        reconnectCountdown={reconnectCountdown} reconnectAttempt={reconnectAttempt}
+        snapshot={snapshot} connecting={connection.status === "connecting"} lastUpdated={lastUpdated}
+        reconnectCountdown={connection.status === "retrying" ? connection.countdown : null}
+        reconnectAttempt={connection.status === "retrying" ? connection.attempt : undefined}
       />
-      {!compact && snapshot?.system && <SystemPanel system={snapshot.system} />}
+      {!compact && connection.status === "online" && snapshot?.system && <SystemPanel system={snapshot.system} />}
       {downAlert && (
         <Box paddingX={1}>
           <Text color={palette.danger} bold>⚠ {downAlert}</Text>
         </Box>
       )}
       {content}
+      {credentialPrompt && <CredentialEditor host={hostConfig} prompt={credentialPrompt} />}
     </Box>
   );
 });

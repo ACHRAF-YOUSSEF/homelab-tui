@@ -8,7 +8,7 @@ La barre supérieure résume la session :
 
 - Les machines disponibles restent utilisables lorsqu'une autre échoue.
 - Les machines en connexion ou reconnexion affichent leur état actuel.
-- Un panneau en échec affiche l'erreur SSH sans remplacer le contenu sain.
+- Un panneau en échec affiche une erreur SSH précise et une action de récupération sans remplacer les panneaux sains.
 - `Tab` et `Maj+Tab` déplacent le focus entre les panneaux.
 
 ![Trois panneaux avec des états disponible, vide et en reconnexion](/terminal-200x50.png)
@@ -35,4 +35,6 @@ Appuyez sur `l` pour ouvrir ou fermer les journaux du service sélectionné. Les
 
 ## Reconnexion
 
-Les keepalives SSH détectent une coupure et relancent la connexion après `3`, `5`, `10`, `20`, puis `30` secondes. Le nombre de tentatives et le compte à rebours restent visibles.
+Les keepalives SSH détectent une coupure et relancent la connexion après `3`, `5`, `10`, `20`, puis `30` secondes. Le nombre de tentatives et le compte à rebours restent visibles; `r` relance immédiatement la tentative.
+
+Seules les erreurs réseau temporaires déclenchent des tentatives automatiques. Les erreurs d'identifiants et de configuration suspendent la connexion avec les actions contextuelles `c credentials` ou `h hosts`. Un panneau déconnecté signale sa dernière mise à jour comme périmée et désactive les actions jusqu'au rétablissement.

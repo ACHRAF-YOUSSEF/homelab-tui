@@ -15,9 +15,72 @@ export type ConnectOptions = {
   password?: string;
 };
 
+export type SSHErrorKind =
+  | "authentication"
+  | "refused"
+  | "timeout"
+  | "host-not-found"
+  | "unreachable"
+  | "host-key"
+  | "key-file"
+  | "disconnected"
+  | "unknown";
+
+export class SSHConnectionError extends Error {
+  constructor(
+    readonly kind: SSHErrorKind,
+    message: string,
+    readonly retryable: boolean,
+  ) {
+    super(message);
+    this.name = "SSHConnectionError";
+  }
+}
+
+export function classifySSHError(err: unknown): SSHConnectionError {
+  if (err instanceof SSHConnectionError) return err;
+
+  const message = err instanceof Error ? err.message : String(err);
+  const code = typeof err === "object" && err !== null && "code" in err
+    ? String((err as { code?: unknown }).code ?? "").toUpperCase()
+    : "";
+
+  if (code === "ECONNREFUSED") return new SSHConnectionError("refused", message, true);
+  if (code === "ETIMEDOUT") return new SSHConnectionError("timeout", message, true);
+  if (code === "ENOTFOUND") return new SSHConnectionError("host-not-found", message, false);
+  if (code === "EHOSTUNREACH" || code === "ENETUNREACH") return new SSHConnectionError("unreachable", message, true);
+  if (code === "ECONNRESET" || code === "EPIPE") return new SSHConnectionError("disconnected", message, true);
+
+  if (/host key|fingerprint|remote host identification has changed/i.test(message)) {
+    return new SSHConnectionError("host-key", message, false);
+  }
+  if (/cannot read private key|private key.*(?:not found|no such file|permission denied)/i.test(message)) {
+    return new SSHConnectionError("key-file", message, false);
+  }
+  if (/all configured authentication methods failed|authentication failed|auth.*failed|permission denied|no more authentication methods available/i.test(message)) {
+    return new SSHConnectionError("authentication", message, false);
+  }
+  if (code === "ECONNREFUSED" || /connection refused|connect econnrefused/i.test(message)) {
+    return new SSHConnectionError("refused", message, true);
+  }
+  if (code === "ETIMEDOUT" || /timed?\s*out|timeout|handshake timeout/i.test(message)) {
+    return new SSHConnectionError("timeout", message, true);
+  }
+  if (code === "ENOTFOUND" || /getaddrinfo enotfound|name or service not known|host not found/i.test(message)) {
+    return new SSHConnectionError("host-not-found", message, false);
+  }
+  if (code === "EHOSTUNREACH" || code === "ENETUNREACH" || /no route to host|network is unreachable|host is unreachable/i.test(message)) {
+    return new SSHConnectionError("unreachable", message, true);
+  }
+  if (code === "ECONNRESET" || code === "EPIPE" || /not connected|ssh not|econnreset|socket.*closed|connection (?:lost|closed)/i.test(message)) {
+    return new SSHConnectionError("disconnected", message, true);
+  }
+  return new SSHConnectionError("unknown", message, false);
+}
+
 export class PassphraseRequiredError extends Error {
-  constructor() {
-    super("Private key is encrypted — passphrase required");
+  constructor(rejected = false) {
+    super(rejected ? "Private key passphrase was rejected" : "Private key is encrypted — passphrase required");
     this.name = "PassphraseRequiredError";
   }
 }
@@ -85,8 +148,12 @@ export class SSHTransport {
     };
 
     if (this.cfg.authMethod === "password") {
-      if (!opts.password) throw new Error("Password required but not provided");
-      await this.ssh.connect({ ...base, password: opts.password });
+      if (!opts.password) throw new SSHConnectionError("authentication", "Password required but not provided", false);
+      try {
+        await this.ssh.connect({ ...base, password: opts.password });
+      } catch (err: unknown) {
+        throw classifySSHError(err);
+      }
       this.connected = true;
       this.wireDisconnect();
       return;
@@ -100,8 +167,10 @@ export class SSHTransport {
         this.connected = true;
         this.wireDisconnect();
         return;
-      } catch {
-        // Agent failed — fall through to key file
+      } catch (err: unknown) {
+        const failure = classifySSHError(err);
+        if (!["authentication", "unknown"].includes(failure.kind)) throw failure;
+        // Agent auth failed — fall through to the configured key file.
       }
     }
 
@@ -110,8 +179,8 @@ export class SSHTransport {
     try {
       privateKey = readFileSync(keyPath, "utf-8");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      throw new Error(`Cannot read private key at ${keyPath}: ${msg}`);
+      const message = err instanceof Error ? err.message : String(err);
+      throw new SSHConnectionError("key-file", `Cannot read private key at ${keyPath}: ${message}`, false);
     }
 
     try {
@@ -119,8 +188,8 @@ export class SSHTransport {
       this.connected = true;
       this.wireDisconnect();
     } catch (err: unknown) {
-      if (isPassphraseError(err)) throw new PassphraseRequiredError();
-      throw err;
+      if (isPassphraseError(err)) throw new PassphraseRequiredError(Boolean(opts.passphrase));
+      throw classifySSHError(err);
     }
   }
 

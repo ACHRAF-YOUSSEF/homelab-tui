@@ -137,7 +137,8 @@ Passwords and private-key passphrases are prompted at launch and are never store
 | `/` | Search services |
 | `f` | Cycle filters |
 | `o` | Cycle sorting |
-| `r` | Restart the selected service |
+| `r` | Restart the selected service, or retry the focused offline host |
+| `c` | Reopen the credential prompt for the focused host |
 | `s` | Stop a container or kill a native process |
 | `t` | Start a Docker container |
 | `l` | Toggle live logs |

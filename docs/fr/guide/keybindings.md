@@ -36,6 +36,15 @@ En sélection multiple, utilisez `Espace` pour cocher les machines, `Entrée` po
 
 Le pied de page et les gestionnaires utilisent les mêmes définitions centrales. Les petits terminaux n'affichent que les raccourcis principaux.
 
+Lorsque la machine active n'est pas connectée, le pied de page affiche les actions de récupération :
+
+| Touche | Action |
+|---|---|
+| `r` | Réessayer immédiatement pendant une reconnexion ou hors ligne. |
+| `c` | Rouvrir l'invite de mot de passe ou de phrase secrète. |
+| `h` | Revenir au sélecteur pour modifier la configuration. |
+| `Échap` | Fermer l'invite sans masquer l'erreur de la machine. |
+
 ## Journaux
 
 | Touche | Action |

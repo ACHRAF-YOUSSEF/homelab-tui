@@ -8,7 +8,7 @@ The top bar summarizes the whole session:
 
 - Healthy hosts remain usable when another host fails.
 - Connecting and reconnecting hosts show their current state.
-- Failed panes show the SSH error without replacing healthy content.
+- Failed panes show a specific SSH error and recovery action without replacing healthy panes.
 - `Tab` and `Shift+Tab` move focus between panes.
 
 ![Three host panes with healthy, empty, and reconnecting states](/terminal-200x50.png)
@@ -45,4 +45,6 @@ When restarting a Compose service, choose `1` or `Enter` for only the selected c
 
 ## Reconnecting
 
-SSH keepalives detect a dropped connection and retry after `3`, `5`, `10`, `20`, then `30` seconds. The retry count and countdown remain visible. A successful snapshot clears the reconnect state automatically.
+SSH keepalives detect a dropped connection and retry after `3`, `5`, `10`, `20`, then `30` seconds. The retry count and countdown remain visible, and `r` retries immediately. A successful snapshot clears the reconnect state automatically.
+
+Only transient network failures retry automatically. Credential and configuration failures pause with contextual `c credentials` or `h hosts` actions. A disconnected pane labels its last successful update as stale and disables service actions until it recovers.

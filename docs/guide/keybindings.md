@@ -46,6 +46,15 @@ In multi-host selection, use `Space` to check hosts, `Enter` to connect to the c
 
 The footer uses the same central key definitions as the handlers, so its visible shortcuts follow the active service type. Compact terminals show the primary subset.
 
+When the focused host is not online, the footer switches to connection recovery actions:
+
+| Key | Action |
+|---|---|
+| `r` | Retry immediately when retrying or offline. |
+| `c` | Reopen the password or passphrase prompt when credentials are required. |
+| `h` | Return to the host selector to edit the host configuration. |
+| `Esc` | Close a credential prompt without hiding the host failure. |
+
 ## Logs
 
 | Key | Action |

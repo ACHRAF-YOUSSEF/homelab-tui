@@ -16,11 +16,22 @@ homelab-tui --config /absolute/path/to/homelab.config.json
 - For key auth, check the private-key path and file permissions.
 - Add the key to your SSH agent if it is agent-managed.
 - Encrypted keys prompt for a passphrase; password hosts prompt on launch.
-- A rejected password opens a fresh prompt instead of storing the failed value.
+- A rejected password pauses automatic retries without storing the failed value. A single pane opens a fresh prompt immediately; in a multi-host view, focus the failed pane and press `c` so healthy panes remain usable. Press `Esc` to close the prompt without hiding the failure.
+- A rejected key never opens a password prompt. Check the public key in the remote account's `authorized_keys` file instead.
 
 ## A host keeps reconnecting
 
-Connection errors trigger retries with increasing delays up to 30 seconds. Check network reachability, the remote SSH service, and any idle-session firewall rules. Other healthy panes continue refreshing during a partial failure.
+Transient connection errors trigger retries after `3`, `5`, `10`, `20`, then `30` seconds. Press `r` to retry immediately. Authentication, private-key, DNS, and host-key failures pause instead of retrying forever.
+
+The pane explains the detected failure and keeps other hosts usable. If it had connected before, it also shows the time and service count from the last good update as stale; service actions stay disabled until the connection recovers.
+
+## SSH connection is refused
+
+“Connection refused” means the target actively rejected the TCP connection. From the client alone, homelab-tui cannot tell whether SSH is disabled, the SSH service is stopped, the configured port is wrong, or a firewall is rejecting it. Check all four, then press `r` to retry.
+
+Timeout and “host unreachable” messages usually indicate routing, VPN, firewall, or power-state problems. “Host not found” indicates a hostname or DNS problem.
+
+Host-key failures never retry automatically. Verify the remote host identity before changing a trusted key.
 
 ## Docker services are missing
 

@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTerminalDimensions } from "@opentui/react";
 import { Box, Text, TextInput, useApp, useInput } from "./tui.js";
-import { MonitorPane } from "./MonitorPane.js";
-import type { MonitorPaneHandle } from "./MonitorPane.js";
+import { MonitorPane, canRetryConnection } from "./MonitorPane.js";
+import type { MonitorPaneHandle, PaneConnectionState } from "./MonitorPane.js";
 import { ServiceDetails } from "./ServiceDetails.js";
 import { LogPanel, splitLogChunk } from "./LogPanel.js";
 import { Footer } from "./Footer.js";
@@ -27,6 +27,7 @@ const MAX_HISTORY = 5;
 type PaneState = {
   service: Service | null;
   snapshot: MonitorSnapshot | null;
+  connection: PaneConnectionState;
   history: Map<string, StatusChange[]>;
 };
 
@@ -45,7 +46,7 @@ function mergeHistory(
   }
   return next;
 }
-type Mode = "normal" | "picking" | "new-password" | "passphrase" | "auth-failed" | "compose-restart";
+type Mode = "normal" | "picking" | "new-password" | "credential" | "compose-restart";
 
 type Props = {
   initialHosts: HostConfig[];
@@ -63,7 +64,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   const [hosts, setHosts] = useState<HostConfig[]>(initialHosts);
   const [connectOpts, setConnectOpts] = useState<(ConnectOptions | undefined)[]>(initialConnectOptions);
   const [paneStates, setPaneStates] = useState<PaneState[]>(
-    () => initialHosts.map(() => ({ service: null, snapshot: null, history: new Map() }))
+    () => initialHosts.map(() => ({ service: null, snapshot: null, connection: { status: "connecting" }, history: new Map() }))
   );
   const [focusedPane, setFocusedPane] = useState(0);
 
@@ -75,8 +76,10 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   const [mode, setMode] = useState<Mode>("normal");
   const [pickerIdx, setPickerIdx] = useState(0);
   const [credentialValue, setCredentialValue] = useState("");
-  const [pendingHost, setPendingHost] = useState<HostConfig | null>(null);   // for new-password / passphrase
-  const [passphrasePane, setPassphrasePane] = useState<number>(-1);          // which pane needs passphrase
+  const [pendingHost, setPendingHost] = useState<HostConfig | null>(null);
+  const [credentialPane, setCredentialPane] = useState(-1);
+  const [credentialKind, setCredentialKind] = useState<"password" | "passphrase">("password");
+  const [credentialError, setCredentialError] = useState<string | undefined>();
 
   // Logs
   const [logsOpen, setLogsOpen] = useState(false);
@@ -89,10 +92,6 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Auth failure re-prompt
-  const [authFailedPane, setAuthFailedPane] = useState(-1);
-  const [authFailedError, setAuthFailedError] = useState("");
-
   // Update check (once)
   const [updateTag, setUpdateTag] = useState<string | null>(null);
   useEffect(() => {
@@ -101,8 +100,13 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
       .catch(() => {});
   }, []);
 
-  const focused = paneStates[focusedPane] ?? { service: null, snapshot: null };
-  const selectedService = focused.service;
+  const focused = paneStates[focusedPane] ?? {
+    service: null,
+    snapshot: null,
+    connection: { status: "connecting" } as PaneConnectionState,
+    history: new Map<string, StatusChange[]>(),
+  };
+  const selectedService = focused.connection.status === "online" ? focused.service : null;
   const os = focused.snapshot?.remoteOS ?? "unknown";
 
   // Hosts not yet open (candidates for the picker)
@@ -120,7 +124,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
   const addPane = useCallback((host: HostConfig, opts?: ConnectOptions) => {
     setHosts((prev) => [...prev, host]);
     setConnectOpts((prev) => [...prev, opts]);
-    setPaneStates((prev) => [...prev, { service: null, snapshot: null, history: new Map() }]);
+    setPaneStates((prev) => [...prev, { service: null, snapshot: null, connection: { status: "connecting" }, history: new Map() }]);
     setFocusedPane((prev) => prev + 1); // focus the new pane (it will be last)
     setMode("normal");
     setCredentialValue("");
@@ -214,10 +218,14 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
       return;
     }
 
-    // ── Credential / auth-failed modes ──
-    if (mode === "new-password" || mode === "passphrase" || mode === "auth-failed") {
+    // ── Credential modes ──
+    if (mode === "new-password" || mode === "credential") {
       if (monitorKeys.cancel.matches(input, key)) {
         setMode(mode === "new-password" ? "picking" : "normal");
+        if (mode === "credential") {
+          setCredentialPane(-1);
+          setCredentialError(undefined);
+        }
         return;
       }
       return;
@@ -246,7 +254,6 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
 
     if (monitorKeys.quit.matches(input, key)) { exit(); return; }
     if (monitorKeys.hosts.matches(input, key)) { onSwitchHost(); return; }
-    if (monitorKeys.logs.matches(input, key)) { setLogsOpen((o) => !o); return; }
 
     if (monitorKeys.addPane.matches(input, key) && availableHosts.length > 0) {
       setPickerIdx(0);
@@ -256,6 +263,15 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     if (monitorKeys.closePane.matches(input, key) && hosts.length > 1) { removePane(focusedPane); return; }
     if (monitorKeys.swapLeft.matches(input, key) && hosts.length > 1) { swapPane(focusedPane, focusedPane - 1); return; }
     if (monitorKeys.swapRight.matches(input, key) && hosts.length > 1) { swapPane(focusedPane, focusedPane + 1); return; }
+
+    if (focused.connection.status !== "online") {
+      const pane = paneRefsMap.current.get(paneKey(hosts[focusedPane]));
+      if (monitorKeys.retry.matches(input, key) && canRetryConnection(focused.connection)) pane?.retry();
+      else if (monitorKeys.credentials.matches(input, key) && focused.connection.status === "needs-credential") pane?.requestCredential();
+      return;
+    }
+
+    if (monitorKeys.logs.matches(input, key)) { setLogsOpen((o) => !o); return; }
 
     if (!selectedService || busy) return;
 
@@ -280,35 +296,31 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
     }
   });
 
-  // ── Passphrase handler from a pane ────────────────────────────────────────
-  const handleNeedPassphrase = useCallback((paneIdx: number) => {
-    setPassphrasePane(paneIdx);
-    setPendingHost(hosts[paneIdx]);
+  // ── Credential handler from a pane ────────────────────────────────────────
+  const handleCredentialNeeded = useCallback((paneIdx: number, kind: "password" | "passphrase", error?: string) => {
+    setCredentialPane(paneIdx);
+    setCredentialKind(kind);
+    setCredentialError(error);
     setCredentialValue("");
-    setMode("passphrase");
-  }, [hosts]);
+    setMode("credential");
+  }, []);
 
-  const handlePassphraseSubmit = useCallback((val: string) => {
-    if (passphrasePane < 0) return;
-    setConnectOpts((prev) => prev.map((o, i) => i === passphrasePane ? { passphrase: val } : o));
+  const handleCredentialSubmit = useCallback((value: string) => {
+    if (credentialPane < 0 || !value.trim()) return;
+    setConnectOpts((prev) => prev.map((options, i) =>
+      i === credentialPane ? { ...options, [credentialKind]: value } : options
+    ));
     setMode("normal");
-    setPassphrasePane(-1);
-  }, [passphrasePane]);
-
-  const handleAuthFailed = useCallback((paneIdx: number, msg: string) => {
-    setAuthFailedPane(paneIdx);
-    setPendingHost(hosts[paneIdx]);
-    setCredentialValue("");
-    setAuthFailedError(msg);
-    setMode("auth-failed");
-  }, [hosts]);
+    setCredentialPane(-1);
+    setCredentialError(undefined);
+  }, [credentialPane, credentialKind]);
 
   const logsVisible = logsOpen && mode === "normal";
   const layout = getTerminalLayout(terminalSize.columns, terminalSize.rows, hosts.length, logsVisible);
   const paneWidth = layout.paneWidth;
   const multi = hosts.length > 1;
-  const onlineCount = paneStates.filter((pane) => pane.snapshot && !pane.snapshot.error).length;
-  const failedCount = paneStates.filter((pane) => pane.snapshot?.error).length;
+  const onlineCount = paneStates.filter((pane) => pane.connection.status === "online").length;
+  const failedCount = paneStates.filter((pane) => pane.connection.status === "offline" || pane.connection.status === "needs-credential").length;
   const pendingCount = hosts.length - onlineCount - failedCount;
   const hostOverview = (layout.narrow
     ? hosts.map((host, index) => ({ host, index })).filter(({ index }) => index === focusedPane)
@@ -329,14 +341,15 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
         </Box>
         <Box gap={2}>
           {hostOverview.map(({ host: h, index: i }) => {
-            const snap = paneStates[i]?.snapshot;
+            const paneConnection = paneStates[i]?.connection ?? { status: "connecting" };
             const isFocused = i === focusedPane;
-            const status = snap?.error ? palette.danger : snap ? palette.healthy : palette.warning;
+            const failed = paneConnection.status === "offline" || paneConnection.status === "needs-credential";
+            const status = failed ? palette.danger : paneConnection.status === "online" ? palette.healthy : palette.warning;
             return (
               <Box key={i} gap={1}>
                 <Text color={isFocused ? palette.focus : palette.inactive}>{isFocused ? "▶" : " "}</Text>
                 <Text bold={isFocused} color={isFocused ? palette.focus : palette.inactive}>[{i + 1}] {h.name}</Text>
-                <Text color={status}>{snap?.error ? "✗" : snap ? "●" : "○"}</Text>
+                <Text color={status}>{failed ? "✗" : paneConnection.status === "online" ? "●" : "○"}</Text>
               </Box>
             );
           })}
@@ -361,12 +374,18 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
             containerWidth={paneWidth}
             viewHeight={layout.serviceRows}
             compact={layout.compact || logsVisible}
-            onNeedPassphrase={() => handleNeedPassphrase(i)}
-            onAuthFailed={(msg) => handleAuthFailed(i, msg)}
-            onStateChange={(svc, snap) =>
+            credentialPrompt={mode === "credential" && credentialPane === i ? {
+              mode: credentialKind,
+              value: credentialValue,
+              error: credentialError,
+              onChange: setCredentialValue,
+              onSubmit: handleCredentialSubmit,
+            } : undefined}
+            onCredentialNeeded={(kind, error) => handleCredentialNeeded(i, kind, error)}
+            onStateChange={(svc, snap, connection) =>
               setPaneStates((prev) => prev.map((s, j) => {
                 if (j !== i) return s;
-                return { service: svc, snapshot: snap, history: mergeHistory(s.history, s.snapshot, snap) };
+                return { service: svc, snapshot: snap, connection, history: mergeHistory(s.history, s.snapshot, snap) };
               }))
             }
           />
@@ -396,34 +415,17 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
         </Box>
       )}
 
-      {/* Overlay: credential (new pane password, passphrase, or auth re-prompt) */}
-      {(mode === "new-password" || mode === "passphrase" || mode === "auth-failed") && pendingHost && (
-        <Box borderStyle="single" borderColor={mode === "auth-failed" ? palette.danger : palette.warning}
-          paddingX={1} flexDirection="column">
-          {mode === "auth-failed" && (
-            <Text color={palette.danger}>Authentication failed — check your password and try again.</Text>
-          )}
+      {/* New panes need a password before their pane exists. Re-prompts render inside the affected pane. */}
+      {mode === "new-password" && pendingHost && (
+        <Box borderStyle="single" borderColor={palette.warning} paddingX={1} flexDirection="column">
           <Box>
-            <Text color={mode === "auth-failed" ? palette.danger : palette.warning}>
-              {mode === "passphrase" ? "Passphrase" : "Password"} for {pendingHost.name}:{" "}
-            </Text>
+            <Text color={palette.warning}>Password for {pendingHost.name}: </Text>
             <TextInput
               value={credentialValue}
               onChange={setCredentialValue}
               onSubmit={(val) => {
                 if (!val.trim()) return;
-                if (mode === "new-password") {
-                  addPane(pendingHost, { password: val });
-                } else if (mode === "auth-failed") {
-                  setConnectOpts((prev) =>
-                    prev.map((o, i) => i === authFailedPane ? { password: val } : o)
-                  );
-                  setMode("normal");
-                  setAuthFailedPane(-1);
-                  setAuthFailedError("");
-                } else {
-                  handlePassphraseSubmit(val);
-                }
+                addPane(pendingHost, { password: val });
               }}
               mask="*"
               focus
@@ -459,7 +461,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
       )}
 
       {/* Shared details (only in normal mode) */}
-      {mode === "normal" && (
+      {mode === "normal" && focused.connection.status === "online" && (
         <ServiceDetails
           service={selectedService}
           history={focused.history}
@@ -483,6 +485,9 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
         focusedPane={focusedPane}
         canAddPane={availableHosts.length > 0}
         canRemovePane={multi}
+        connectionStatus={focused.connection.status}
+        canRetry={canRetryConnection(focused.connection)}
+        overlayActive={mode !== "normal"}
       />
     </Box>
   );

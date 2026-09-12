@@ -60,3 +60,19 @@ test("wrapped footer keeps every keyboard hint visible", async () => {
     act(() => { setup.renderer.destroy(); });
   }
 });
+
+test("credential failures replace service actions with recovery hints", async () => {
+  const setup = await testRender(
+    <Footer actionMessage={null} error={null} connectionStatus="needs-credential" canRetry={false} />,
+    { width: 80, height: 3 },
+  );
+  try {
+    await act(async () => { await setup.renderOnce(); });
+    const frame = setup.captureCharFrame();
+    expect(frame).toContain("c credentials");
+    expect(frame).toContain("h hosts");
+    expect(frame).not.toContain("restart");
+  } finally {
+    act(() => { setup.renderer.destroy(); });
+  }
+});
