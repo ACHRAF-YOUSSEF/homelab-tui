@@ -21,7 +21,7 @@ import { version as VERSION } from "../../package.json";
 import type { ConnectOptions, RemoteShell } from "../transports/ssh.js";
 import type { HostConfig, MonitorSnapshot, Service, ServiceStatus, StatusChange } from "../core/types.js";
 import { getShellSize, getTerminalLayout, getVisibleTabIndexes } from "./geometry.js";
-import { monitorKeys } from "./keys.js";
+import { encodeTerminalKey, monitorKeys } from "./keys.js";
 import { palette } from "./palette.js";
 
 const MAX_LOG_LINES = 2000;
@@ -467,7 +467,7 @@ export function MultiMonitor({ initialHosts, initialConnectOptions, allHosts, on
       setTerminalPrompt("prefix");
       return;
     }
-    active?.terminal.input(key.sequence);
+    active?.terminal.input(encodeTerminalKey(key, active.terminal.modes.applicationCursorKeysMode));
   });
 
   usePaste((event) => {
