@@ -41,7 +41,8 @@
   line-height: 1.55;
 }
 
-.VPHero .image-src {
+.VPHero .image-src,
+.vp-doc img {
   position: static;
   width: 100%;
   max-width: 100%;
@@ -85,11 +86,13 @@
   }
 }
 
-.VPHero .image-src:hover {
+.VPHero .image-src:hover,
+.vp-doc img:hover {
   border-color: var(--vp-c-brand-1);
 }
 
-.VPHero .image-src:focus-visible {
+.VPHero .image-src:focus-visible,
+.vp-doc img:focus-visible {
   outline: 3px solid var(--vp-c-brand-1);
   outline-offset: 4px;
 }

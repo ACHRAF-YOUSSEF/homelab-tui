@@ -9,11 +9,11 @@ function mountLightbox(): void {
   const openLabel = french ? "Ouvrir la capture en taille réelle" : "Open full-size screenshot";
   const closeLabel = french ? "Fermer la capture" : "Close screenshot";
 
-  const isHeroImage = (target: EventTarget | null): target is HTMLImageElement =>
-    target instanceof HTMLImageElement && Boolean(target.closest(".VPHero .image"));
+  const isPreviewImage = (target: EventTarget | null): target is HTMLImageElement =>
+    target instanceof HTMLImageElement && Boolean(target.closest(".VPHero .image, .vp-doc"));
 
   const prepareImages = (): void => {
-    document.querySelectorAll<HTMLImageElement>(".VPHero .image-src").forEach((image) => {
+    document.querySelectorAll<HTMLImageElement>(".VPHero .image-src, .vp-doc img").forEach((image) => {
       image.tabIndex = 0;
       image.setAttribute("role", "button");
       image.setAttribute("aria-haspopup", "dialog");
@@ -67,10 +67,10 @@ function mountLightbox(): void {
   };
 
   document.addEventListener("click", (event) => {
-    if (isHeroImage(event.target)) open(event.target);
+    if (isPreviewImage(event.target)) open(event.target);
   });
   document.addEventListener("keydown", (event) => {
-    if (!isHeroImage(event.target) || (event.key !== "Enter" && event.key !== " ")) return;
+    if (!isPreviewImage(event.target) || (event.key !== "Enter" && event.key !== " ")) return;
     event.preventDefault();
     open(event.target);
   });
