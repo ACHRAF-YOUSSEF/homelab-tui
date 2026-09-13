@@ -6,6 +6,8 @@ Select one host and press `Enter`, or press `m` to choose several hosts before c
 
 From the monitor, press `a` to add tabs. The picker can add one or several configured hosts, or create and save a new host without losing hosts already checked in that add operation. Press `Esc` to cancel the operation, or `Enter` to add the checked hosts.
 
+![Add one or more configured hosts without leaving the monitor](/add-host.png)
+
 The top bar summarizes the whole session:
 
 - Healthy hosts remain usable when another host fails.
@@ -25,11 +27,17 @@ For a healthy host, the TUI can show:
 - Recent status transitions for the selected service.
 - A service-down alert when a running service becomes stopped or failed.
 
+![System metrics, services, and details for a Windows host](/monitor.png)
+
+![Two connected host tabs with services and live logs](/logs.png)
+
 At `80×24`, metrics and full details collapse into a compact layout while selection and primary actions remain visible. Wider terminals add service columns. Long tab lists scroll around the active host instead of overflowing.
 
 ## Terminals
 
 Press `v` on an online host to replace the service view with an interactive SSH shell. Use the `Ctrl+B` prefix shown in the footer to open, select, reorder, or close shells, switch host tabs, or return to service details. Every host keeps its own shells and active shell when you switch tabs. Shells remain open until you close their host tab or leave the monitor.
+
+![Interactive SSH shell with multiple terminal tabs](/terminal.png)
 
 ## Logs
 

@@ -4,6 +4,10 @@
 
 Sélectionnez une machine et appuyez sur `Entrée`, ou appuyez sur `m` pour en choisir plusieurs. Chaque machine dispose de son propre onglet et de sa propre connexion SSH.
 
+Depuis la vue de surveillance, appuyez sur `a` pour ajouter une ou plusieurs machines configurées sans fermer les onglets déjà ouverts.
+
+![Ajouter une ou plusieurs machines sans quitter la surveillance](/add-host.png)
+
 La barre supérieure résume la session :
 
 - Les machines disponibles restent utilisables lorsqu'une autre échoue.
@@ -17,11 +21,17 @@ Chaque onglet contient l'état de la machine et une liste de services pleine lar
 
 Une machine disponible peut afficher l'utilisation CPU, mémoire et disque, les conteneurs Docker et Compose, les programmes écoutant sur des ports TCP et les changements d'état récents.
 
+![Métriques système, services et détails d'une machine Windows](/monitor.png)
+
+![Deux onglets de machines connectées avec les services et les journaux en direct](/logs.png)
+
 À `80×24`, les métriques et détails complets passent en mode compact. Les terminaux plus larges affichent davantage de colonnes. Les longues listes d'onglets restent centrées sur la machine active sans déborder.
 
 ## Terminaux
 
 Appuyez sur `v` sur une machine connectée pour remplacer la vue des services par un shell SSH interactif. Le préfixe `Ctrl+B`, affiché dans le pied de page, permet d'ouvrir, sélectionner, déplacer ou fermer des shells, de changer d'onglet de machine et de revenir aux détails. Chaque machine conserve ses propres shells et le shell actif lorsque vous changez d'onglet.
+
+![Shell SSH interactif avec plusieurs onglets de terminal](/terminal.png)
 
 ## Journaux
 
