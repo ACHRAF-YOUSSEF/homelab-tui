@@ -13,6 +13,7 @@ function mountLightbox(): void {
     target instanceof HTMLImageElement && Boolean(target.closest(".VPHero .image, .vp-doc"));
 
   const prepareImages = (): void => {
+    document.querySelector(".VPHome")?.setAttribute("role", "main");
     document.querySelectorAll<HTMLImageElement>(".VPHero .image-src, .vp-doc img").forEach((image) => {
       image.tabIndex = 0;
       image.setAttribute("role", "button");

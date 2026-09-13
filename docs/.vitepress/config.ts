@@ -93,7 +93,7 @@ export default defineConfig({
   ],
 
   themeConfig: {
-    logo: { src: "/logo.svg", alt: "homelab-tui" },
+    logo: { src: "/logo.svg", alt: "" },
     nav: englishNav,
 
     sidebar: {
